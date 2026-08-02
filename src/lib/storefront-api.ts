@@ -247,6 +247,38 @@ export async function fetchFeaturedProducts(
   return result.items;
 }
 
+export type StorefrontSeller = {
+  id: string;
+  fullName: string;
+  phone: string;
+  telegramUsername?: string;
+  avatarUrl?: string;
+};
+
+export async function fetchSellers(): Promise<StorefrontSeller[]> {
+  try {
+    const rows = await publicFetch<
+      Array<{
+        _id: string;
+        fullName: string;
+        phone: string;
+        telegramUsername?: string;
+        avatarUrl?: string;
+        status?: string;
+      }>
+    >("/sellers");
+    return rows.map((s) => ({
+      id: String(s._id),
+      fullName: s.fullName,
+      phone: s.phone,
+      telegramUsername: s.telegramUsername,
+      avatarUrl: s.avatarUrl,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchRelatedProducts(
   product: Product,
   limit = 4,

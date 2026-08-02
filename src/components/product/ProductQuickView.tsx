@@ -143,13 +143,13 @@ export function ProductQuickView({
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
-          <div className="relative mx-4 overflow-hidden rounded-[1.25rem] bg-[#ececee]">
-            <div className="relative mx-auto aspect-square w-full max-w-[min(100%,280px)]">
+          <div className="relative mx-4 overflow-hidden rounded-[1.25rem] bg-muted">
+            <div className="relative aspect-square w-full">
               <ProductImage
                 src={current}
                 alt={product.name}
                 fill
-                className="object-contain p-3"
+                className="p-5 sm:p-7"
               />
             </div>
             {product.images.length > 1 ? (
@@ -161,9 +161,9 @@ export function ProductQuickView({
                       onClick={() => setActive(index)}
                       aria-label={`${product.name} — ${index + 1}-rasm`}
                       className={cn(
-                        "relative size-11 overflow-hidden rounded-xl border-2 transition sm:size-12",
+                        "relative size-11 overflow-hidden rounded-xl border-2 bg-card/90 transition sm:size-12",
                         active === index
-                          ? "border-white ring-2 ring-black/20"
+                          ? "border-foreground/40 ring-2 ring-foreground/15"
                           : "border-transparent opacity-80",
                       )}
                     >
@@ -171,7 +171,7 @@ export function ProductQuickView({
                         src={src}
                         alt=""
                         fill
-                        className="object-cover"
+                        className="p-1"
                       />
                     </button>
                   </li>

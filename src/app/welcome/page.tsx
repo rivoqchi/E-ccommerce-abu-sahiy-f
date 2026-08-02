@@ -4,7 +4,7 @@ import { WelcomeHero } from "@/components/welcome/WelcomeHero";
 export const metadata: Metadata = {
   title: "Kirish",
   description:
-    "UyTexnika — kundalik xaridingizning ishonchli hamrohi. Maishiy texnika va oshxona anjomlari.",
+    "Sami — kundalik xaridingizning ishonchli hamrohi. Maishiy texnika va oshxona anjomlari.",
   alternates: {
     canonical: "/welcome",
   },

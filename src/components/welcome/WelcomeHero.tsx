@@ -13,7 +13,7 @@ export function WelcomeHero() {
       <div className="absolute inset-0">
         <Image
           src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1600&q=85"
-          alt="UyTexnika do'koni"
+          alt="Sami do'koni"
           fill
           priority
           sizes="100vw"
@@ -25,7 +25,7 @@ export function WelcomeHero() {
 
       <div className="relative z-10 flex items-center justify-between px-5 pt-[max(1.25rem,env(safe-area-inset-top))] md:px-10 md:pt-8">
         <p className="text-sm font-semibold tracking-tight text-white/90">
-          UyTexnika
+          Sami
         </p>
         <ThemeToggle className="bg-white/15 text-white backdrop-blur-md hover:bg-white/25 hover:text-white" />
       </div>

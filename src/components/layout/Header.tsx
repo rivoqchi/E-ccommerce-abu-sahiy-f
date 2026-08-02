@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
 import { useCartStore } from "@/store/cart";
 
-const NAV_BRAND = "UyTexnika";
+const NAV_BRAND = "Sami";
 
 const desktopBaseLinks = [
   { href: "/", label: "Bosh sahifa" },
@@ -21,7 +21,7 @@ const desktopBaseLinks = [
   { href: "/cart", label: "Savat" },
 ] as const;
 
-const AUTH_STORAGE_KEY = "uytexnika-auth";
+const AUTH_STORAGE_KEY = "sami-auth";
 
 function peekStoredSession(): boolean {
   try {

@@ -152,7 +152,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: "uytexnika-auth",
+      name: "sami-auth",
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

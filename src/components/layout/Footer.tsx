@@ -20,7 +20,7 @@ export function Footer() {
   }, []);
 
   return (
-    <footer className="mt-auto border-t border-border bg-card">
+    <footer className="mt-auto border-border bg-card">
       <div className="mx-auto grid w-[80%] max-w-6xl gap-10 py-12 md:grid-cols-3">
         <div>
           <p className="text-xl font-semibold tracking-tight text-foreground">
@@ -33,19 +33,29 @@ export function Footer() {
 
         <div>
           <p className="text-sm font-semibold text-foreground">Kategoriyalar</p>
-          <ul className="mt-3 space-y-2">
-            {categories.length > 0 ? (
-              categories.map((cat) => (
-                <li key={cat.id}>
-                  <Link
-                    href={`/catalog?category=${cat.slug}`}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {cat.name}
-                  </Link>
-                </li>
-              ))
-            ) : (
+          {categories.length > 0 ? (
+            <>
+              <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+                {categories.slice(0, 4).map((cat) => (
+                  <li key={cat.id}>
+                    <Link
+                      href={`/catalog?category=${cat.slug}`}
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {cat.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/catalog"
+                className="mt-3 inline-block text-sm font-medium text-foreground transition-colors hover:opacity-80"
+              >
+                {categories.length > 4 ? "Barcha katalog" : "Katalog"}
+              </Link>
+            </>
+          ) : (
+            <ul className="mt-3 space-y-2">
               <li>
                 <Link
                   href="/catalog"
@@ -54,8 +64,8 @@ export function Footer() {
                   Katalog
                 </Link>
               </li>
-            )}
-          </ul>
+            </ul>
+          )}
         </div>
 
         <div>
@@ -68,10 +78,10 @@ export function Footer() {
             </li>
             <li>
               <a
-                href="mailto:info@uytexnika.uz"
+                href="mailto:info@sami.uz"
                 className="hover:text-foreground"
               >
-                info@uytexnika.uz
+                info@sami.uz
               </a>
             </li>
             <li>Toshkent, O&apos;zbekiston</li>

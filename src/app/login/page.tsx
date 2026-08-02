@@ -3,7 +3,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 
 export const metadata: Metadata = {
   title: "Kirish",
-  description: "Telefon orqali UyTexnika hisobiga kiring.",
+  description: "Telefon orqali Sami hisobiga kiring.",
   robots: { index: false, follow: false },
 };
 

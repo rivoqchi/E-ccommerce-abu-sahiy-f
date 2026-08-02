@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, ShoppingBag } from "lucide-react";
+import { Bell, ShoppingBag, User } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { useAuthStore } from "@/store/auth";
 import { useCartStore } from "@/store/cart";
 
 function useCartCount() {
@@ -18,28 +19,42 @@ function useCartCount() {
   );
 }
 
+function greetingName(fullName?: string | null, firstName?: string | null) {
+  const raw = (firstName?.trim() || fullName?.trim() || "").replace(/\s+/g, " ");
+  if (!raw) return "Mehmon";
+  return raw;
+}
+
 export function HomeGreeting() {
   const count = useCartCount();
+  const user = useAuthStore((s) => s.user);
+
+  const name = greetingName(user?.fullName, user?.firstName);
+  const profileHref = user ? "/account" : "/login";
 
   return (
     <div className="flex items-center justify-between gap-3">
-      <div className="flex min-w-0 items-center gap-3">
+      <Link
+        href={profileHref}
+        className="flex min-w-0 items-center gap-3 rounded-2xl outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring"
+      >
         <Avatar size="lg" className="size-12 ring-2 ring-background shadow-sm">
-          <AvatarImage
-            src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&q=80"
-            alt="Foydalanuvchi"
-          />
-          <AvatarFallback>M</AvatarFallback>
+          {user?.avatarUrl ? (
+            <AvatarImage src={user.avatarUrl} alt={name} />
+          ) : null}
+          <AvatarFallback className="bg-secondary text-muted-foreground">
+            <User className="size-5" strokeWidth={1.75} />
+          </AvatarFallback>
         </Avatar>
         <div className="min-w-0">
           <p className="truncate text-base font-semibold tracking-tight text-foreground">
-            Salom, Mehmon
+            Salom, {name}
           </p>
           <p className="truncate text-sm text-muted-foreground">
-            UyTexnikaga xush kelibsiz
+            Samiga xush kelibsiz
           </p>
         </div>
-      </div>
+      </Link>
 
       <div className="flex shrink-0 items-center gap-0.5 rounded-full bg-card px-1.5 py-1.5 shadow-[var(--shadow-soft)]">
         <ThemeToggle size="icon-sm" />

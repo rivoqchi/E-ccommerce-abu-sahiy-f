@@ -1,4 +1,4 @@
-# UyTexnika Frontend
+# Sami Frontend
 
 Maishiy texnika va idishlar e-commerce do'koni — Next.js App Router frontend.
 

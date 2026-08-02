@@ -2,18 +2,21 @@ import { HomeGreeting } from "@/components/home/HomeGreeting";
 import { HomeSearch } from "@/components/home/HomeSearch";
 import { PromoBanner } from "@/components/home/PromoBanner";
 import { HomeCategoryPills } from "@/components/home/HomeCategoryPills";
+import { HomeSellers } from "@/components/home/HomeSellers";
 import { FeaturedProducts } from "@/components/home/FeaturedProducts";
 import {
   fetchCategories,
   fetchFeaturedProducts,
+  fetchSellers,
 } from "@/lib/storefront-api";
 
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const [featured, categories] = await Promise.all([
+  const [featured, categories, sellers] = await Promise.all([
     fetchFeaturedProducts(8),
     fetchCategories(),
+    fetchSellers(),
   ]);
 
   return (
@@ -26,7 +29,7 @@ export default async function HomePage() {
         <div className="hidden items-end justify-between gap-6 md:flex">
           <div>
             <p className="text-sm text-muted-foreground">
-              UyTexnikaga xush kelibsiz
+              Samiga xush kelibsiz
             </p>
             <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground lg:text-4xl">
               Kundalik xaridingizning ishonchli hamrohi
@@ -42,6 +45,7 @@ export default async function HomePage() {
         </div>
 
         <PromoBanner />
+        <HomeSellers sellers={sellers} />
         <HomeCategoryPills categories={categories} />
         <FeaturedProducts products={featured} />
       </div>

@@ -8,7 +8,7 @@ export function organizationJsonLd() {
     name: SITE_NAME,
     url: SITE_URL,
     description:
-      "Maishiy texnika, pishirish va oshxona idishlari — UyTexnika onlayn do'koni.",
+      "Maishiy texnika, pishirish va oshxona idishlari — Sami onlayn do'koni.",
     logo: `${SITE_URL}/favicon.ico`,
   };
 }

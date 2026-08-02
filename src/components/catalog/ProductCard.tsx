@@ -46,7 +46,7 @@ export function ProductCard({ product, className, priority }: ProductCardProps) 
         <div className="relative">
           <Link
             href={`/product/${product.slug}`}
-            className="relative block aspect-[3/4] overflow-hidden rounded-[28px] bg-[#ececee]"
+            className="relative block aspect-square overflow-hidden rounded-[28px] bg-muted"
             aria-label={product.name}
           >
             <ProductImage
@@ -55,7 +55,7 @@ export function ProductCard({ product, className, priority }: ProductCardProps) 
               fill
               priority={priority}
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover object-center transition duration-500 group-hover:scale-[1.02]"
+              className="p-4 transition duration-500 group-hover:scale-[1.02] sm:p-5"
             />
           </Link>
 

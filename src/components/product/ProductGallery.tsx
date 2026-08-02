@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ProductImage } from "@/components/catalog/ProductImage";
+import { cn } from "@/lib/utils";
 
 interface ProductGalleryProps {
   images: string[];
@@ -14,14 +15,14 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
 
   return (
     <div className="space-y-3">
-      <div className="relative aspect-square overflow-hidden rounded-sm bg-background-elevated">
+      <div className="relative aspect-square overflow-hidden rounded-2xl bg-muted">
         <ProductImage
           src={current}
           alt={name}
           fill
           priority
           sizes="(max-width: 768px) 100vw, 50vw"
-          className="object-cover animate-fade-in"
+          className="animate-fade-in p-6"
         />
       </div>
       {images.length > 1 ? (
@@ -32,18 +33,19 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
                 type="button"
                 onClick={() => setActive(index)}
                 aria-label={`${name} rasm ${index + 1}`}
-                className={`relative h-16 w-16 overflow-hidden rounded-sm border transition ${
+                className={cn(
+                  "relative h-16 w-16 overflow-hidden rounded-xl border-2 bg-muted transition",
                   active === index
-                    ? "border-accent ring-1 ring-accent"
-                    : "border-border opacity-80 hover:opacity-100"
-                }`}
+                    ? "border-foreground/40 ring-1 ring-foreground/15"
+                    : "border-transparent opacity-80 hover:opacity-100",
+                )}
               >
                 <ProductImage
                   src={src}
                   alt=""
                   fill
                   sizes="64px"
-                  className="object-cover"
+                  className="p-1.5"
                 />
               </button>
             </li>

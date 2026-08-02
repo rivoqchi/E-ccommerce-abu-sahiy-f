@@ -136,14 +136,14 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
           </Button>
         </header>
 
-        <div className="relative mx-auto mt-2 aspect-[4/5] w-[86%] max-w-sm overflow-hidden rounded-[2rem] bg-secondary">
+        <div className="relative mx-auto mt-2 aspect-square w-[86%] max-w-sm overflow-hidden rounded-[2rem] bg-muted">
           <ProductImage
             src={current}
             alt={product.name}
             fill
             priority
             sizes="90vw"
-            className="object-cover animate-fade-in"
+            className="animate-fade-in p-5"
           />
         </div>
 
@@ -156,9 +156,9 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                   onClick={() => setActive(index)}
                   aria-label={`${product.name} — ${index + 1}-rasm`}
                   className={cn(
-                    "relative size-14 overflow-hidden rounded-2xl border-2 transition",
+                    "relative size-14 overflow-hidden rounded-2xl border-2 bg-muted transition",
                     active === index
-                      ? "border-sky-400 ring-2 ring-sky-400/30"
+                      ? "border-foreground/40 ring-2 ring-foreground/15"
                       : "border-transparent opacity-80",
                   )}
                 >
@@ -167,7 +167,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                     alt=""
                     fill
                     sizes="56px"
-                    className="object-cover"
+                    className="p-1.5"
                   />
                 </button>
               </li>
@@ -274,14 +274,14 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
 
         <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
           <div>
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-secondary lg:aspect-square">
+            <div className="relative aspect-square overflow-hidden rounded-[2rem] bg-muted">
               <ProductImage
                 src={current}
                 alt={product.name}
                 fill
                 priority
                 sizes="(max-width: 1024px) 50vw, 40vw"
-                className="object-cover animate-fade-in"
+                className="animate-fade-in p-6 lg:p-8"
               />
               <Button
                 variant="secondary"
@@ -310,9 +310,9 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                       onClick={() => setActive(index)}
                       aria-label={`${product.name} — ${index + 1}-rasm`}
                       className={cn(
-                        "relative size-20 overflow-hidden rounded-2xl border-2 transition",
+                        "relative size-20 overflow-hidden rounded-2xl border-2 bg-muted transition",
                         active === index
-                          ? "border-sky-400 ring-2 ring-sky-400/30"
+                          ? "border-foreground/40 ring-2 ring-foreground/15"
                           : "border-transparent opacity-75 hover:opacity-100",
                       )}
                     >
@@ -321,7 +321,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                         alt=""
                         fill
                         sizes="80px"
-                        className="object-cover"
+                        className="p-2"
                       />
                     </button>
                   </li>

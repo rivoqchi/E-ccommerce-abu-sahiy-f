@@ -183,7 +183,7 @@ export function LoginForm() {
       />
 
       <div className="mt-4">
-        <p className="text-sm font-medium text-muted-foreground">UyTexnika</p>
+        <p className="text-sm font-medium text-muted-foreground">Sami</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
           {step === "phone" ? "Hisobga kirish" : "Kodni kiriting"}
         </h1>

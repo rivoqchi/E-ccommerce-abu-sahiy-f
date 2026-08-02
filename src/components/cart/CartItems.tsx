@@ -56,7 +56,7 @@ export function CartItems() {
                   alt={item.name}
                   fill
                   sizes="96px"
-                  className="object-cover"
+                  className="p-2"
                 />
               </Link>
 

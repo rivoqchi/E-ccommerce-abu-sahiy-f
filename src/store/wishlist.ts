@@ -72,7 +72,7 @@ export const useWishlistStore = create<WishlistState>()(
       totalItems: () => get().items.length,
     }),
     {
-      name: "uytexnika-wishlist",
+      name: "sami-wishlist",
       partialize: (state) => ({
         items: state.items,
       }),

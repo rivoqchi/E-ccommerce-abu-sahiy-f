@@ -13,6 +13,8 @@ interface ProductImageProps {
   height?: number;
   sizes?: string;
   priority?: boolean;
+  /** Product photos default to contain — never crop. */
+  fit?: "contain" | "cover";
   className?: string;
 }
 
@@ -27,6 +29,7 @@ export function ProductImage({
   width,
   height,
   priority,
+  fit = "contain",
   className,
 }: ProductImageProps) {
   const [current, setCurrent] = useState(() => resolveProductImage(src));
@@ -45,7 +48,11 @@ export function ProductImage({
       loading={priority ? "eager" : "lazy"}
       decoding="async"
       fetchPriority={priority ? "high" : "auto"}
-      className={cn(fill && "absolute inset-0 size-full", className)}
+      className={cn(
+        fill && "absolute inset-0 size-full",
+        fit === "contain" ? "object-contain" : "object-cover object-center",
+        className,
+      )}
       onError={() => {
         if (current !== PRODUCT_IMAGE_PLACEHOLDER) {
           setCurrent(PRODUCT_IMAGE_PLACEHOLDER);

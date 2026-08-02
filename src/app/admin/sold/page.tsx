@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Download, FileSpreadsheet, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -12,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { useAdminApi } from "@/lib/admin-api";
 import { formatUZS } from "@/lib/format";
+import { downloadSoldExcel, downloadSoldWord } from "@/lib/sold-export";
 
 type SoldRow = {
   _id: string;
@@ -34,8 +37,49 @@ export default function AdminSoldPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Sotilgan mahsulotlar</h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Sotilgan mahsulotlar
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Excel yoki Word fayl sifatida yuklab oling
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-full"
+            disabled={!items.length}
+            onClick={() => downloadSoldExcel(items)}
+          >
+            <FileSpreadsheet className="size-4" />
+            Excel
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-full"
+            disabled={!items.length}
+            onClick={() => downloadSoldWord(items)}
+          >
+            <FileText className="size-4" />
+            Word
+          </Button>
+          <Button
+            type="button"
+            className="rounded-full"
+            disabled={!items.length}
+            onClick={() => {
+              downloadSoldExcel(items);
+              downloadSoldWord(items);
+            }}
+          >
+            <Download className="size-4" />
+            Ikkalasi
+          </Button>
+        </div>
       </div>
 
       {error ? (

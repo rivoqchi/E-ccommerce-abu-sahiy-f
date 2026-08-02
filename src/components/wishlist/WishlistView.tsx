@@ -52,13 +52,13 @@ export function WishlistView() {
         >
           <Link
             href={`/product/${item.slug}`}
-            className="relative block aspect-[4/3] bg-[#ececee]"
+            className="relative block aspect-square bg-muted"
           >
             <ProductImage
               src={item.image}
               alt={item.name}
               fill
-              className="object-cover"
+              className="p-4"
             />
           </Link>
 

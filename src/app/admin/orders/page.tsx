@@ -79,13 +79,8 @@ function formatDate(value?: string) {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("uz-UZ", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 export default function AdminOrdersPage() {
@@ -229,9 +224,14 @@ export default function AdminOrdersPage() {
           {selected ? (
             <>
               <DialogHeader>
-                <DialogTitle>
-                  Buyurtma #{selected._id.slice(-8)}
-                </DialogTitle>
+                <div className="flex items-start justify-between gap-3 pr-8">
+                  <DialogTitle>
+                    Buyurtma #{selected._id.slice(-8)}
+                  </DialogTitle>
+                  <span className="shrink-0 pt-0.5 text-xs tabular-nums text-muted-foreground">
+                    {formatDate(selected.createdAt)}
+                  </span>
+                </div>
               </DialogHeader>
 
               <div className="min-h-0 flex-1 space-y-5 overflow-y-auto text-sm">
@@ -239,9 +239,6 @@ export default function AdminOrdersPage() {
                   <Badge variant="secondary">
                     {STATUS_LABEL[selected.status] ?? selected.status}
                   </Badge>
-                  <span className="text-muted-foreground">
-                    {formatDate(selected.createdAt)}
-                  </span>
                 </div>
 
                 <section className="space-y-1.5">
@@ -250,25 +247,6 @@ export default function AdminOrdersPage() {
                   <p className="text-muted-foreground">
                     {selected.shippingAddress?.phone ?? "—"}
                   </p>
-                </section>
-
-                <section className="space-y-1.5">
-                  <h3 className="font-semibold">Yetkazish manzili</h3>
-                  {selected.shippingAddress ? (
-                    <p className="text-muted-foreground">
-                      {[
-                        selected.shippingAddress.line1,
-                        selected.shippingAddress.line2,
-                        selected.shippingAddress.city,
-                        selected.shippingAddress.country,
-                        selected.shippingAddress.postalCode,
-                      ]
-                        .filter(Boolean)
-                        .join(", ")}
-                    </p>
-                  ) : (
-                    <p className="text-muted-foreground">—</p>
-                  )}
                 </section>
 
                 <section className="space-y-2">
@@ -313,10 +291,6 @@ export default function AdminOrdersPage() {
                     <span>
                       {formatUZS(selected.subtotal ?? selected.total)}
                     </span>
-                  </div>
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Yetkazish</span>
-                    <span>{formatUZS(selected.shippingFee ?? 0)}</span>
                   </div>
                   <div className="flex justify-between text-base font-semibold">
                     <span>Jami</span>

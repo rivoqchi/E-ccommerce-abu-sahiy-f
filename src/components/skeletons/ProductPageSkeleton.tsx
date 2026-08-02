@@ -36,7 +36,7 @@ export function ProductPageSkeleton() {
           <Skeleton className="mb-8 h-4 w-72" />
           <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
             <div>
-              <Skeleton className="aspect-[4/5] rounded-[2rem] lg:aspect-square" />
+              <Skeleton className="aspect-square rounded-[2rem]" />
               <div className="mt-4 flex gap-3">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <Skeleton key={i} className="size-20 rounded-2xl" />

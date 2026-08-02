@@ -353,7 +353,7 @@ export function AccountView() {
       ) : null}
 
       <LogoutConfirm
-        className="mt-4 h-12 w-full rounded-full"
+        className="mt-4 h-12 w-full rounded-full border-none bg-none"
         redirectTo="/login"
       >
         <LogOut className="size-4" strokeWidth={1.75} />
