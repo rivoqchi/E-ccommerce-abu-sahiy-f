@@ -22,7 +22,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
           fill
           priority
           sizes="(max-width: 768px) 100vw, 50vw"
-          className="animate-fade-in p-6"
+          className="animate-fade-in"
         />
       </div>
       {images.length > 1 ? (
@@ -45,7 +45,6 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
                   alt=""
                   fill
                   sizes="64px"
-                  className="p-1.5"
                 />
               </button>
             </li>

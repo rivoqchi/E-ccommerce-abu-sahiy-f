@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Product } from "@/types/product";
 import { useCartStore } from "@/store/cart";
@@ -10,15 +11,20 @@ interface AddToCartProps {
 }
 
 export function AddToCart({ product }: AddToCartProps) {
+  const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
+  const inCart = useCartStore((s) =>
+    s.items.some((item) => item.productId === product.id),
+  );
   const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
 
-  const handleAdd = () => {
+  const handleClick = () => {
     if (!product.inStock) return;
+    if (inCart) {
+      router.push("/cart");
+      return;
+    }
     addItem(product, qty);
-    setAdded(true);
-    window.setTimeout(() => setAdded(false), 1800);
   };
 
   return (
@@ -47,9 +53,9 @@ export function AddToCart({ product }: AddToCartProps) {
         size="lg"
         className="flex-1 sm:flex-none sm:min-w-48"
         disabled={!product.inStock}
-        onClick={handleAdd}
+        onClick={handleClick}
       >
-        {added ? "Qo'shildi ✓" : "Savatga qo'shish"}
+        {inCart ? "Savatga qaytish" : "Savatga qo'shish"}
       </Button>
     </div>
   );

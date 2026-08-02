@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useCartStore } from "@/store/cart";
 import { formatUZS } from "@/lib/format";
+import { usePriceTier } from "@/hooks/use-price-tier";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,10 +20,9 @@ export function CartSummary() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const items = useCartStore((s) => s.items);
   const hydrated = useCartStore((s) => s.hydrated);
-  const totalPrice = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0,
-  );
+  const totalPriceFn = useCartStore((s) => s.totalPrice);
+  const priceTier = usePriceTier();
+  const totalPrice = totalPriceFn(priceTier);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   if (!hydrated) {

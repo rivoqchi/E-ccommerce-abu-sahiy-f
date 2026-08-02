@@ -21,6 +21,7 @@ type UserRow = {
   phone: string | null;
   username: string | null;
   role: string;
+  priceTier: "retail" | "wholesale";
   isActive: boolean;
 };
 
@@ -48,6 +49,21 @@ export default function AdminUsersPage() {
         await adminFetch(`/users/${user.id}`, {
           method: "PATCH",
           body: JSON.stringify({ isActive: !user.isActive }),
+        });
+        await load();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Xato");
+      }
+    });
+  }
+
+  function togglePriceTier(user: UserRow) {
+    const next = user.priceTier === "wholesale" ? "retail" : "wholesale";
+    startTransition(async () => {
+      try {
+        await adminFetch(`/users/${user.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ priceTier: next }),
         });
         await load();
       } catch (e) {
@@ -84,6 +100,7 @@ export default function AdminUsersPage() {
                 <TableHead>Telefon</TableHead>
                 <TableHead>Username</TableHead>
                 <TableHead>Rol</TableHead>
+                <TableHead>Narx</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="pr-5 text-right">Amal</TableHead>
               </TableRow>
@@ -102,9 +119,29 @@ export default function AdminUsersPage() {
                     <Badge variant="secondary">{u.role}</Badge>
                   </TableCell>
                   <TableCell>
+                    <Badge
+                      variant={
+                        u.priceTier === "wholesale" ? "default" : "secondary"
+                      }
+                    >
+                      {u.priceTier === "wholesale" ? "Optom" : "Oddiy"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     {u.isActive ? "Aktiv" : "Bloklangan"}
                   </TableCell>
-                  <TableCell className="pr-5 text-right">
+                  <TableCell className="pr-5 text-right space-x-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full"
+                      disabled={pending}
+                      onClick={() => togglePriceTier(u)}
+                    >
+                      {u.priceTier === "wholesale"
+                        ? "Oddiyga"
+                        : "Optomga"}
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -120,7 +157,7 @@ export default function AdminUsersPage() {
               {!items.length ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     className="py-10 text-center text-muted-foreground"
                   >
                     Foydalanuvchilar topilmadi

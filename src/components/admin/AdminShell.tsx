@@ -14,6 +14,7 @@ import {
   ShoppingBag,
   Store,
   Tags,
+  User,
   Users,
   X,
   BadgePercent,
@@ -107,9 +108,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-[100dvh] bg-background">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-[100dvh] w-64 shrink-0 flex-col bg-nav-dock text-nav-dock-foreground md:flex">
+      <aside className="sticky top-0 hidden h-[100dvh] w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
         <div className="px-5 py-6">
-          <p className="text-xs font-medium tracking-wide text-white/50 uppercase">
+          <p className="text-xs font-medium tracking-wide text-sidebar-foreground/50 uppercase">
             Super Admin
           </p>
           <p className="mt-1 text-lg font-semibold tracking-tight">Sami</p>
@@ -121,10 +122,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             onToggleReg={() => setRegOpen((v) => !v)}
           />
         </nav>
-        <div className="border-t border-white/10 p-3">
+        <div className="border-t border-sidebar-border p-3">
           <LogoutConfirm
             variant="ghost"
-            className="h-10 w-full justify-start rounded-xl text-white/80 hover:bg-white/10 hover:text-white"
+            className="h-10 w-full justify-start rounded-xl text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
             <LogOut className="size-4" />
             Chiqish
@@ -141,13 +142,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             aria-label="Yopish"
             onClick={() => setOpen(false)}
           />
-          <aside className="absolute inset-y-0 left-0 flex w-[80%] max-w-xs flex-col bg-nav-dock text-nav-dock-foreground shadow-xl">
+          <aside className="absolute inset-y-0 left-0 flex w-[80%] max-w-xs flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-xl">
             <div className="flex items-center justify-between px-4 py-4">
               <p className="font-semibold">Super Admin</p>
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-white/10"
+                className="text-sidebar-foreground hover:bg-sidebar-accent"
                 onClick={() => setOpen(false)}
               >
                 <X className="size-5" />
@@ -184,13 +185,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </p>
           </div>
           <Button
-            variant="outline"
             size="sm"
-            className="hidden rounded-full sm:inline-flex"
+            className="h-9 gap-2 rounded-full bg-black px-3.5 text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200"
             nativeButton={false}
             render={<Link href="/account" />}
           >
-            Profil
+            <User className="size-4" strokeWidth={1.75} />
+            <span className="hidden sm:inline">Profil</span>
           </Button>
         </header>
         <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
@@ -223,8 +224,8 @@ function AdminNav({
                 className={cn(
                   "flex h-10 w-full items-center gap-2.5 rounded-xl px-3 text-sm font-medium transition",
                   childActive
-                    ? "bg-white/15 text-white"
-                    : "text-white/70 hover:bg-white/10 hover:text-white",
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 )}
               >
                 <item.icon className="size-4 shrink-0" strokeWidth={1.75} />
@@ -237,7 +238,7 @@ function AdminNav({
                 />
               </button>
               {(regOpen || childActive) && (
-                <div className="mt-1 ml-3 space-y-1.5 border-l border-white/15 pl-3">
+                <div className="mt-1 ml-3 space-y-1.5 border-l border-sidebar-border pl-3">
                   {item.children.map((child) => {
                     const active = pathname.startsWith(child.href);
                     return (
@@ -247,8 +248,8 @@ function AdminNav({
                         className={cn(
                           "flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm transition",
                           active
-                            ? "bg-nav-dock-foreground text-nav-dock"
-                            : "text-white/65 hover:bg-white/10 hover:text-white",
+                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                            : "text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                         )}
                       >
                         <child.icon className="size-3.5" strokeWidth={1.75} />
@@ -275,8 +276,8 @@ function AdminNav({
             className={cn(
               "flex h-10 items-center gap-2.5 rounded-xl px-3 text-sm font-medium transition",
               active
-                ? "bg-nav-dock-foreground text-nav-dock"
-                : "text-white/70 hover:bg-white/10 hover:text-white",
+                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
             )}
           >
             <Icon className="size-4 shrink-0" strokeWidth={1.75} />

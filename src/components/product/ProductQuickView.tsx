@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Heart, Minus, Plus, ShoppingBag } from "lucide-react";
 import type { Product } from "@/types/product";
@@ -15,6 +16,8 @@ import {
 } from "@/components/ui/sheet";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
+import { usePriceTier } from "@/hooks/use-price-tier";
+import { resolveUnitPrice } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
 interface ProductQuickViewProps {
@@ -30,7 +33,13 @@ export function ProductQuickView({
   open,
   onOpenChange,
 }: ProductQuickViewProps) {
+  const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
+  const inCart = useCartStore((s) =>
+    product
+      ? s.items.some((item) => item.productId === product.id)
+      : false,
+  );
   const toggleWishlist = useWishlistStore((s) => s.toggleItem);
   const liked = useWishlistStore((s) =>
     product
@@ -39,18 +48,18 @@ export function ProductQuickView({
   );
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startYRef = useRef(0);
   const dragYRef = useRef(0);
   const draggingRef = useRef(false);
+  const priceTier = usePriceTier();
+  const unitPrice = product ? resolveUnitPrice(product, priceTier) : 0;
 
   useEffect(() => {
     if (open) {
       setActive(0);
       setQty(1);
-      setAdded(false);
       setDragY(0);
       dragYRef.current = 0;
       draggingRef.current = false;
@@ -64,9 +73,12 @@ export function ProductQuickView({
 
   const handleAdd = () => {
     if (!product.inStock) return;
+    if (inCart) {
+      onOpenChange(false);
+      router.push("/cart");
+      return;
+    }
     addItem(product, qty);
-    setAdded(true);
-    window.setTimeout(() => setAdded(false), 1600);
   };
 
   const isDesktopTouch = () =>
@@ -149,7 +161,6 @@ export function ProductQuickView({
                 src={current}
                 alt={product.name}
                 fill
-                className="p-5 sm:p-7"
               />
             </div>
             {product.images.length > 1 ? (
@@ -171,7 +182,6 @@ export function ProductQuickView({
                         src={src}
                         alt=""
                         fill
-                        className="p-1"
                       />
                     </button>
                   </li>
@@ -190,7 +200,7 @@ export function ProductQuickView({
 
             <div className="mt-3 flex items-baseline gap-2">
               <p className="text-xl font-bold tabular-nums">
-                {formatUZS(product.price)}
+                {formatUZS(unitPrice)}
               </p>
               {product.compareAtPrice ? (
                 <p className="text-sm text-muted-foreground line-through tabular-nums">
@@ -278,7 +288,7 @@ export function ProductQuickView({
                 onClick={handleAdd}
               >
                 <ShoppingBag className="size-4" strokeWidth={1.75} />
-                {added ? "Qo'shildi ✓" : "Savatga qo'shish"}
+                {inCart ? "Savatga qaytish" : "Savatga qo'shish"}
               </Button>
 
               <Button

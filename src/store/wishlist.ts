@@ -22,6 +22,10 @@ function toWishlistItem(product: Product): WishlistItem {
     slug: product.slug,
     name: product.name,
     price: product.price,
+    wholesalePrice:
+      Number.isFinite(product.wholesalePrice) && product.wholesalePrice >= 0
+        ? product.wholesalePrice
+        : product.price,
     image: product.images[0],
     brand: product.brand,
   };

@@ -4,6 +4,7 @@ import {
   CatalogMobileFilters,
 } from "@/components/catalog/CatalogFilters";
 import { CatalogPagination } from "@/components/catalog/CatalogPagination";
+import { CatalogSearch } from "@/components/catalog/CatalogSearch";
 import { ProductGrid } from "@/components/catalog/ProductGrid";
 import { CATALOG_PAGE_SIZE } from "@/lib/catalog";
 import {
@@ -71,20 +72,26 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
 
   const from =
     result.total === 0 ? 0 : (result.page - 1) * CATALOG_PAGE_SIZE + 1;
-  const to =
-    result.total === 0 ? 0 : from + result.items.length - 1;
+  const to = result.total === 0 ? 0 : from + result.items.length - 1;
 
   return (
     <div className="mx-auto w-[90%] max-w-6xl py-5 md:w-[80%] md:py-10">
-      <header className="flex items-end justify-between gap-4">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-4xl">
             Katalog
           </h1>
-         
         </div>
         <CatalogMobileFilters {...filterState} />
       </header>
+
+      <div className="mt-5 max-w-xl md:mt-6">
+        <CatalogSearch
+          category={categorySlug}
+          brand={brandSlug}
+          q={q ?? ""}
+        />
+      </div>
 
       <div className="mt-6 grid gap-8 lg:mt-10 lg:grid-cols-[200px_1fr]">
         <CatalogFilters {...filterState} />

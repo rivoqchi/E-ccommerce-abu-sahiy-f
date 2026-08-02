@@ -24,8 +24,8 @@ export function PromoBanner() {
           <p className="text-sm font-medium text-foreground/80">
             Maxsus taklif
           </p>
-          <p className="text-[2rem] leading-none font-bold tracking-tight text-foreground">
-            40% CHEGIRMA
+          <p className="text-[1.65rem] leading-tight font-bold tracking-tight text-foreground">
+            3000 dan oshiq mahsulotlar
           </p>
           <p className="mt-1 max-w-[18rem] text-sm leading-snug text-foreground/70">
             Oshxona jihozlari va maishiy texnikalar
@@ -46,8 +46,8 @@ export function PromoBanner() {
       <div className="relative z-10 hidden min-h-[200px] items-stretch sm:flex">
         <div className="flex flex-1 flex-col justify-center gap-1 p-6 md:p-8">
           <p className="text-sm font-medium text-foreground">Maxsus taklif</p>
-          <p className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">
-            40% CHEGIRMA
+          <p className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+            3000 dan oshiq mahsulotlar
           </p>
           <p className="mt-1 max-w-[18rem] text-sm text-foreground/70">
             Oshxona jihozlari va maishiy texnikalar

@@ -66,7 +66,11 @@ export const useAuthStore = create<AuthState>()(
 
       setSession: (session) =>
         set({
-          user: session.user,
+          user: {
+            ...session.user,
+            priceTier:
+              session.user.priceTier === "wholesale" ? "wholesale" : "retail",
+          },
           accessToken: session.accessToken,
           refreshToken: session.refreshToken,
           telegramAuthStatus: "done",
@@ -108,8 +112,12 @@ export const useAuthStore = create<AuthState>()(
         const token = get().accessToken;
         if (!token) throw new Error("Not authenticated");
         const user = await apiFetch<AuthUser>("/users/me", { token });
-        set({ user });
-        return user;
+        const normalized: AuthUser = {
+          ...user,
+          priceTier: user.priceTier === "wholesale" ? "wholesale" : "retail",
+        };
+        set({ user: normalized });
+        return normalized;
       },
 
       updateProfile: async (payload) => {

@@ -7,12 +7,15 @@ import { ProductImage } from "@/components/catalog/ProductImage";
 import { formatUZS } from "@/lib/format";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
+import { usePriceTier } from "@/hooks/use-price-tier";
+import { resolveUnitPrice } from "@/lib/pricing";
 
 export function WishlistView() {
   const items = useWishlistStore((s) => s.items);
   const hydrated = useWishlistStore((s) => s.hydrated);
   const removeItem = useWishlistStore((s) => s.removeItem);
   const addToCart = useCartStore((s) => s.addItem);
+  const priceTier = usePriceTier();
 
   if (!hydrated) {
     return (
@@ -58,7 +61,6 @@ export function WishlistView() {
               src={item.image}
               alt={item.name}
               fill
-              className="p-4"
             />
           </Link>
 
@@ -72,7 +74,15 @@ export function WishlistView() {
                 {item.name}
               </Link>
               <p className="mt-1 text-sm font-bold tabular-nums">
-                {formatUZS(item.price)}
+                {formatUZS(
+                  resolveUnitPrice(
+                    {
+                      price: item.price,
+                      wholesalePrice: item.wholesalePrice ?? item.price,
+                    },
+                    priceTier,
+                  ),
+                )}
               </p>
             </div>
 
@@ -88,6 +98,7 @@ export function WishlistView() {
                       name: item.name,
                       description: item.name,
                       price: item.price,
+                      wholesalePrice: item.wholesalePrice ?? item.price,
                       category: "",
                       categoryLabel: "",
                       brand: item.brand,

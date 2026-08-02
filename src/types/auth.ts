@@ -9,6 +9,8 @@ export type AuthUser = {
   fullName: string;
   avatarUrl: string | null;
   role: string;
+  /** Default retail; admin can switch to wholesale */
+  priceTier: "retail" | "wholesale";
   isActive: boolean;
 };
 

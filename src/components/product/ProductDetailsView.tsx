@@ -8,6 +8,7 @@ import type { Product } from "@/types/product";
 import { formatUZS } from "@/lib/format";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
+import { useProductUnitPrice } from "@/hooks/use-price-tier";
 import { ProductImage } from "@/components/catalog/ProductImage";
 import { ProductSpecs } from "@/components/product/ProductSpecs";
 import {
@@ -83,20 +84,25 @@ function PurchaseSocialProof({
 export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
+  const inCart = useCartStore((s) =>
+    s.items.some((item) => item.productId === product.id),
+  );
   const toggleWishlist = useWishlistStore((s) => s.toggleItem);
   const liked = useWishlistStore((s) =>
     s.items.some((item) => item.productId === product.id),
   );
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
   const current = product.images[active] ?? product.images[0];
+  const unitPrice = useProductUnitPrice(product);
 
   const handleBuy = () => {
     if (!product.inStock) return;
+    if (inCart) {
+      router.push("/cart");
+      return;
+    }
     addItem(product, qty);
-    setAdded(true);
-    window.setTimeout(() => setAdded(false), 1800);
   };
 
   const handleWishlist = () => {
@@ -143,7 +149,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
             fill
             priority
             sizes="90vw"
-            className="animate-fade-in p-5"
+            className="animate-fade-in"
           />
         </div>
 
@@ -167,7 +173,6 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                     alt=""
                     fill
                     sizes="56px"
-                    className="p-1.5"
                   />
                 </button>
               </li>
@@ -183,7 +188,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
               </h2>
               <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <p className="text-xl font-bold tracking-tight tabular-nums">
-                  {formatUZS(product.price)}
+                  {formatUZS(unitPrice)}
                 </p>
                 {product.compareAtPrice ? (
                   <p className="text-sm text-muted-foreground line-through tabular-nums">
@@ -249,7 +254,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
               onClick={handleBuy}
               disabled={!product.inStock}
             >
-              {added ? "Qo'shildi ✓" : "Sotib olish"}
+              {inCart ? "Savatga qaytish" : "Savatga qo'shish"}
             </Button>
           </div>
         </div>
@@ -281,7 +286,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                 fill
                 priority
                 sizes="(max-width: 1024px) 50vw, 40vw"
-                className="animate-fade-in p-6 lg:p-8"
+                className="animate-fade-in"
               />
               <Button
                 variant="secondary"
@@ -321,7 +326,6 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                         alt=""
                         fill
                         sizes="80px"
-                        className="p-2"
                       />
                     </button>
                   </li>
@@ -339,7 +343,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
             <div className="mt-6 flex flex-wrap items-center gap-4">
               <div className="flex items-baseline gap-3">
                 <p className="text-3xl font-bold tracking-tight tabular-nums">
-                  {formatUZS(product.price)}
+                  {formatUZS(unitPrice)}
                 </p>
                 {product.compareAtPrice ? (
                   <p className="text-base text-muted-foreground line-through tabular-nums">
@@ -389,7 +393,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                 onClick={handleBuy}
                 disabled={!product.inStock}
               >
-                {added ? "Qo'shildi ✓" : "Sotib olish"}
+                {inCart ? "Savatga qaytish" : "Savatga qo'shish"}
               </Button>
             </div>
           </div>

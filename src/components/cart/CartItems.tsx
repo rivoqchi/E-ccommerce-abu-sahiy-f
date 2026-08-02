@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatUZS } from "@/lib/format";
+import { usePriceTier } from "@/hooks/use-price-tier";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -15,6 +16,8 @@ export function CartItems() {
   const hydrated = useCartStore((s) => s.hydrated);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
+  const linePrice = useCartStore((s) => s.linePrice);
+  const priceTier = usePriceTier();
 
   if (!hydrated) {
     return <CartItemsSkeleton />;
@@ -43,85 +46,87 @@ export function CartItems() {
   return (
     <Card className="gap-0 overflow-hidden rounded-3xl py-0 shadow-none ring-1 ring-border">
       <ul>
-        {items.map((item, index) => (
-          <li key={item.productId}>
-            {index > 0 ? <Separator /> : null}
-            <div className="flex gap-4 p-4 sm:p-5">
-              <Link
-                href={`/product/${item.slug}`}
-                className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted"
-              >
-                <ProductImage
-                  src={item.image}
-                  alt={item.name}
-                  fill
-                  sizes="96px"
-                  className="p-2"
-                />
-              </Link>
+        {items.map((item, index) => {
+          const unit = linePrice(item, priceTier);
+          return (
+            <li key={item.productId}>
+              {index > 0 ? <Separator /> : null}
+              <div className="flex gap-4 p-4 sm:p-5">
+                <Link
+                  href={`/product/${item.slug}`}
+                  className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted"
+                >
+                  <ProductImage
+                    src={item.image}
+                    alt={item.name}
+                    fill
+                    sizes="96px"
+                  />
+                </Link>
 
-              <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <Link
-                    href={`/product/${item.slug}`}
-                    className="line-clamp-2 text-sm font-semibold text-foreground hover:text-accent"
-                  >
-                    {item.name}
-                  </Link>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {formatUZS(item.price)}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="inline-flex h-9 items-center rounded-full bg-secondary px-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      className="size-7 rounded-full"
-                      aria-label="Kamaytirish"
-                      onClick={() =>
-                        updateQuantity(item.productId, item.quantity - 1)
-                      }
+                <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <Link
+                      href={`/product/${item.slug}`}
+                      className="line-clamp-2 text-sm font-semibold text-foreground hover:text-accent"
                     >
-                      <Minus className="size-3.5" strokeWidth={2.5} />
-                    </Button>
-                    <span className="min-w-6 text-center text-sm font-medium tabular-nums">
-                      {item.quantity}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      className="size-7 rounded-full"
-                      aria-label="Ko'paytirish"
-                      onClick={() =>
-                        updateQuantity(item.productId, item.quantity + 1)
-                      }
-                    >
-                      <Plus className="size-3.5" strokeWidth={2.5} />
-                    </Button>
+                      {item.name}
+                    </Link>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {formatUZS(unit)}
+                    </p>
                   </div>
 
-                  <p className="min-w-20 text-right text-sm font-semibold tabular-nums">
-                    {formatUZS(item.price * item.quantity)}
-                  </p>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="inline-flex h-9 items-center rounded-full bg-secondary px-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="size-7 rounded-full"
+                        aria-label="Kamaytirish"
+                        onClick={() =>
+                          updateQuantity(item.productId, item.quantity - 1)
+                        }
+                      >
+                        <Minus className="size-3.5" strokeWidth={2.5} />
+                      </Button>
+                      <span className="min-w-6 text-center text-sm font-medium tabular-nums">
+                        {item.quantity}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="size-7 rounded-full"
+                        aria-label="Ko'paytirish"
+                        onClick={() =>
+                          updateQuantity(item.productId, item.quantity + 1)
+                        }
+                      >
+                        <Plus className="size-3.5" strokeWidth={2.5} />
+                      </Button>
+                    </div>
 
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="size-8 rounded-full text-muted-foreground hover:text-destructive"
-                    aria-label="O'chirish"
-                    onClick={() => removeItem(item.productId)}
-                  >
-                    <Trash2 className="size-4" strokeWidth={1.75} />
-                  </Button>
+                    <p className="min-w-20 text-right text-sm font-semibold tabular-nums">
+                      {formatUZS(unit * item.quantity)}
+                    </p>
+
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="size-8 rounded-full text-muted-foreground hover:text-destructive"
+                      aria-label="O'chirish"
+                      onClick={() => removeItem(item.productId)}
+                    >
+                      <Trash2 className="size-4" strokeWidth={1.75} />
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </Card>
   );

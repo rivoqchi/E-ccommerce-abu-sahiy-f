@@ -249,7 +249,7 @@ export default function AdminSellersPage() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md" bodyClassName="pb-0">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Yangi sotuvchi</DialogTitle>
           </DialogHeader>

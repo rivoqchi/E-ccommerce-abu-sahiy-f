@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ProductImage } from "@/components/catalog/ProductImage";
 import { ProductQuickView } from "@/components/product/ProductQuickView";
 import { useWishlistStore } from "@/store/wishlist";
+import { useProductUnitPrice } from "@/hooks/use-price-tier";
 import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
@@ -33,6 +34,7 @@ export function ProductCard({ product, className, priority }: ProductCardProps) 
     s.items.some((item) => item.productId === product.id),
   );
   const rating = productRating(product);
+  const unitPrice = useProductUnitPrice(product);
 
   const scoopFill = {
     width: R,
@@ -55,7 +57,7 @@ export function ProductCard({ product, className, priority }: ProductCardProps) 
               fill
               priority={priority}
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="p-4 transition duration-500 group-hover:scale-[1.02] sm:p-5"
+              className="transition duration-500 group-hover:scale-[1.02]"
             />
           </Link>
 
@@ -114,13 +116,13 @@ export function ProductCard({ product, className, priority }: ProductCardProps) 
         </div>
 
         <div className="mt-3 space-y-1 px-0.5">
-          <h3 className="line-clamp-2 text-[15px] font-medium leading-snug text-foreground">
+          <h3 className="line-clamp-2 min-h-[2lh] text-[15px] font-medium leading-snug text-foreground">
             <Link href={`/product/${product.slug}`}>{product.name}</Link>
           </h3>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[15px] font-bold leading-snug tracking-tight text-foreground tabular-nums">
-                {formatUZS(product.price)}
+                {formatUZS(unitPrice)}
               </p>
               {product.compareAtPrice ? (
                 <p className="text-xs text-muted-foreground line-through tabular-nums">

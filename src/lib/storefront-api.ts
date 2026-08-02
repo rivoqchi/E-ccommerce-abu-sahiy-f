@@ -32,6 +32,7 @@ export type ApiProduct = {
   description?: string;
   price: number;
   compareAtPrice?: number;
+  wholesalePrice?: number;
   stock?: number;
   categoryId?: ApiRef;
   brandId?: ApiRef;
@@ -82,6 +83,7 @@ export function mapApiProduct(raw: ApiProduct): Product {
   const brandSlug = slugOf(raw.brandId) || undefined;
   const tags = raw.tags ?? [];
   const price = Number(raw.price);
+  const wholesale = Number(raw.wholesalePrice);
   const compareAt = Number(raw.compareAtPrice);
 
   return {
@@ -90,6 +92,8 @@ export function mapApiProduct(raw: ApiProduct): Product {
     name: raw.name,
     description: raw.description?.trim() || raw.name,
     price: Number.isFinite(price) ? price : 0,
+    wholesalePrice:
+      Number.isFinite(wholesale) && wholesale >= 0 ? wholesale : Number.isFinite(price) ? price : 0,
     ...(Number.isFinite(compareAt) && compareAt > 0
       ? { compareAtPrice: compareAt }
       : {}),

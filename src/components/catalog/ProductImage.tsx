@@ -13,7 +13,7 @@ interface ProductImageProps {
   height?: number;
   sizes?: string;
   priority?: boolean;
-  /** Product photos default to contain — never crop. */
+  /** Product photos are square (800×800); cover fills the frame evenly. */
   fit?: "contain" | "cover";
   className?: string;
 }
@@ -29,7 +29,7 @@ export function ProductImage({
   width,
   height,
   priority,
-  fit = "contain",
+  fit = "cover",
   className,
 }: ProductImageProps) {
   const [current, setCurrent] = useState(() => resolveProductImage(src));

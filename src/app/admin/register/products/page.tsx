@@ -31,8 +31,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useAdminApi } from "@/lib/admin-api";
-import { fileToAvatarDataUrl } from "@/lib/avatar";
 import { formatUZS } from "@/lib/format";
+import {
+  PRODUCT_IMAGE_SIZE,
+  fileToProductImageDataUrl,
+} from "@/lib/product-upload";
 
 type RefItem = { _id: string; name: string };
 type Spec = { label: string; value: string };
@@ -40,6 +43,7 @@ type Product = {
   _id: string;
   name: string;
   price: number;
+  wholesalePrice?: number;
   stock: number;
   status: string;
   categoryId: string;
@@ -52,6 +56,7 @@ type Product = {
 const emptyForm = {
   name: "",
   price: "",
+  wholesalePrice: "",
   stock: "0",
   categoryId: "",
   brandId: "",
@@ -99,6 +104,7 @@ export default function AdminProductsPage() {
     setForm({
       name: p.name,
       price: String(p.price),
+      wholesalePrice: String(p.wholesalePrice ?? p.price),
       stock: String(p.stock),
       categoryId: String(p.categoryId),
       brandId: p.brandId ? String(p.brandId) : "",
@@ -117,7 +123,7 @@ export default function AdminProductsPage() {
       try {
         const dataUrls: string[] = [];
         for (const file of Array.from(files).slice(0, 8)) {
-          dataUrls.push(await fileToAvatarDataUrl(file));
+          dataUrls.push(await fileToProductImageDataUrl(file));
         }
         const res = await adminFetch<{ urls: string[] }>("/uploads/images", {
           method: "POST",
@@ -133,9 +139,19 @@ export default function AdminProductsPage() {
   function save() {
     setError(null);
     const price = Number(form.price);
+    const wholesalePrice = Number(form.wholesalePrice);
     const stock = Number(form.stock);
-    if (!form.name.trim() || !form.categoryId || Number.isNaN(price)) {
-      setError("Nom, kategoriya va narx majburiy");
+    if (
+      !form.name.trim() ||
+      !form.categoryId ||
+      Number.isNaN(price) ||
+      Number.isNaN(wholesalePrice)
+    ) {
+      setError("Nom, kategoriya, oddiy va optom narx majburiy");
+      return;
+    }
+    if (form.images.length === 0) {
+      setError("Kamida 1 ta rasm yuklash majburiy");
       return;
     }
     startTransition(async () => {
@@ -143,6 +159,7 @@ export default function AdminProductsPage() {
         const payload = {
           name: form.name.trim(),
           price,
+          wholesalePrice,
           stock: Number.isNaN(stock) ? 0 : stock,
           categoryId: form.categoryId,
           brandId: form.brandId || undefined,
@@ -204,7 +221,8 @@ export default function AdminProductsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="pl-5">Nomi</TableHead>
-                <TableHead>Narx ($)</TableHead>
+                <TableHead>Oddiy ($)</TableHead>
+                <TableHead>Optom ($)</TableHead>
                 <TableHead>Ombor</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="pr-5 text-right">Amallar</TableHead>
@@ -215,6 +233,9 @@ export default function AdminProductsPage() {
                 <TableRow key={p._id}>
                   <TableCell className="pl-5 font-medium">{p.name}</TableCell>
                   <TableCell>{formatUZS(p.price)}</TableCell>
+                  <TableCell>
+                    {formatUZS(p.wholesalePrice ?? p.price)}
+                  </TableCell>
                   <TableCell>{p.stock}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">{p.status}</Badge>
@@ -242,7 +263,7 @@ export default function AdminProductsPage() {
               {!items.length ? (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={6}
                     className="py-10 text-center text-muted-foreground"
                   >
                     Mahsulotlar yoʻq
@@ -269,12 +290,21 @@ export default function AdminProductsPage() {
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="h-12"
             />
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <Input
-                placeholder="Narx ($)"
+                placeholder="Oddiy narx ($)"
                 inputMode="decimal"
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
+                className="h-12"
+              />
+              <Input
+                placeholder="Optom narx ($)"
+                inputMode="decimal"
+                value={form.wholesalePrice}
+                onChange={(e) =>
+                  setForm({ ...form, wholesalePrice: e.target.value })
+                }
                 className="h-12"
               />
               <Input
@@ -406,13 +436,21 @@ export default function AdminProductsPage() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Rasmlar</p>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">
+                    Rasmlar <span className="text-destructive">*</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Majburiy · avtomatik {PRODUCT_IMAGE_SIZE}×
+                    {PRODUCT_IMAGE_SIZE} px kvadratga qirqiladi
+                  </p>
+                </div>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="rounded-full"
+                  className="shrink-0 rounded-full"
                   disabled={pending}
                   onClick={() => fileRef.current?.click()}
                 >
@@ -421,7 +459,7 @@ export default function AdminProductsPage() {
                 <input
                   ref={fileRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   multiple
                   className="hidden"
                   onChange={(e) => {

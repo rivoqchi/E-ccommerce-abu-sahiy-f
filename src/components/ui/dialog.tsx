@@ -63,7 +63,7 @@ function DialogContent({
       >
         <div
           className={cn(
-            "flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-6 pt-5",
+            "flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-6 pt-5 pb-5",
             bodyClassName
           )}
         >
@@ -111,7 +111,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-6 mt-auto flex shrink-0 flex-col-reverse gap-2 border-t bg-muted/50 px-6 py-3.5 sm:flex-row sm:justify-end",
+        "-mx-6 -mb-5 mt-auto flex shrink-0 flex-col-reverse gap-2 border-t bg-muted/50 px-6 py-3.5 sm:flex-row sm:justify-end",
         className
       )}
       {...props}

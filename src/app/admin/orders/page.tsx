@@ -5,12 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Select,
   SelectContent,
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/table";
 import { useAdminApi } from "@/lib/admin-api";
 import { formatUZS } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 type OrderItem = {
   name: string;
@@ -83,6 +84,16 @@ function formatDate(value?: string) {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
+function splitName(fullName?: string) {
+  const parts = (fullName ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: "—", lastName: "—" };
+  if (parts.length === 1) return { firstName: parts[0], lastName: "—" };
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(" "),
+  };
+}
+
 export default function AdminOrdersPage() {
   const { adminFetch } = useAdminApi();
   const [items, setItems] = useState<Order[]>([]);
@@ -115,6 +126,8 @@ export default function AdminOrdersPage() {
     });
   }
 
+  const nameParts = splitName(selected?.shippingAddress?.fullName);
+
   return (
     <div className="space-y-6">
       <div>
@@ -142,7 +155,11 @@ export default function AdminOrdersPage() {
             </TableHeader>
             <TableBody>
               {items.map((o) => (
-                <TableRow key={o._id}>
+                <TableRow
+                  key={o._id}
+                  className="cursor-pointer"
+                  onClick={() => setSelected(o)}
+                >
                   <TableCell className="pl-5 font-mono text-xs">
                     {o._id.slice(-8)}
                   </TableCell>
@@ -166,7 +183,10 @@ export default function AdminOrdersPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="pr-5 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div
+                      className="flex items-center justify-end gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Button
                         variant="outline"
                         size="sm"
@@ -214,38 +234,80 @@ export default function AdminOrdersPage() {
         </CardContent>
       </Card>
 
-      <Dialog
+      <Sheet
         open={Boolean(selected)}
         onOpenChange={(open) => {
           if (!open) setSelected(null);
         }}
       >
-        <DialogContent className="sm:max-w-lg" bodyClassName="pb-0">
-          {selected ? (
-            <>
-              <DialogHeader>
-                <div className="flex items-start justify-between gap-3 pr-8">
-                  <DialogTitle>
-                    Buyurtma #{selected._id.slice(-8)}
-                  </DialogTitle>
-                  <span className="shrink-0 pt-0.5 text-xs tabular-nums text-muted-foreground">
-                    {formatDate(selected.createdAt)}
-                  </span>
-                </div>
-              </DialogHeader>
+        <SheetContent
+          side="bottom"
+          className={cn(
+            "gap-0 rounded-t-[1.75rem] border-0 p-0",
+            "h-[min(92dvh,820px)] max-h-[92dvh] w-full",
+            "pb-[max(0.75rem,env(safe-area-inset-bottom))]",
+            "data-[side=bottom]:data-starting-style:translate-y-full",
+            "data-[side=bottom]:data-ending-style:translate-y-full",
+          )}
+        >
+          <div className="flex shrink-0 justify-center pt-3 pb-1">
+            <span
+              aria-hidden
+              className="h-1.5 w-10 rounded-full bg-muted-foreground/30"
+            />
+          </div>
 
-              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto text-sm">
+          {selected ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <SheetHeader className="shrink-0 gap-1 px-5 py-3 pr-14">
                 <div className="flex flex-wrap items-center gap-2">
+                  <SheetTitle className="text-left text-xl font-semibold">
+                    Buyurtma #{selected._id.slice(-8)}
+                  </SheetTitle>
                   <Badge variant="secondary">
                     {STATUS_LABEL[selected.status] ?? selected.status}
                   </Badge>
                 </div>
+                <p className="text-xs tabular-nums text-muted-foreground">
+                  {formatDate(selected.createdAt)}
+                </p>
+              </SheetHeader>
 
-                <section className="space-y-1.5">
-                  <h3 className="font-semibold">Mijoz</h3>
-                  <p>{selected.shippingAddress?.fullName ?? "—"}</p>
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 pb-4 text-sm">
+                <section className="space-y-2 rounded-2xl bg-muted/50 p-4">
+                  <h3 className="font-semibold">Mijoz maʼlumotlari</h3>
+                  <dl className="grid gap-2 sm:grid-cols-2">
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Ism</dt>
+                      <dd className="font-medium">{nameParts.firstName}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Familiya</dt>
+                      <dd className="font-medium">{nameParts.lastName}</dd>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <dt className="text-xs text-muted-foreground">
+                        Telefon raqam
+                      </dt>
+                      <dd className="font-medium">
+                        {selected.shippingAddress?.phone ?? "—"}
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section className="space-y-2">
+                  <h3 className="font-semibold">Manzil</h3>
                   <p className="text-muted-foreground">
-                    {selected.shippingAddress?.phone ?? "—"}
+                    {[
+                      selected.shippingAddress?.line1,
+                      selected.shippingAddress?.line2,
+                      selected.shippingAddress?.city,
+                      selected.shippingAddress?.country,
+                      selected.shippingAddress?.postalCode,
+                    ]
+                      .filter(Boolean)
+                      .join(", ") || "—"}
                   </p>
                 </section>
 
@@ -276,21 +338,25 @@ export default function AdminOrdersPage() {
                   </ul>
                 </section>
 
-                {selected.notes ? (
-                  <section className="space-y-1.5">
-                    <h3 className="font-semibold">Izoh</h3>
-                    <p className="text-muted-foreground">{selected.notes}</p>
-                  </section>
-                ) : null}
+                <section className="space-y-1.5">
+                  <h3 className="font-semibold">Izoh</h3>
+                  <p className="rounded-2xl bg-muted/50 px-3 py-2.5 text-muted-foreground">
+                    {selected.notes?.trim() || "Izoh yoʻq"}
+                  </p>
+                </section>
               </div>
 
-              <DialogFooter className="flex-col gap-3 sm:flex-col">
+              <SheetFooter className="mt-0 shrink-0 gap-3 border-t border-border/60 px-5 py-4">
                 <div className="w-full space-y-1.5 text-sm">
                   <div className="flex justify-between text-muted-foreground">
                     <span>Oraliq summa</span>
                     <span>
                       {formatUZS(selected.subtotal ?? selected.total)}
                     </span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Yetkazib berish</span>
+                    <span>{formatUZS(selected.shippingFee ?? 0)}</span>
                   </div>
                   <div className="flex justify-between text-base font-semibold">
                     <span>Jami</span>
@@ -314,11 +380,11 @@ export default function AdminOrdersPage() {
                     ))}
                   </div>
                 ) : null}
-              </DialogFooter>
-            </>
+              </SheetFooter>
+            </div>
           ) : null}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

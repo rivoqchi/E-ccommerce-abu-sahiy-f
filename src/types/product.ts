@@ -20,7 +20,10 @@ export interface Product {
   slug: string;
   name: string;
   description: string;
+  /** Oddiy (retail) narx — USD */
   price: number;
+  /** Optom (wholesale) narx — USD */
+  wholesalePrice: number;
   compareAtPrice?: number;
   /** Category slug for URLs/filters */
   category: string;
@@ -44,7 +47,10 @@ export interface CartItem {
   productId: string;
   slug: string;
   name: string;
+  /** Oddiy narx */
   price: number;
+  /** Optom narx */
+  wholesalePrice: number;
   image: string;
   quantity: number;
 }
@@ -54,6 +60,7 @@ export interface WishlistItem {
   slug: string;
   name: string;
   price: number;
+  wholesalePrice: number;
   image: string;
   brand: string;
 }
