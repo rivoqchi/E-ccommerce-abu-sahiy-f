@@ -83,9 +83,23 @@ export function VideosFeed({ videos }: VideosFeedProps) {
     return () => observer.disconnect();
   }, [videos.length]);
 
+  // Desktop: wheel over page still scrolls the reel column
+  useEffect(() => {
+    const root = scrollerRef.current;
+    if (!root) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (root.contains(e.target as Node)) return;
+      root.scrollTop += e.deltaY;
+      e.preventDefault();
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, [videos.length]);
+
   if (!videos.length) {
     return (
-      <div className="flex h-[100dvh] flex-col items-center justify-center gap-3 bg-black px-6 text-center text-white">
+      <div className="flex h-[100dvh] flex-col items-center justify-center gap-3 bg-neutral-950 px-6 text-center text-white">
         <p className="text-lg font-semibold">Hozircha videolar yoʻq</p>
         <p className="text-sm text-white/60">
           Tez orada yangi videolar qoʻshiladi
@@ -101,78 +115,91 @@ export function VideosFeed({ videos }: VideosFeedProps) {
   }
 
   return (
-    <div className="relative h-[100dvh] bg-black text-white">
-      {/* Top bar */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-3 pt-[max(0.65rem,env(safe-area-inset-top))]">
-        <Link
-          href="/"
-          className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm"
-          aria-label="Orqaga"
-        >
-          <ChevronLeft className="size-6" strokeWidth={2} />
-        </Link>
-        <p className="pointer-events-none text-sm font-semibold tracking-tight drop-shadow">
-          Videolar
-        </p>
-        <div className="pointer-events-auto relative">
-          <button
-            type="button"
-            onClick={() => setQualityOpen((v) => !v)}
-            className="flex size-10 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm"
-            aria-label="Video sifati"
+    <div className="relative flex h-[100dvh] justify-center bg-neutral-950 text-white md:bg-neutral-950">
+      {/* Phone-like stage: full-bleed mobile, centered 9:16 column on desktop */}
+      <div
+        className={cn(
+          "relative h-full w-full overflow-hidden bg-black",
+          "md:my-0 md:w-[min(100%,420px)] md:max-w-[420px] md:shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_25px_80px_rgba(0,0,0,0.55)]",
+        )}
+      >
+        {/* Top bar */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-3 pt-[max(0.65rem,env(safe-area-inset-top))]">
+          <Link
+            href="/"
+            className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm"
+            aria-label="Orqaga"
           >
-            <Gauge className="size-5" strokeWidth={1.75} />
-          </button>
-          {qualityOpen ? (
-            <div className="absolute right-0 top-11 w-40 overflow-hidden rounded-xl bg-neutral-900/95 py-1 shadow-xl ring-1 ring-white/10">
-              {(
-                [
-                  ["auto", "Avto"],
-                  ["high", "Yuqori"],
-                  ["low", "Tejamkor"],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => {
-                    setQuality(value);
-                    setQualityOpen(false);
-                  }}
-                  className={cn(
-                    "flex w-full px-3 py-2.5 text-left text-sm",
-                    quality === value
-                      ? "bg-white/15 font-semibold"
-                      : "text-white/80 hover:bg-white/10",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          ) : null}
+            <ChevronLeft className="size-6" strokeWidth={2} />
+          </Link>
+          <p className="pointer-events-none text-sm font-semibold tracking-tight drop-shadow">
+            Videolar
+          </p>
+          <div className="pointer-events-auto relative">
+            <button
+              type="button"
+              onClick={() => setQualityOpen((v) => !v)}
+              className="flex size-10 items-center justify-center rounded-full bg-black/35 backdrop-blur-sm"
+              aria-label="Video sifati"
+            >
+              <Gauge className="size-5" strokeWidth={1.75} />
+            </button>
+            {qualityOpen ? (
+              <div className="absolute right-0 top-11 w-40 overflow-hidden rounded-xl bg-neutral-900/95 py-1 shadow-xl ring-1 ring-white/10">
+                {(
+                  [
+                    ["auto", "Avto"],
+                    ["high", "Yuqori"],
+                    ["low", "Tejamkor"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setQuality(value);
+                      setQualityOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full px-3 py-2.5 text-left text-sm",
+                      quality === value
+                        ? "bg-white/15 font-semibold"
+                        : "text-white/80 hover:bg-white/10",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div
+          ref={scrollerRef}
+          className="h-full snap-y snap-mandatory overflow-y-scroll overscroll-y-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {videos.map((video, index) => (
+            <ReelSlide
+              key={video.id}
+              video={video}
+              index={index}
+              isActive={index === active}
+              shouldWarm={Math.abs(index - active) <= 1}
+              muted={muted}
+              paused={paused && index === active}
+              quality={quality}
+              onToggleMute={() => setMuted((m) => !m)}
+              onTogglePause={() => setPaused((p) => !p)}
+            />
+          ))}
         </div>
       </div>
 
-      <div
-        ref={scrollerRef}
-        className="h-full snap-y snap-mandatory overflow-y-scroll overscroll-y-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {videos.map((video, index) => (
-          <ReelSlide
-            key={video.id}
-            video={video}
-            index={index}
-            isActive={index === active}
-            shouldWarm={Math.abs(index - active) <= 1}
-            muted={muted}
-            paused={paused && index === active}
-            quality={quality}
-            onToggleMute={() => setMuted((m) => !m)}
-            onTogglePause={() => setPaused((p) => !p)}
-          />
-        ))}
-      </div>
+      {/* Desktop hint */}
+      <p className="pointer-events-none absolute bottom-6 left-1/2 hidden -translate-x-1/2 text-xs text-white/35 md:block">
+        Scroll qilib keyingi videoga oʻting
+      </p>
     </div>
   );
 }
@@ -232,10 +259,8 @@ function ReelSlide({
         onClick={onTogglePause}
       />
 
-      {/* Scrim */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/55" />
 
-      {/* Side controls */}
       <div className="absolute right-3 bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))] z-20 flex flex-col items-center gap-3">
         <button
           type="button"
@@ -263,7 +288,6 @@ function ReelSlide({
         </button>
       </div>
 
-      {/* Meta */}
       <div className="absolute inset-x-0 bottom-0 z-10 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-16">
         <div className="flex items-center gap-2.5">
           <span className="flex size-9 items-center justify-center overflow-hidden rounded-full bg-white/20 ring-1 ring-white/25">
