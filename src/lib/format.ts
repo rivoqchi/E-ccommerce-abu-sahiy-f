@@ -12,6 +12,10 @@ export function formatUSD(amount: number): string {
     .toString()
     .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
+  if (remainder === 0) {
+    return `${sign}$${grouped}`;
+  }
+
   return `${sign}$${grouped}.${remainder.toString().padStart(2, "0")}`;
 }
 

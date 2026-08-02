@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowLeft, Heart, Minus, Plus, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Heart, Minus, Plus } from "lucide-react";
 import type { Product } from "@/types/product";
 import { formatUZS } from "@/lib/format";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
 import { ProductImage } from "@/components/catalog/ProductImage";
+import { ProductSpecs } from "@/components/product/ProductSpecs";
 import {
   Avatar,
   AvatarFallback,
@@ -223,11 +224,17 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
 
           <Separator className="my-5" />
 
+          {product.specs?.length ? (
+            <ProductSpecs specs={product.specs} />
+          ) : null}
+        </div>
+
+        <section className="mt-2 w-full px-[5%] pt-6 pb-8">
           <h3 className="text-base font-semibold tracking-tight">Tavsif</h3>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             {product.description}
           </p>
-        </div>
+        </section>
 
         <div
           className={cn(
@@ -235,20 +242,10 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
             "pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))]",
           )}
         >
-          <div className="pointer-events-auto flex w-[90%] max-w-lg items-center gap-3">
-            <Button
-              variant="secondary"
-              size="icon-lg"
-              className="size-14 shrink-0 rounded-2xl bg-card shadow-[var(--shadow-soft)]"
-              onClick={handleBuy}
-              disabled={!product.inStock}
-              aria-label="Savatga"
-            >
-              <ShoppingBag className="size-5" strokeWidth={1.75} />
-            </Button>
+          <div className="pointer-events-auto w-[90%] max-w-lg">
             <Button
               size="lg"
-              className="h-14 flex-1 rounded-full text-base font-semibold shadow-lg"
+              className="h-14 w-full rounded-full text-base font-semibold shadow-lg"
               onClick={handleBuy}
               disabled={!product.inStock}
             >
@@ -381,25 +378,14 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
 
             <Separator className="my-8" />
 
-            <h2 className="text-lg font-semibold tracking-tight">Tavsif</h2>
-            <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-              {product.description}
-            </p>
+            {product.specs?.length ? (
+              <ProductSpecs specs={product.specs} />
+            ) : null}
 
-            <div className="mt-10 flex items-center gap-3">
-              <Button
-                variant="secondary"
-                size="icon-lg"
-                className="size-14 shrink-0 rounded-2xl"
-                onClick={handleBuy}
-                disabled={!product.inStock}
-                aria-label="Savatga"
-              >
-                <ShoppingBag className="size-5" strokeWidth={1.75} />
-              </Button>
+            <div className="mt-10">
               <Button
                 size="lg"
-                className="h-14 flex-1 rounded-full text-base font-semibold"
+                className="h-14 w-full rounded-full text-base font-semibold"
                 onClick={handleBuy}
                 disabled={!product.inStock}
               >
@@ -408,6 +394,13 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
             </div>
           </div>
         </div>
+
+        <section className="mt-14 w-full border-t border-border pt-10">
+          <h2 className="text-lg font-semibold tracking-tight">Tavsif</h2>
+          <p className="mt-3 max-w-none text-base leading-relaxed text-muted-foreground">
+            {product.description}
+          </p>
+        </section>
       </div>
     </div>
   );
