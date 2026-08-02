@@ -196,10 +196,7 @@ export function VideosFeed({ videos }: VideosFeedProps) {
         </div>
       </div>
 
-      {/* Desktop hint */}
-      <p className="pointer-events-none absolute bottom-6 left-1/2 hidden -translate-x-1/2 text-xs text-white/35 md:block">
-        Scroll qilib keyingi videoga oʻting
-      </p>
+     
     </div>
   );
 }
