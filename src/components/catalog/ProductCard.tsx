@@ -1,17 +1,18 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Heart, ShoppingBag, Star } from "lucide-react";
 import type { Product } from "@/types/product";
 import { formatUZS } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { ProductImage } from "@/components/catalog/ProductImage";
 import { useCartStore } from "@/store/cart";
 import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
   product: Product;
   className?: string;
+  priority?: boolean;
 }
 
 /** Scoop radius — same for pad corner + both concave fills */
@@ -23,7 +24,7 @@ function productRating(product: Product): number {
   return n % 2 === 0 ? 4 : 5;
 }
 
-export function ProductCard({ product, className }: ProductCardProps) {
+export function ProductCard({ product, className, priority }: ProductCardProps) {
   const addItem = useCartStore((s) => s.addItem);
   const rating = productRating(product);
 
@@ -41,10 +42,11 @@ export function ProductCard({ product, className }: ProductCardProps) {
           className="relative block aspect-[3/4] overflow-hidden rounded-[28px] bg-[#ececee]"
           aria-label={product.name}
         >
-          <Image
+          <ProductImage
             src={product.images[0]}
             alt={product.name}
             fill
+            priority={priority}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover object-center transition duration-500 group-hover:scale-[1.02]"
           />
@@ -97,14 +99,21 @@ export function ProductCard({ product, className }: ProductCardProps) {
       </div>
 
       <div className="mt-3 space-y-1 px-0.5">
-        <h3 className="line-clamp-1 text-[15px] font-medium leading-snug text-foreground">
+        <h3 className="line-clamp-2 text-[15px] font-medium leading-snug text-foreground">
           <Link href={`/product/${product.slug}`}>{product.name}</Link>
         </h3>
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[15px] font-bold tracking-tight text-foreground">
-            {formatUZS(product.price)}
-          </p>
-          <span className="inline-flex items-center gap-1 text-sm font-medium text-foreground">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[15px] font-bold leading-snug tracking-tight text-foreground tabular-nums">
+              {formatUZS(product.price)}
+            </p>
+            {product.compareAtPrice ? (
+              <p className="text-xs text-muted-foreground line-through tabular-nums">
+                {formatUZS(product.compareAtPrice)}
+              </p>
+            ) : null}
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-1 pt-0.5 text-sm font-medium text-foreground">
             <Star
               className={cn(
                 "size-3.5",

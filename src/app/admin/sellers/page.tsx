@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useAdminApi } from "@/lib/admin-api";
 
 type Seller = {
@@ -74,15 +75,14 @@ export default function AdminSellersPage() {
     });
   }
 
-  function remove(id: string) {
-    startTransition(async () => {
-      try {
-        await adminFetch(`/sellers/${id}`, { method: "DELETE" });
-        await load();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Xato");
-      }
-    });
+  async function remove(id: string) {
+    try {
+      await adminFetch(`/sellers/${id}`, { method: "DELETE" });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Xato");
+      throw e;
+    }
   }
 
   return (
@@ -126,15 +126,14 @@ export default function AdminSellersPage() {
                     <Badge variant="secondary">{s.status}</Badge>
                   </TableCell>
                   <TableCell className="pr-5 text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
+                    <ConfirmAction
                       className="text-destructive"
-                      disabled={pending}
-                      onClick={() => remove(s._id)}
+                      title="Sotuvchini oʻchirasizmi?"
+                      description={`“${s.fullName}” sotuvchisi oʻchiriladi. Davom etasizmi?`}
+                      onConfirm={() => remove(s._id)}
                     >
                       <Trash2 className="size-4" />
-                    </Button>
+                    </ConfirmAction>
                   </TableCell>
                 </TableRow>
               ))}
@@ -163,19 +162,19 @@ export default function AdminSellersPage() {
               placeholder="Ism familiya"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="h-12 rounded-xl"
+              className="h-12"
             />
             <Input
               placeholder="+998901234567"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="h-12 rounded-xl"
+              className="h-12"
             />
             <Select
               value={status}
               onValueChange={(v) => setStatus(v || "active")}
             >
-              <SelectTrigger className="h-12 w-full rounded-xl">
+              <SelectTrigger className="h-12 w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,39 +8,43 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
 
-type LogoutConfirmProps = {
+type ConfirmActionProps = {
+  title: string;
+  description: string;
+  confirmLabel?: string;
+  pendingLabel?: string;
+  cancelLabel?: string;
   className?: string;
   variant?: React.ComponentProps<typeof Button>["variant"];
   size?: React.ComponentProps<typeof Button>["size"];
+  disabled?: boolean;
   children: React.ReactNode;
-  redirectTo?: string;
-  onLoggedOut?: () => void;
+  onConfirm: () => void | Promise<void>;
 };
 
-export function LogoutConfirm({
+export function ConfirmAction({
+  title,
+  description,
+  confirmLabel = "Ha, oʻchirish",
+  pendingLabel = "Oʻchirilmoqda…",
+  cancelLabel = "Bekor qilish",
   className,
-  variant = "outline",
-  size,
+  variant = "ghost",
+  size = "icon-sm",
+  disabled,
   children,
-  redirectTo = "/login",
-  onLoggedOut,
-}: LogoutConfirmProps) {
-  const router = useRouter();
-  const logout = useAuthStore((s) => s.logout);
+  onConfirm,
+}: ConfirmActionProps) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
 
-  async function confirmLogout() {
+  async function handleConfirm() {
     setPending(true);
     try {
-      await logout();
+      await onConfirm();
       setOpen(false);
-      onLoggedOut?.();
-      router.replace(redirectTo);
-      router.refresh();
     } finally {
       setPending(false);
     }
@@ -54,6 +57,7 @@ export function LogoutConfirm({
         variant={variant}
         size={size}
         className={className}
+        disabled={disabled || pending}
         onClick={() => setOpen(true)}
       >
         {children}
@@ -68,12 +72,8 @@ export function LogoutConfirm({
             "data-open:zoom-in-100 data-closed:zoom-out-100",
           )}
         >
-          <DialogTitle className="text-base font-semibold">
-            Chiqishni tasdiqlaysizmi?
-          </DialogTitle>
-          <DialogDescription>
-            Rostdan ham akkauntdan chiqmoqchimisiz?
-          </DialogDescription>
+          <DialogTitle className="text-base font-semibold">{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
           <div className="mt-1 flex gap-2">
             <Button
               type="button"
@@ -82,16 +82,16 @@ export function LogoutConfirm({
               disabled={pending}
               onClick={() => setOpen(false)}
             >
-              Bekor qilish
+              {cancelLabel}
             </Button>
             <Button
               type="button"
               variant="destructive"
               className="h-10 flex-1 rounded-full"
               disabled={pending}
-              onClick={confirmLogout}
+              onClick={() => void handleConfirm()}
             >
-              {pending ? "Chiqilmoqda…" : "Ha, chiqish"}
+              {pending ? pendingLabel : confirmLabel}
             </Button>
           </div>
         </DialogContent>

@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useAdminApi } from "@/lib/admin-api";
 
 type Category = { _id: string; name: string; slug: string };
@@ -59,15 +60,14 @@ export default function AdminCategoriesPage() {
     });
   }
 
-  function remove(id: string) {
-    startTransition(async () => {
-      try {
-        await adminFetch(`/categories/${id}`, { method: "DELETE" });
-        await load();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Xato");
-      }
-    });
+  async function remove(id: string) {
+    try {
+      await adminFetch(`/categories/${id}`, { method: "DELETE" });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Xato");
+      throw e;
+    }
   }
 
   return (
@@ -105,15 +105,14 @@ export default function AdminCategoriesPage() {
                   <TableCell className="pl-5 font-medium">{c.name}</TableCell>
                   <TableCell className="text-muted-foreground">{c.slug}</TableCell>
                   <TableCell className="pr-5 text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
+                    <ConfirmAction
                       className="text-destructive"
-                      disabled={pending}
-                      onClick={() => remove(c._id)}
+                      title="Kategoriyani oʻchirasizmi?"
+                      description={`“${c.name}” kategoriyasi oʻchiriladi. Davom etasizmi?`}
+                      onConfirm={() => remove(c._id)}
                     >
                       <Trash2 className="size-4" />
-                    </Button>
+                    </ConfirmAction>
                   </TableCell>
                 </TableRow>
               ))}
@@ -141,7 +140,7 @@ export default function AdminCategoriesPage() {
             placeholder="Kategoriya nomi"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="h-12 rounded-xl"
+            className="h-12"
           />
           <DialogFooter>
             <Button

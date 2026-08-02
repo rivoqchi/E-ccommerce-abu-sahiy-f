@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
+import { ProductImage } from "@/components/catalog/ProductImage";
 
 interface ProductGalleryProps {
   images: string[];
@@ -15,14 +15,13 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
   return (
     <div className="space-y-3">
       <div className="relative aspect-square overflow-hidden rounded-sm bg-background-elevated">
-        <Image
+        <ProductImage
           src={current}
           alt={name}
           fill
           priority
           sizes="(max-width: 768px) 100vw, 50vw"
           className="object-cover animate-fade-in"
-          key={current}
         />
       </div>
       {images.length > 1 ? (
@@ -39,7 +38,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
                     : "border-border opacity-80 hover:opacity-100"
                 }`}
               >
-                <Image
+                <ProductImage
                   src={src}
                   alt=""
                   fill

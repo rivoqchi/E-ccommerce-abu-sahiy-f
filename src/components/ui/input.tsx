@@ -1,19 +1,36 @@
 import * as React from "react"
-import { Input as InputPrimitive } from "@base-ui/react/input"
 
 import { cn } from "@/lib/utils"
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+/**
+ * Soft filled field. Horizontal padding lives on the outer shell so
+ * typed text never sits against the rounded edge.
+ */
+function Input({
+  className,
+  type,
+  disabled,
+  ...props
+}: React.ComponentProps<"input">) {
   return (
-    <InputPrimitive
-      type={type}
-      data-slot="input"
+    <div
+      data-slot="input-shell"
       className={cn(
-        "h-8 w-full min-w-0 rounded-lg border-0 bg-secondary px-4 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/20 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive/20 md:text-sm dark:bg-secondary dark:aria-invalid:ring-destructive/40",
+        "flex h-11 w-full min-w-0 items-center rounded-xl bg-secondary px-4",
+        "focus-within:ring-2 focus-within:ring-ring/20",
+        "has-[:disabled]:pointer-events-none has-[:disabled]:opacity-50",
+        "has-[[aria-invalid=true]]:ring-2 has-[[aria-invalid=true]]:ring-destructive/20",
         className
       )}
-      {...props}
-    />
+    >
+      <input
+        type={type}
+        data-slot="input"
+        disabled={disabled}
+        className="h-full w-full min-w-0 border-0 bg-transparent p-0 text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
+        {...props}
+      />
+    </div>
   )
 }
 

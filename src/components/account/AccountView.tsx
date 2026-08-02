@@ -408,7 +408,7 @@ function Field({
           inputMode={inputMode}
           className={cn(
             "h-12 rounded-2xl border-0 bg-secondary/70 px-4 text-[15px] shadow-none ring-1 ring-foreground/6",
-            "focus-visible:ring-2 focus-visible:ring-ring/40 md:text-[15px]",
+            "focus-within:ring-2 focus-within:ring-ring/40 md:text-[15px]",
             leading && "pl-10",
           )}
         />

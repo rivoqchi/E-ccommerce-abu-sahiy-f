@@ -10,6 +10,7 @@ export interface CatalogQuery {
   sort?: CatalogSort;
   inStock?: boolean;
   page?: number;
+  q?: string;
 }
 
 export function buildCatalogHref(params: CatalogQuery): string {
@@ -19,6 +20,9 @@ export function buildCatalogHref(params: CatalogQuery): string {
   }
   if (params.brand && params.brand !== "all") {
     search.set("brand", params.brand);
+  }
+  if (params.q?.trim()) {
+    search.set("q", params.q.trim());
   }
   if (params.sort && params.sort !== "featured") {
     search.set("sort", params.sort);
@@ -47,7 +51,9 @@ export function sortProducts(
       return list.sort((a, b) => a.name.localeCompare(b.name, "uz"));
     case "featured":
     default:
-      return list.sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)));
+      return list.sort(
+        (a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)),
+      );
   }
 }
 

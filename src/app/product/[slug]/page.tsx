@@ -3,32 +3,36 @@ import { notFound } from "next/navigation";
 import { ProductDetailsView } from "@/components/product/ProductDetailsView";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import {
-  getAllProducts,
-  getProductBySlug,
-  getRelatedProducts,
-} from "@/lib/products";
+  fetchProductBySlug,
+  fetchProductSlugs,
+  fetchRelatedProducts,
+} from "@/lib/storefront-api";
 import {
   breadcrumbJsonLd,
   jsonLdScript,
   productJsonLd,
 } from "@/lib/seo";
-import { CATEGORY_LABELS } from "@/types/product";
 
-export const revalidate = 3600;
+export const revalidate = 60;
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
-  return getAllProducts().map((product) => ({ slug: product.slug }));
+  try {
+    const slugs = await fetchProductSlugs(100);
+    return slugs.map((slug) => ({ slug }));
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({
   params,
 }: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await fetchProductBySlug(slug);
   if (!product) {
     return { title: "Mahsulot topilmadi" };
   }
@@ -50,13 +54,13 @@ export async function generateMetadata({
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await fetchProductBySlug(slug);
 
   if (!product) {
     notFound();
   }
 
-  const related = getRelatedProducts(product);
+  const related = await fetchRelatedProducts(product);
 
   return (
     <>
@@ -71,7 +75,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             { name: "Bosh sahifa", path: "/" },
             { name: "Katalog", path: "/catalog" },
             {
-              name: CATEGORY_LABELS[product.category],
+              name: product.categoryLabel,
               path: `/catalog?category=${product.category}`,
             },
             { name: product.name, path: `/product/${product.slug}` },

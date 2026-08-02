@@ -3,12 +3,18 @@ import { HomeSearch } from "@/components/home/HomeSearch";
 import { PromoBanner } from "@/components/home/PromoBanner";
 import { HomeCategoryPills } from "@/components/home/HomeCategoryPills";
 import { FeaturedProducts } from "@/components/home/FeaturedProducts";
-import { getFeaturedProducts } from "@/lib/products";
+import {
+  fetchCategories,
+  fetchFeaturedProducts,
+} from "@/lib/storefront-api";
 
-export const revalidate = 3600;
+export const revalidate = 60;
 
-export default function HomePage() {
-  const featured = getFeaturedProducts();
+export default async function HomePage() {
+  const [featured, categories] = await Promise.all([
+    fetchFeaturedProducts(8),
+    fetchCategories(),
+  ]);
 
   return (
     <div className="mx-auto w-[90%] max-w-6xl py-5 md:w-[80%] md:py-10">
@@ -36,7 +42,7 @@ export default function HomePage() {
         </div>
 
         <PromoBanner />
-        <HomeCategoryPills />
+        <HomeCategoryPills categories={categories} />
         <FeaturedProducts products={featured} />
       </div>
     </div>

@@ -1,8 +1,24 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
-import { CATEGORY_LABELS } from "@/types/product";
+import { fetchCategories } from "@/lib/storefront-api";
+import type { CatalogCategory } from "@/types/product";
 
 export function Footer() {
+  const [categories, setCategories] = useState<CatalogCategory[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchCategories().then((rows) => {
+      if (!cancelled) setCategories(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <footer className="mt-auto border-t border-border bg-card">
       <div className="mx-auto grid w-[80%] max-w-6xl gap-10 py-12 md:grid-cols-3">
@@ -18,16 +34,27 @@ export function Footer() {
         <div>
           <p className="text-sm font-semibold text-foreground">Kategoriyalar</p>
           <ul className="mt-3 space-y-2">
-            {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-              <li key={key}>
+            {categories.length > 0 ? (
+              categories.map((cat) => (
+                <li key={cat.id}>
+                  <Link
+                    href={`/catalog?category=${cat.slug}`}
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {cat.name}
+                  </Link>
+                </li>
+              ))
+            ) : (
+              <li>
                 <Link
-                  href={`/catalog?category=${key}`}
+                  href="/catalog"
                   className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  {label}
+                  Katalog
                 </Link>
               </li>
-            ))}
+            )}
           </ul>
         </div>
 

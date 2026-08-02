@@ -20,7 +20,7 @@ export function HomeSearch() {
           name="q"
           type="search"
           placeholder="Mahsulot qidirish..."
-          className="h-12 rounded-full border-0 bg-card pr-4 pl-11 text-sm shadow-[var(--shadow-soft)] placeholder:text-muted-foreground focus-visible:ring-1 dark:bg-card"
+          className="h-12 rounded-full border-0 bg-card pr-4 pl-11 text-sm shadow-[var(--shadow-soft)] placeholder:text-muted-foreground focus-within:ring-1 dark:bg-card"
         />
       </label>
       <Button

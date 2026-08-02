@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCartStore } from "@/store/cart";
 import { formatUZS } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { ProductImage } from "@/components/catalog/ProductImage";
 import { CartItemsSkeleton } from "@/components/skeletons";
 
 export function CartItems() {
@@ -42,7 +42,7 @@ export function CartItems() {
             href={`/product/${item.slug}`}
             className="relative h-24 w-24 shrink-0 overflow-hidden rounded-sm bg-background-elevated"
           >
-            <Image
+            <ProductImage
               src={item.image}
               alt={item.name}
               fill

@@ -66,7 +66,7 @@ export default function AdminUsersPage() {
         placeholder="Qidirish…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        className="h-12 max-w-md rounded-xl"
+        className="h-12 max-w-md"
       />
 
       {error ? (

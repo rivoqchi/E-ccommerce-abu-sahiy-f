@@ -1,5 +1,4 @@
 import type { Product } from "@/types/product";
-import { CATEGORY_LABELS } from "@/types/product";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 export function organizationJsonLd() {
@@ -25,7 +24,7 @@ export function productJsonLd(product: Product) {
       "@type": "Brand",
       name: product.brand,
     },
-    category: CATEGORY_LABELS[product.category],
+    category: product.categoryLabel,
     offers: {
       "@type": "Offer",
       url: `${SITE_URL}/product/${product.slug}`,

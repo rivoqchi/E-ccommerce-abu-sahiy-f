@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -8,6 +7,7 @@ import { ArrowLeft, Heart, Minus, Plus, ShoppingBag } from "lucide-react";
 import type { Product } from "@/types/product";
 import { formatUZS } from "@/lib/format";
 import { useCartStore } from "@/store/cart";
+import { ProductImage } from "@/components/catalog/ProductImage";
 import {
   Avatar,
   AvatarFallback,
@@ -86,14 +86,13 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
         </header>
 
         <div className="relative mx-auto mt-2 aspect-[4/5] w-[86%] max-w-sm overflow-hidden rounded-[2rem] bg-secondary">
-          <Image
+          <ProductImage
             src={current}
             alt={product.name}
             fill
             priority
             sizes="90vw"
             className="object-cover animate-fade-in"
-            key={current}
           />
         </div>
 
@@ -112,7 +111,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                       : "border-transparent opacity-80",
                   )}
                 >
-                  <Image
+                  <ProductImage
                     src={src}
                     alt=""
                     fill
@@ -131,12 +130,12 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
               <h2 className="text-2xl font-bold tracking-tight text-foreground">
                 {product.name}
               </h2>
-              <div className="mt-2 flex items-baseline gap-2">
-                <p className="text-xl font-bold tracking-tight">
+              <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <p className="text-xl font-bold tracking-tight tabular-nums">
                   {formatUZS(product.price)}
                 </p>
                 {product.compareAtPrice ? (
-                  <p className="text-sm text-muted-foreground line-through">
+                  <p className="text-sm text-muted-foreground line-through tabular-nums">
                     {formatUZS(product.compareAtPrice)}
                   </p>
                 ) : null}
@@ -237,14 +236,13 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
         <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
           <div>
             <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-secondary lg:aspect-square">
-              <Image
+              <ProductImage
                 src={current}
                 alt={product.name}
                 fill
                 priority
                 sizes="(max-width: 1024px) 50vw, 40vw"
                 className="object-cover animate-fade-in"
-                key={current}
               />
               <Button
                 variant="secondary"
@@ -278,7 +276,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                           : "border-transparent opacity-75 hover:opacity-100",
                       )}
                     >
-                      <Image
+                      <ProductImage
                         src={src}
                         alt=""
                         fill
@@ -300,11 +298,11 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
 
             <div className="mt-6 flex flex-wrap items-center gap-4">
               <div className="flex items-baseline gap-3">
-                <p className="text-3xl font-bold tracking-tight">
+                <p className="text-3xl font-bold tracking-tight tabular-nums">
                   {formatUZS(product.price)}
                 </p>
                 {product.compareAtPrice ? (
-                  <p className="text-base text-muted-foreground line-through">
+                  <p className="text-base text-muted-foreground line-through tabular-nums">
                     {formatUZS(product.compareAtPrice)}
                   </p>
                 ) : null}

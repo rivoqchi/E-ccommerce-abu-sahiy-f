@@ -330,8 +330,7 @@ function PhoneStep({
           onChange={(e) => onNationalChange(e.target.value)}
           className={cn(
             "h-full min-h-14 flex-1 rounded-none border-0 bg-transparent px-4",
-            "text-[15px] shadow-none ring-0",
-            "focus-visible:border-transparent focus-visible:ring-0",
+            "text-[15px] shadow-none ring-0 focus-within:ring-0",
             "dark:bg-transparent md:text-[15px]",
           )}
         />

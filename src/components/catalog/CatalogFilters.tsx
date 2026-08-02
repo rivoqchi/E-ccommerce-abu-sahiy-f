@@ -14,13 +14,15 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { buildCatalogHref } from "@/lib/catalog";
-import { CATEGORY_PILLS } from "@/types/product";
+import type { CatalogBrand, CatalogCategory } from "@/types/product";
 import { cn } from "@/lib/utils";
 
 export interface CatalogFiltersState {
   category: string;
   brand: string;
-  brands: string[];
+  categories: CatalogCategory[];
+  brands: CatalogBrand[];
+  q?: string;
 }
 
 function FilterLink({
@@ -50,10 +52,12 @@ function FilterLink({
 function FilterPanel({
   category,
   brand,
+  categories,
   brands,
+  q,
   className,
 }: CatalogFiltersState & { className?: string }) {
-  const hasActive = category !== "all" || brand !== "all";
+  const hasActive = category !== "all" || brand !== "all" || Boolean(q);
 
   return (
     <div className={cn("space-y-8", className)}>
@@ -72,17 +76,26 @@ function FilterPanel({
           ) : null}
         </div>
         <ul className="space-y-0.5">
-          {CATEGORY_PILLS.map((item) => (
-            <li key={item.key}>
+          <li>
+            <FilterLink
+              href={buildCatalogHref({ category: "all", brand, q, page: 1 })}
+              active={category === "all"}
+            >
+              Barchasi
+            </FilterLink>
+          </li>
+          {categories.map((item) => (
+            <li key={item.id}>
               <FilterLink
                 href={buildCatalogHref({
-                  category: item.key,
+                  category: item.slug,
                   brand,
+                  q,
                   page: 1,
                 })}
-                active={category === item.key}
+                active={category === item.slug}
               >
-                {item.label}
+                {item.name}
               </FilterLink>
             </li>
           ))}
@@ -99,6 +112,7 @@ function FilterPanel({
               href={buildCatalogHref({
                 category,
                 brand: "all",
+                q,
                 page: 1,
               })}
               active={brand === "all"}
@@ -107,16 +121,17 @@ function FilterPanel({
             </FilterLink>
           </li>
           {brands.map((b) => (
-            <li key={b}>
+            <li key={b.id}>
               <FilterLink
                 href={buildCatalogHref({
                   category,
-                  brand: b,
+                  brand: b.slug,
+                  q,
                   page: 1,
                 })}
-                active={brand === b}
+                active={brand === b.slug}
               >
-                {b}
+                {b.name}
               </FilterLink>
             </li>
           ))}
@@ -139,6 +154,7 @@ export function CatalogMobileFilters(props: CatalogFiltersState) {
   const activeCount = [
     props.category !== "all",
     props.brand !== "all",
+    Boolean(props.q),
   ].filter(Boolean).length;
 
   return (

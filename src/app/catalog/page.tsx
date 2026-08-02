@@ -5,11 +5,14 @@ import {
 } from "@/components/catalog/CatalogFilters";
 import { CatalogPagination } from "@/components/catalog/CatalogPagination";
 import { ProductGrid } from "@/components/catalog/ProductGrid";
-import { paginateProducts } from "@/lib/catalog";
-import { filterProducts, getBrands } from "@/lib/products";
-import { CATEGORY_LABELS, type ProductCategory } from "@/types/product";
+import { CATALOG_PAGE_SIZE } from "@/lib/catalog";
+import {
+  fetchBrands,
+  fetchCategories,
+  fetchProducts,
+} from "@/lib/storefront-api";
 
-export const revalidate = 3600;
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Katalog",
@@ -25,29 +28,51 @@ interface CatalogPageProps {
     category?: string;
     brand?: string;
     page?: string;
+    q?: string;
   }>;
 }
 
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const params = await searchParams;
-  const category = params.category ?? "all";
-  const brand = params.brand ?? "all";
+  const categorySlug = params.category ?? "all";
+  const brandSlug = params.brand ?? "all";
+  const q = params.q?.trim() || undefined;
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
 
-  const filtered = filterProducts({ category, brand });
-  const pagination = paginateProducts(filtered, page);
-  const brands = getBrands();
+  const [categories, brands] = await Promise.all([
+    fetchCategories(),
+    fetchBrands(),
+  ]);
+
+  const category = categories.find((c) => c.slug === categorySlug);
+  const brand = brands.find((b) => b.slug === brandSlug);
+
+  const result = await fetchProducts({
+    categoryId: category?.id,
+    brandId: brand?.id,
+    q,
+    page,
+  });
 
   const filterState = {
-    category,
-    brand,
+    category: categorySlug,
+    brand: brandSlug,
+    categories,
     brands,
+    q,
   };
 
   const categoryLabel =
-    category !== "all" && category in CATEGORY_LABELS
-      ? CATEGORY_LABELS[category as ProductCategory]
-      : "Barcha mahsulotlar";
+    categorySlug !== "all" && category
+      ? category.name
+      : q
+        ? `"${q}" bo'yicha natijalar`
+        : "Barcha mahsulotlar";
+
+  const from =
+    result.total === 0 ? 0 : (result.page - 1) * CATALOG_PAGE_SIZE + 1;
+  const to =
+    result.total === 0 ? 0 : from + result.items.length - 1;
 
   return (
     <div className="mx-auto w-[90%] max-w-6xl py-5 md:w-[80%] md:py-10">
@@ -56,12 +81,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-4xl">
             Katalog
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {categoryLabel}
-            {pagination.total > 0
-              ? ` — ${pagination.from}–${pagination.to} / ${pagination.total} ta`
-              : " — 0 ta mahsulot"}
-          </p>
+         
         </div>
         <CatalogMobileFilters {...filterState} />
       </header>
@@ -70,11 +90,15 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         <CatalogFilters {...filterState} />
 
         <div className="min-w-0">
-          <ProductGrid products={pagination.items} />
+          <ProductGrid products={result.items} />
           <CatalogPagination
-            page={pagination.page}
-            totalPages={pagination.totalPages}
-            query={{ category, brand }}
+            page={result.page}
+            totalPages={result.totalPages}
+            query={{
+              category: categorySlug,
+              brand: brandSlug,
+              q,
+            }}
           />
         </div>
       </div>

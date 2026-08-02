@@ -1,8 +1,18 @@
-export type ProductCategory = "appliances" | "cookware" | "tableware";
-
 export interface ProductSpec {
   label: string;
   value: string;
+}
+
+export interface CatalogCategory {
+  id: string;
+  slug: string;
+  name: string;
+}
+
+export interface CatalogBrand {
+  id: string;
+  slug: string;
+  name: string;
 }
 
 export interface Product {
@@ -12,8 +22,11 @@ export interface Product {
   description: string;
   price: number;
   compareAtPrice?: number;
-  category: ProductCategory;
+  /** Category slug for URLs/filters */
+  category: string;
+  categoryLabel: string;
   brand: string;
+  brandSlug?: string;
   images: string[];
   specs: ProductSpec[];
   featured?: boolean;
@@ -30,16 +43,5 @@ export interface CartItem {
   quantity: number;
 }
 
-export const CATEGORY_LABELS: Record<ProductCategory, string> = {
-  appliances: "Texnika",
-  cookware: "Idishlar",
-  tableware: "Dasturxon",
-};
-
-export const CATEGORY_PILLS: { key: "all" | ProductCategory; label: string }[] =
-  [
-    { key: "all", label: "Barchasi" },
-    { key: "appliances", label: "Texnika" },
-    { key: "cookware", label: "Idishlar" },
-    { key: "tableware", label: "Dasturxon" },
-  ];
+export const PRODUCT_IMAGE_PLACEHOLDER =
+  "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=1200&q=80";

@@ -213,4 +213,7 @@ body {
   html {
     @apply font-sans;
   }
+  [data-slot="input"] {
+    padding: 0 !important;
+  }
 }

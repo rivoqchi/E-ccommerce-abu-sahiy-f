@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useAdminApi } from "@/lib/admin-api";
 import { fileToAvatarDataUrl } from "@/lib/avatar";
 import { formatUZS } from "@/lib/format";
@@ -169,15 +170,14 @@ export default function AdminProductsPage() {
     });
   }
 
-  function remove(id: string) {
-    startTransition(async () => {
-      try {
-        await adminFetch(`/products/${id}`, { method: "DELETE" });
-        await load();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Oʻchirilmadi");
-      }
-    });
+  async function remove(id: string) {
+    try {
+      await adminFetch(`/products/${id}`, { method: "DELETE" });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Oʻchirilmadi");
+      throw e;
+    }
   }
 
   return (
@@ -228,15 +228,14 @@ export default function AdminProductsPage() {
                     >
                       Tahrir
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
+                    <ConfirmAction
                       className="text-destructive"
-                      disabled={pending}
-                      onClick={() => remove(p._id)}
+                      title="Mahsulotni oʻchirasizmi?"
+                      description={`“${p.name}” mahsuloti butunlay oʻchiriladi. Davom etasizmi?`}
+                      onConfirm={() => remove(p._id)}
                     >
                       <Trash2 className="size-4" />
-                    </Button>
+                    </ConfirmAction>
                   </TableCell>
                 </TableRow>
               ))}
@@ -256,19 +255,19 @@ export default function AdminProductsPage() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="flex max-h-[90dvh] flex-col gap-4 overflow-hidden sm:max-w-2xl">
-          <DialogHeader className="shrink-0">
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
             <DialogTitle>
               {editingId ? "Mahsulotni tahrirlash" : "Yangi mahsulot"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-2">
             <Input
               placeholder="Mahsulot nomi"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="h-12 rounded-xl"
+              className="h-12"
             />
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
@@ -276,14 +275,14 @@ export default function AdminProductsPage() {
                 inputMode="decimal"
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
-                className="h-12 rounded-xl"
+                className="h-12"
               />
               <Input
                 placeholder="Ombor"
                 inputMode="numeric"
                 value={form.stock}
                 onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                className="h-12 rounded-xl"
+                className="h-12"
               />
             </div>
 
@@ -294,7 +293,7 @@ export default function AdminProductsPage() {
                   setForm({ ...form, categoryId: v ?? "" })
                 }
               >
-                <SelectTrigger className="h-12 w-full rounded-xl">
+                <SelectTrigger className="h-12 w-full">
                   <SelectValue placeholder="Kategoriya" />
                 </SelectTrigger>
                 <SelectContent>
@@ -310,7 +309,7 @@ export default function AdminProductsPage() {
                 value={form.brandId || null}
                 onValueChange={(v) => setForm({ ...form, brandId: v ?? "" })}
               >
-                <SelectTrigger className="h-12 w-full rounded-xl">
+                <SelectTrigger className="h-12 w-full">
                   <SelectValue placeholder="Brend (ixtiyoriy)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -329,7 +328,7 @@ export default function AdminProductsPage() {
                 setForm({ ...form, status: v || "active" })
               }
             >
-              <SelectTrigger className="h-12 w-full rounded-xl">
+              <SelectTrigger className="h-12 w-full">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -345,7 +344,7 @@ export default function AdminProductsPage() {
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
               }
-              className="min-h-24 rounded-xl"
+              className="min-h-24"
             />
 
             <div className="space-y-2">
@@ -377,7 +376,7 @@ export default function AdminProductsPage() {
                       specs[idx] = { ...specs[idx]!, label: e.target.value };
                       setForm({ ...form, specs });
                     }}
-                    className="h-11 rounded-xl"
+                    className="h-11"
                   />
                   <Input
                     placeholder="Qiymati"
@@ -387,7 +386,7 @@ export default function AdminProductsPage() {
                       specs[idx] = { ...specs[idx]!, value: e.target.value };
                       setForm({ ...form, specs });
                     }}
-                    className="h-11 rounded-xl"
+                    className="h-11"
                   />
                   <Button
                     type="button"
