@@ -40,6 +40,11 @@ export type ApiProduct = {
   tags?: string[];
   isActive?: boolean;
   status?: string;
+  buyerCount?: number;
+  recentBuyers?: Array<{
+    fullName: string;
+    avatarUrl?: string;
+  }>;
 };
 
 export type ProductsListResult = {
@@ -96,8 +101,18 @@ export function mapApiProduct(raw: ApiProduct): Product {
     specs: raw.specs ?? [],
     featured: tags.includes("featured"),
     inStock: (raw.stock ?? 0) > 0,
+    buyerCount: Number(raw.buyerCount) || 0,
+    recentBuyers: (raw.recentBuyers ?? [])
+      .filter((b) => b?.fullName)
+      .map((b) => ({
+        fullName: b.fullName,
+        avatarUrl: b.avatarUrl || undefined,
+      })),
   };
 }
+
+/** Build/ISR da API uxlab yoki noto'g'ri URL bo'lsa Vercel 60s timeout bermasin */
+const PUBLIC_FETCH_TIMEOUT_MS = 8_000;
 
 async function publicFetch<T>(
   path: string,
@@ -107,6 +122,7 @@ async function publicFetch<T>(
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const response = await fetch(`${API_BASE_URL}${normalizedPath}`, {
     ...rest,
+    signal: AbortSignal.timeout(PUBLIC_FETCH_TIMEOUT_MS),
     headers: {
       "Content-Type": "application/json",
       ...headers,

@@ -43,9 +43,11 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  bodyClassName,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
+  bodyClassName?: string
 }) {
   return (
     <DialogPortal>
@@ -59,7 +61,12 @@ function DialogContent({
         )}
         {...props}
       >
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-6 pt-5">
+        <div
+          className={cn(
+            "flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-6 pt-5",
+            bodyClassName
+          )}
+        >
           {children}
         </div>
         {showCloseButton && (

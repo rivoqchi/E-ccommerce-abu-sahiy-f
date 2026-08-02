@@ -40,11 +40,12 @@ function resolveApiUrl(): string {
 
   // Production build Vercel'da — API URL hali sozlanmagan bo'lsa ham
   // collectPageData yiqilmasin (runtime'da to'g'ri URL qo'yilishi kerak).
+  // 127.0.0.1:9 — tez rad etiladi (placeholder.local DNS kutmaydi).
   if (process.env.VERCEL) {
     console.warn(
       "[env] NEXT_PUBLIC_API_URL belgilanmagan. Vercel Environment Variables ga qo'shing (masalan https://api.example.com/api/v1).",
     );
-    return "https://api.placeholder.local/api/v1";
+    return "http://127.0.0.1:9/api/v1";
   }
 
   throw new Error(

@@ -204,7 +204,7 @@ export default function AdminProductsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="pl-5">Nomi</TableHead>
-                <TableHead>Narx</TableHead>
+                <TableHead>Narx ($)</TableHead>
                 <TableHead>Ombor</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="pr-5 text-right">Amallar</TableHead>
@@ -271,7 +271,7 @@ export default function AdminProductsPage() {
             />
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
-                placeholder="Narx"
+                placeholder="Narx ($)"
                 inputMode="decimal"
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}

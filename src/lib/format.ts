@@ -1,25 +1,46 @@
-/** Locale-stable grouping — Intl.NumberFormat("uz-UZ") differs between Node and browsers. */
-export function formatUZS(amount: number): string {
+/** Locale-stable USD formatting (avoids Intl Node/browser mismatches). */
+export function formatUSD(amount: number): string {
   const value = Number(amount);
   if (!Number.isFinite(value)) return "—";
 
-  const rounded = Math.round(value);
-  const sign = rounded < 0 ? "-" : "";
-  const grouped = Math.abs(rounded)
+  const sign = value < 0 ? "-" : "";
+  const abs = Math.abs(value);
+  const cents = Math.round(abs * 100);
+  const dollars = Math.floor(cents / 100);
+  const remainder = cents % 100;
+  const grouped = dollars
     .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-  return `${sign}${grouped}\u00a0so'm`;
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+  return `${sign}$${grouped}.${remainder.toString().padStart(2, "0")}`;
 }
 
-export function formatCompactUZS(amount: number): string {
+export function formatCompactUSD(amount: number): string {
   const value = Number(amount);
   if (!Number.isFinite(value)) return "—";
 
-  if (Math.abs(value) >= 1_000_000) {
-    const millions = value / 1_000_000;
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+
+  if (abs >= 1_000_000) {
+    const millions = abs / 1_000_000;
     const label =
       millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1);
-    return `${label}\u00a0mln so'm`;
+    return `${sign}$${label}M`;
   }
-  return formatUZS(value);
+
+  if (abs >= 1_000) {
+    const thousands = abs / 1_000;
+    const label =
+      thousands % 1 === 0 ? thousands.toFixed(0) : thousands.toFixed(1);
+    return `${sign}$${label}K`;
+  }
+
+  return formatUSD(value);
 }
+
+/** @deprecated Use formatUSD — kept so existing imports keep working. */
+export const formatUZS = formatUSD;
+
+/** @deprecated Use formatCompactUSD */
+export const formatCompactUZS = formatCompactUSD;

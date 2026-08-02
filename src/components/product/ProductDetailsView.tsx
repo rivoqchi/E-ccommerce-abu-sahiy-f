@@ -7,6 +7,7 @@ import { ArrowLeft, Heart, Minus, Plus, ShoppingBag } from "lucide-react";
 import type { Product } from "@/types/product";
 import { formatUZS } from "@/lib/format";
 import { useCartStore } from "@/store/cart";
+import { useWishlistStore } from "@/store/wishlist";
 import { ProductImage } from "@/components/catalog/ProductImage";
 import {
   Avatar,
@@ -18,31 +19,75 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
-const BUYERS = [
-  {
-    src: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80",
-    alt: "A",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",
-    alt: "B",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80",
-    alt: "C",
-  },
-];
-
 interface ProductDetailsViewProps {
   product: Product;
+}
+
+function formatBuyerLabel(count: number): string {
+  if (count <= 0) return "";
+  if (count === 1) return "1 odam shu mahsulotni sotib olgan";
+  if (count < 10) return `${count} odam shu mahsulotni sotib olgan`;
+  // Social-proof style: 12 → 10+, 127 → 120+
+  const rounded = Math.floor(count / 10) * 10;
+  return `${rounded}+ odam shu mahsulotni sotib olgan`;
+}
+
+function buyerInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "X";
+  if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
+
+function PurchaseSocialProof({
+  buyerCount = 0,
+  recentBuyers = [],
+  compact = false,
+}: {
+  buyerCount?: number;
+  recentBuyers?: Product["recentBuyers"];
+  compact?: boolean;
+}) {
+  if (!buyerCount || buyerCount <= 0) return null;
+
+  const buyers = (recentBuyers ?? []).slice(0, 3);
+  const label = formatBuyerLabel(buyerCount);
+
+  return (
+    <div className={cn("flex items-center gap-3", compact ? "mt-5" : "mt-6")}>
+      {buyers.length > 0 ? (
+        <AvatarGroup>
+          {buyers.map((buyer, index) => (
+            <Avatar key={`${buyer.fullName}-${index}`} size={compact ? "sm" : "default"}>
+              {buyer.avatarUrl ? (
+                <AvatarImage src={buyer.avatarUrl} alt={buyer.fullName} />
+              ) : null}
+              <AvatarFallback>{buyerInitials(buyer.fullName)}</AvatarFallback>
+            </Avatar>
+          ))}
+        </AvatarGroup>
+      ) : null}
+      <p
+        className={cn(
+          "text-muted-foreground",
+          compact ? "text-xs" : "text-sm",
+        )}
+      >
+        {label}
+      </p>
+    </div>
+  );
 }
 
 export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
+  const toggleWishlist = useWishlistStore((s) => s.toggleItem);
+  const liked = useWishlistStore((s) =>
+    s.items.some((item) => item.productId === product.id),
+  );
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
-  const [liked, setLiked] = useState(false);
   const [added, setAdded] = useState(false);
   const current = product.images[active] ?? product.images[0];
 
@@ -51,6 +96,10 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
     addItem(product, qty);
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1800);
+  };
+
+  const handleWishlist = () => {
+    toggleWishlist(product);
   };
 
   return (
@@ -72,8 +121,9 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
             variant="secondary"
             size="icon"
             className="size-10 rounded-full bg-card shadow-[var(--shadow-soft)]"
-            onClick={() => setLiked((v) => !v)}
-            aria-label="Sevimlilarga"
+            onClick={handleWishlist}
+            aria-label={liked ? "Sevimlilardan olib tashlash" : "Sevimlilarga"}
+            aria-pressed={liked}
           >
             <Heart
               className={cn(
@@ -165,19 +215,11 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
             </div>
           </div>
 
-          <div className="mt-5 flex items-center gap-3">
-            <AvatarGroup>
-              {BUYERS.map((buyer) => (
-                <Avatar key={buyer.alt} size="sm">
-                  <AvatarImage src={buyer.src} alt={buyer.alt} />
-                  <AvatarFallback>{buyer.alt}</AvatarFallback>
-                </Avatar>
-              ))}
-            </AvatarGroup>
-            <p className="text-xs text-muted-foreground">
-              120+ odam sotib olgan
-            </p>
-          </div>
+          <PurchaseSocialProof
+            buyerCount={product.buyerCount}
+            recentBuyers={product.recentBuyers}
+            compact
+          />
 
           <Separator className="my-5" />
 
@@ -248,8 +290,9 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                 variant="secondary"
                 size="icon"
                 className="absolute top-5 right-5 size-11 rounded-full bg-card/95 shadow-sm"
-                onClick={() => setLiked((v) => !v)}
-                aria-label="Sevimlilarga"
+                onClick={handleWishlist}
+                aria-label={liked ? "Sevimlilardan olib tashlash" : "Sevimlilarga"}
+                aria-pressed={liked}
               >
                 <Heart
                   className={cn(
@@ -331,19 +374,10 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
               </div>
             </div>
 
-            <div className="mt-6 flex items-center gap-3">
-              <AvatarGroup>
-                {BUYERS.map((buyer) => (
-                  <Avatar key={buyer.alt}>
-                    <AvatarImage src={buyer.src} alt={buyer.alt} />
-                    <AvatarFallback>{buyer.alt}</AvatarFallback>
-                  </Avatar>
-                ))}
-              </AvatarGroup>
-              <p className="text-sm text-muted-foreground">
-                120+ odam shu mahsulotni sotib olgan
-              </p>
-            </div>
+            <PurchaseSocialProof
+              buyerCount={product.buyerCount}
+              recentBuyers={product.recentBuyers}
+            />
 
             <Separator className="my-8" />
 

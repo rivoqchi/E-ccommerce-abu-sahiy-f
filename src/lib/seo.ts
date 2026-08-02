@@ -28,7 +28,7 @@ export function productJsonLd(product: Product) {
     offers: {
       "@type": "Offer",
       url: `${SITE_URL}/product/${product.slug}`,
-      priceCurrency: "UZS",
+      priceCurrency: "USD",
       price: product.price,
       availability: product.inStock
         ? "https://schema.org/InStock"

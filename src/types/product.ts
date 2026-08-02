@@ -32,6 +32,12 @@ export interface Product {
   featured?: boolean;
   inStock: boolean;
   rating?: number;
+  /** Unique customers who purchased (paid/shipped/delivered). */
+  buyerCount?: number;
+  recentBuyers?: Array<{
+    fullName: string;
+    avatarUrl?: string;
+  }>;
 }
 
 export interface CartItem {
@@ -41,6 +47,15 @@ export interface CartItem {
   price: number;
   image: string;
   quantity: number;
+}
+
+export interface WishlistItem {
+  productId: string;
+  slug: string;
+  name: string;
+  price: number;
+  image: string;
+  brand: string;
 }
 
 export const PRODUCT_IMAGE_PLACEHOLDER =
