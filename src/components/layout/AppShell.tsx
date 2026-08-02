@@ -10,10 +10,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isWelcome = pathname === "/welcome";
   const isLogin = pathname === "/login";
   const isAdmin = pathname.startsWith("/admin");
-  const hideChrome = isWelcome || isLogin || isAdmin;
+  const isVideos = pathname.startsWith("/videos");
+  const hideChrome = isWelcome || isLogin || isAdmin || isVideos;
 
   if (isAdmin) {
     return <>{children}</>;
+  }
+
+  if (isVideos) {
+    return <main className="flex-1">{children}</main>;
   }
 
   return (

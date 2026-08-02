@@ -1,11 +1,17 @@
 /** Fixed square size for all product photos (px). */
 export const PRODUCT_IMAGE_SIZE = 800;
 
+/** Category circular thumbnails — smaller payload than product shots. */
+export const CATEGORY_IMAGE_SIZE = 400;
+
 /**
- * Center-crop any image to a square, then resize to PRODUCT_IMAGE_SIZE×PRODUCT_IMAGE_SIZE JPEG.
- * Every product upload becomes the same dimensions so cards/modals never stretch.
+ * Center-crop any image to a square, then resize to `size`×`size` JPEG.
  */
-export async function fileToProductImageDataUrl(file: File): Promise<string> {
+export async function fileToSquareImageDataUrl(
+  file: File,
+  size: number,
+  quality = 0.88,
+): Promise<string> {
   if (!file.type.startsWith("image/")) {
     throw new Error("Faqat rasm fayllari yuklanadi");
   }
@@ -19,7 +25,6 @@ export async function fileToProductImageDataUrl(file: File): Promise<string> {
 
   const sx = Math.floor((bitmap.width - side) / 2);
   const sy = Math.floor((bitmap.height - side) / 2);
-  const size = PRODUCT_IMAGE_SIZE;
 
   const canvas = document.createElement("canvas");
   canvas.width = size;
@@ -35,5 +40,17 @@ export async function fileToProductImageDataUrl(file: File): Promise<string> {
   ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, size, size);
   bitmap.close();
 
-  return canvas.toDataURL("image/jpeg", 0.88);
+  return canvas.toDataURL("image/jpeg", quality);
+}
+
+/**
+ * Center-crop any image to a square, then resize to PRODUCT_IMAGE_SIZE×PRODUCT_IMAGE_SIZE JPEG.
+ * Every product upload becomes the same dimensions so cards/modals never stretch.
+ */
+export async function fileToProductImageDataUrl(file: File): Promise<string> {
+  return fileToSquareImageDataUrl(file, PRODUCT_IMAGE_SIZE);
+}
+
+export async function fileToCategoryImageDataUrl(file: File): Promise<string> {
+  return fileToSquareImageDataUrl(file, CATEGORY_IMAGE_SIZE, 0.85);
 }

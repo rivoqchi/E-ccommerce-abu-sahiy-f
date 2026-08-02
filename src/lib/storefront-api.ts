@@ -6,6 +6,7 @@ import type {
   Product,
   ProductSpec,
 } from "@/types/product";
+import type { Story, StoryItem, StoryVideo } from "@/types/story";
 import { resolveProductImages } from "@/lib/product-image";
 
 type ApiSuccess<T> = { success: true; data: T };
@@ -158,12 +159,13 @@ function toQuery(params: Record<string, string | number | undefined>) {
 export async function fetchCategories(): Promise<CatalogCategory[]> {
   try {
     const rows = await publicFetch<
-      Array<{ _id: string; name: string; slug: string }>
+      Array<{ _id: string; name: string; slug: string; image?: string }>
     >("/categories");
     return rows.map((c) => ({
       id: String(c._id),
       name: c.name,
       slug: c.slug,
+      image: c.image || undefined,
     }));
   } catch {
     return [];
@@ -305,4 +307,88 @@ export async function fetchRelatedProducts(
 export async function fetchProductSlugs(limit = 200): Promise<string[]> {
   const result = await fetchProducts({ page: 1, limit });
   return result.items.map((p) => p.slug);
+}
+
+/* ── Stories / Reels ─────────────────────────────────────────── */
+
+type ApiStoryItem = {
+  _id?: string;
+  mediaType: "image" | "video";
+  mediaUrl: string;
+  mediaUrlLow?: string;
+  thumbnailUrl?: string;
+  durationMs?: number;
+  caption?: string;
+};
+
+type ApiStory = {
+  _id: string;
+  authorName: string;
+  avatarUrl?: string;
+  items?: ApiStoryItem[];
+  isActive?: boolean;
+  createdAt?: string;
+};
+
+function mapStoryItem(raw: ApiStoryItem, index: number): StoryItem {
+  return {
+    id: String(raw._id ?? index),
+    mediaType: raw.mediaType,
+    mediaUrl: raw.mediaUrl,
+    mediaUrlLow: raw.mediaUrlLow || undefined,
+    thumbnailUrl: raw.thumbnailUrl || undefined,
+    durationMs: raw.durationMs ?? 5000,
+    caption: raw.caption || undefined,
+  };
+}
+
+function mapStory(raw: ApiStory): Story {
+  return {
+    id: String(raw._id),
+    authorName: raw.authorName,
+    avatarUrl: raw.avatarUrl || undefined,
+    items: (raw.items ?? []).map(mapStoryItem),
+    isActive: raw.isActive !== false,
+    createdAt: raw.createdAt,
+  };
+}
+
+export async function fetchStories(): Promise<Story[]> {
+  try {
+    const rows = await publicFetch<ApiStory[]>("/stories");
+    return rows.map(mapStory).filter((s) => s.items.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchStoryVideos(): Promise<StoryVideo[]> {
+  try {
+    const rows = await publicFetch<
+      Array<{
+        id: string;
+        storyId: string;
+        authorName: string;
+        avatarUrl?: string;
+        mediaUrl: string;
+        mediaUrlLow?: string;
+        thumbnailUrl?: string;
+        caption?: string;
+        createdAt?: string;
+      }>
+    >("/stories/videos");
+    return rows.map((v) => ({
+      id: String(v.id),
+      storyId: String(v.storyId),
+      authorName: v.authorName,
+      avatarUrl: v.avatarUrl || undefined,
+      mediaUrl: v.mediaUrl,
+      mediaUrlLow: v.mediaUrlLow || undefined,
+      thumbnailUrl: v.thumbnailUrl || undefined,
+      caption: v.caption || undefined,
+      createdAt: v.createdAt,
+    }));
+  } catch {
+    return [];
+  }
 }

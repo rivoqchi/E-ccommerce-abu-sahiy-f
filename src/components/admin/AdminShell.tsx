@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import {
   Boxes,
   ChevronDown,
+  Clapperboard,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -35,6 +36,7 @@ const nav = [
       { href: "/admin/register/products", label: "Mahsulotlar", icon: Boxes },
     ],
   },
+  { href: "/admin/stories", label: "Istoriyalar", icon: Clapperboard },
   { href: "/admin/users", label: "Foydalanuvchilar", icon: Users },
   { href: "/admin/sellers", label: "Sotuvchilar", icon: Store },
   { href: "/admin/orders", label: "Buyurtmalar", icon: ShoppingBag },

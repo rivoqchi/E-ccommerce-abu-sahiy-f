@@ -76,11 +76,13 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const { token, headers, skipAuthRefresh, ...rest } = init ?? {};
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const isFormData =
+    typeof FormData !== "undefined" && rest.body instanceof FormData;
 
   const response = await fetch(`${API_BASE_URL}${normalizedPath}`, {
     ...rest,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },

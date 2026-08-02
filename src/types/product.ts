@@ -7,6 +7,7 @@ export interface CatalogCategory {
   id: string;
   slug: string;
   name: string;
+  image?: string;
 }
 
 export interface CatalogBrand {

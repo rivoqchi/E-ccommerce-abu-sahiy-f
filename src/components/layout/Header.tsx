@@ -218,7 +218,13 @@ const mobileItems = [
 ] as const;
 
 function MobileBottomNav({ pathname }: { pathname: string }) {
-  if (pathname === "/welcome" || pathname === "/login") return null;
+  if (
+    pathname === "/welcome" ||
+    pathname === "/login" ||
+    pathname.startsWith("/videos")
+  ) {
+    return null;
+  }
 
   return (
     <nav

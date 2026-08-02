@@ -1,5 +1,6 @@
 import { HomeGreeting } from "@/components/home/HomeGreeting";
 import { HomeSearch } from "@/components/home/HomeSearch";
+import { HomeStories } from "@/components/home/HomeStories";
 import { PromoBanner } from "@/components/home/PromoBanner";
 import { HomeCategoryPills } from "@/components/home/HomeCategoryPills";
 import { HomeSellers } from "@/components/home/HomeSellers";
@@ -8,15 +9,19 @@ import {
   fetchCategories,
   fetchFeaturedProducts,
   fetchSellers,
+  fetchStories,
+  fetchStoryVideos,
 } from "@/lib/storefront-api";
 
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const [featured, categories, sellers] = await Promise.all([
+  const [featured, categories, sellers, stories, videos] = await Promise.all([
     fetchFeaturedProducts(8),
     fetchCategories(),
     fetchSellers(),
+    fetchStories(),
+    fetchStoryVideos(),
   ]);
 
   return (
@@ -44,6 +49,7 @@ export default async function HomePage() {
           <HomeSearch />
         </div>
 
+        <HomeStories stories={stories} hasVideos={videos.length > 0} />
         <PromoBanner />
         <HomeSellers sellers={sellers} />
         <HomeCategoryPills categories={categories} />
