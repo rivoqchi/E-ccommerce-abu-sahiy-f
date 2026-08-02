@@ -17,9 +17,7 @@ export default function WishlistPage() {
         <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-4xl">
           Sevimlilar
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Keyinroq ko&apos;rish uchun saqlangan mahsulotlar.
-        </p>
+        
       </header>
 
       <Card className="mt-8 rounded-3xl border-0 bg-card py-0 shadow-[var(--shadow-soft)] ring-0">

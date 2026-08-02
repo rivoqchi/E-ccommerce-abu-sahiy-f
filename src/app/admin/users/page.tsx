@@ -60,16 +60,13 @@ export default function AdminUsersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Foydalanuvchilar</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Qidiruv va faollashtirish
-        </p>
       </div>
 
       <Input
         placeholder="Qidirish…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        className="h-12 max-w-md rounded-2xl"
+        className="h-12 max-w-md rounded-xl"
       />
 
       {error ? (

@@ -185,9 +185,6 @@ export default function AdminProductsPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Mahsulotlar</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Nom, narx, xarakteristika, bir nechta rasm
-          </p>
         </div>
         <Button className="rounded-full" onClick={openCreate}>
           <Plus className="size-4" />
@@ -259,19 +256,19 @@ export default function AdminProductsPage() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-3xl sm:max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[90dvh] flex-col gap-4 overflow-hidden sm:max-w-2xl">
+          <DialogHeader className="shrink-0">
             <DialogTitle>
               {editingId ? "Mahsulotni tahrirlash" : "Yangi mahsulot"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
             <Input
               placeholder="Mahsulot nomi"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="h-12 rounded-2xl"
+              className="h-12 rounded-xl"
             />
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
@@ -279,25 +276,25 @@ export default function AdminProductsPage() {
                 inputMode="decimal"
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
-                className="h-12 rounded-2xl"
+                className="h-12 rounded-xl"
               />
               <Input
                 placeholder="Ombor"
                 inputMode="numeric"
                 value={form.stock}
                 onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                className="h-12 rounded-2xl"
+                className="h-12 rounded-xl"
               />
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <Select
-                value={form.categoryId || undefined}
+                value={form.categoryId || null}
                 onValueChange={(v) =>
                   setForm({ ...form, categoryId: v ?? "" })
                 }
               >
-                <SelectTrigger className="h-12 w-full rounded-2xl">
+                <SelectTrigger className="h-12 w-full rounded-xl">
                   <SelectValue placeholder="Kategoriya" />
                 </SelectTrigger>
                 <SelectContent>
@@ -310,10 +307,10 @@ export default function AdminProductsPage() {
               </Select>
 
               <Select
-                value={form.brandId || undefined}
+                value={form.brandId || null}
                 onValueChange={(v) => setForm({ ...form, brandId: v ?? "" })}
               >
-                <SelectTrigger className="h-12 w-full rounded-2xl">
+                <SelectTrigger className="h-12 w-full rounded-xl">
                   <SelectValue placeholder="Brend (ixtiyoriy)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -332,7 +329,7 @@ export default function AdminProductsPage() {
                 setForm({ ...form, status: v || "active" })
               }
             >
-              <SelectTrigger className="h-12 w-full rounded-2xl">
+              <SelectTrigger className="h-12 w-full rounded-xl">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -348,7 +345,7 @@ export default function AdminProductsPage() {
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
               }
-              className="min-h-24 rounded-2xl"
+              className="min-h-24 rounded-xl"
             />
 
             <div className="space-y-2">
@@ -380,7 +377,7 @@ export default function AdminProductsPage() {
                       specs[idx] = { ...specs[idx]!, label: e.target.value };
                       setForm({ ...form, specs });
                     }}
-                    className="h-11 rounded-2xl"
+                    className="h-11 rounded-xl"
                   />
                   <Input
                     placeholder="Qiymati"
@@ -390,7 +387,7 @@ export default function AdminProductsPage() {
                       specs[idx] = { ...specs[idx]!, value: e.target.value };
                       setForm({ ...form, specs });
                     }}
-                    className="h-11 rounded-2xl"
+                    className="h-11 rounded-xl"
                   />
                   <Button
                     type="button"
@@ -457,7 +454,7 @@ export default function AdminProductsPage() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0">
             <Button
               className="rounded-full"
               disabled={pending}

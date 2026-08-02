@@ -21,9 +21,6 @@ export default function CartPage() {
         <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-4xl">
           Savat
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Buyurtmani tekshirib, rasmiylashtirishga o&apos;ting.
-        </p>
       </header>
 
       <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_320px]">

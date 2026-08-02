@@ -75,9 +75,7 @@ export default function AdminBrandsPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Brendlar</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Faqat brend nomi bilan roʻyxatga olish
-          </p>
+        
         </div>
         <Button className="rounded-full" onClick={() => setOpen(true)}>
           <Plus className="size-4" />
@@ -135,7 +133,7 @@ export default function AdminBrandsPage() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="rounded-3xl sm:max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Yangi brend</DialogTitle>
           </DialogHeader>
@@ -143,7 +141,7 @@ export default function AdminBrandsPage() {
             placeholder="Brend nomi"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="h-12 rounded-2xl"
+            className="h-12 rounded-xl"
           />
           <DialogFooter>
             <Button

@@ -17,8 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { AccountPageSkeleton } from "@/components/skeletons";
+import { LogoutConfirm } from "@/components/auth/LogoutConfirm";
 import { ApiClientError } from "@/lib/api";
 import { fileToAvatarDataUrl } from "@/lib/avatar";
 import { useAuthStore } from "@/store/auth";
@@ -30,7 +30,6 @@ export function AccountView() {
   const hydrated = useAuthStore((s) => s.hydrated);
   const inTelegram = useAuthStore((s) => s.inTelegram);
   const telegramAuthStatus = useAuthStore((s) => s.telegramAuthStatus);
-  const logout = useAuthStore((s) => s.logout);
   const updateProfile = useAuthStore((s) => s.updateProfile);
   const updateAvatar = useAuthStore((s) => s.updateAvatar);
 
@@ -99,7 +98,6 @@ export function AccountView() {
             </Button>
           </CardContent>
         </Card>
-        <ThemeCard />
       </div>
     );
   }
@@ -321,9 +319,7 @@ export function AccountView() {
               <p className="text-sm font-semibold text-foreground">
                 Super Admin panel
               </p>
-              <p className="text-xs text-muted-foreground">
-                Mahsulot, brend, buyurtma va foydalanuvchilarni boshqaring
-              </p>
+              
             </div>
             <Button
               className="h-11 rounded-full px-5"
@@ -356,40 +352,24 @@ export function AccountView() {
         </Card>
       ) : null}
 
-      <ThemeCard />
-
-      <Button
-        variant="outline"
+      <LogoutConfirm
         className="mt-4 h-12 w-full rounded-full"
-        disabled={pending}
-        onClick={() => {
-          startTransition(async () => {
-            await logout();
-            router.refresh();
-          });
-        }}
+        redirectTo="/login"
       >
         <LogOut className="size-4" strokeWidth={1.75} />
         Chiqish
-      </Button>
+      </LogoutConfirm>
     </div>
   );
 }
 
 function AccountHeader() {
   return (
-    <header className="flex items-start justify-between gap-4">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-4xl">
-          Profil
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Maʼlumotlaringiz va profil rasmi.
-        </p>
-      </div>
-      <div className="md:hidden">
-        <ThemeToggle className="rounded-full bg-card shadow-[var(--shadow-soft)]" />
-      </div>
+    <header>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-4xl">
+        Profil
+      </h1>
+     
     </header>
   );
 }
@@ -434,22 +414,6 @@ function Field({
         />
       </div>
     </label>
-  );
-}
-
-function ThemeCard() {
-  return (
-    <Card className="mt-4 rounded-3xl border-0 bg-card py-0 shadow-[var(--shadow-soft)] ring-0">
-      <CardContent className="flex items-center justify-between px-5 py-4">
-        <div>
-          <p className="text-sm font-semibold text-foreground">Tema</p>
-          <p className="text-xs text-muted-foreground">
-            Light / Dark rejimni almashtiring
-          </p>
-        </div>
-        <ThemeToggle className="rounded-full bg-secondary" />
-      </CardContent>
-    </Card>
   );
 }
 

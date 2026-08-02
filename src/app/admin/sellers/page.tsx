@@ -90,9 +90,7 @@ export default function AdminSellersPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Sotuvchilar</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Oddiy roʻyxat — ism, telefon, status
-          </p>
+         
         </div>
         <Button className="rounded-full" onClick={() => setOpen(true)}>
           <Plus className="size-4" />
@@ -156,7 +154,7 @@ export default function AdminSellersPage() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="rounded-3xl sm:max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Yangi sotuvchi</DialogTitle>
           </DialogHeader>
@@ -165,19 +163,19 @@ export default function AdminSellersPage() {
               placeholder="Ism familiya"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="h-12 rounded-2xl"
+              className="h-12 rounded-xl"
             />
             <Input
               placeholder="+998901234567"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="h-12 rounded-2xl"
+              className="h-12 rounded-xl"
             />
             <Select
               value={status}
               onValueChange={(v) => setStatus(v || "active")}
             >
-              <SelectTrigger className="h-12 w-full rounded-2xl">
+              <SelectTrigger className="h-12 w-full rounded-xl">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

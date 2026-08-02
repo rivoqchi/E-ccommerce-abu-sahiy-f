@@ -19,6 +19,7 @@ import {
   BadgePercent,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LogoutConfirm } from "@/components/auth/LogoutConfirm";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +46,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const hydrated = useAuthStore((s) => s.hydrated);
-  const logout = useAuthStore((s) => s.logout);
   const refreshMe = useAuthStore((s) => s.refreshMe);
   const [open, setOpen] = useState(false);
   const [regOpen, setRegOpen] = useState(true);
@@ -122,17 +122,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           />
         </nav>
         <div className="border-t border-white/10 p-3">
-          <Button
+          <LogoutConfirm
             variant="ghost"
             className="h-10 w-full justify-start rounded-xl text-white/80 hover:bg-white/10 hover:text-white"
-            onClick={async () => {
-              await logout();
-              router.replace("/login");
-            }}
           >
             <LogOut className="size-4" />
             Chiqish
-          </Button>
+          </LogoutConfirm>
         </div>
       </aside>
 

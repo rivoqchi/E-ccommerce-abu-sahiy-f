@@ -1,25 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { LogoutConfirm } from "@/components/auth/LogoutConfirm";
 import { useAuthStore } from "@/store/auth";
 import { SITE_NAME } from "@/lib/site";
 
 export default function AdminSettingsPage() {
-  const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Sozlamalar</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Admin panel sozlamalari
-        </p>
       </div>
 
       <Card className="rounded-3xl border-0 py-0 shadow-[var(--shadow-soft)] ring-0">
@@ -49,16 +44,9 @@ export default function AdminSettingsPage() {
           >
             Profilga oʻtish
           </Button>
-          <Button
-            variant="outline"
-            className="h-11 w-full rounded-full"
-            onClick={async () => {
-              await logout();
-              router.replace("/login");
-            }}
-          >
+          <LogoutConfirm className="h-11 w-full rounded-full">
             Chiqish
-          </Button>
+          </LogoutConfirm>
         </CardContent>
       </Card>
     </div>
