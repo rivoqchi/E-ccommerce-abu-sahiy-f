@@ -20,6 +20,8 @@ export interface Product {
   id: string;
   slug: string;
   name: string;
+  /** Ichki mahsulot kodi */
+  code?: string;
   description: string;
   /** Oddiy (retail) narx — USD */
   price: number;

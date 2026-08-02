@@ -4,7 +4,6 @@ import { ProductDetailsView } from "@/components/product/ProductDetailsView";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import {
   fetchProductBySlug,
-  fetchProductSlugs,
   fetchRelatedProducts,
 } from "@/lib/storefront-api";
 import {
@@ -13,19 +12,16 @@ import {
   productJsonLd,
 } from "@/lib/seo";
 
-export const revalidate = 60;
+export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
-  try {
-    const slugs = await fetchProductSlugs(100);
-    return slugs.map((slug) => ({ slug }));
-  } catch {
-    return [];
-  }
+  // Excel importdan keyin yangi sluglar ham ochilsin — oldindan static emas
+  return [];
 }
 
 export async function generateMetadata({

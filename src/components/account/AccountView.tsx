@@ -17,12 +17,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AccountOrders } from "@/components/account/AccountOrders";
 import { AccountPageSkeleton } from "@/components/skeletons";
 import { LogoutConfirm } from "@/components/auth/LogoutConfirm";
 import { ApiClientError } from "@/lib/api";
 import { fileToAvatarDataUrl } from "@/lib/avatar";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
+
+type AccountTab = "profile" | "orders";
 
 export function AccountView() {
   const router = useRouter();
@@ -34,6 +37,7 @@ export function AccountView() {
   const updateAvatar = useAuthStore((s) => s.updateAvatar);
 
   const fileRef = useRef<HTMLInputElement>(null);
+  const [tab, setTab] = useState<AccountTab>("profile");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
@@ -175,190 +179,229 @@ export function AccountView() {
     <div className="mx-auto w-[90%] max-w-lg py-5 md:w-[80%] md:max-w-xl md:py-10">
       <AccountHeader />
 
-      {/* Hero profile card */}
-      <Card className="mt-8 overflow-hidden rounded-3xl border-0 bg-card py-0 shadow-[var(--shadow-soft)] ring-0">
-        <div className="relative h-28 bg-[linear-gradient(135deg,var(--hero-from),var(--hero-via),var(--hero-to))]">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.18),transparent_55%)]" />
-        </div>
-        <CardContent className="relative px-5 pb-6 pt-0">
-          <div className="-mt-12 flex flex-col items-center">
-            <div className="relative">
-              <Avatar className="size-24 rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.18)] ring-4 ring-card after:hidden data-[size=default]:size-24">
-                {user.avatarUrl ? (
-                  <AvatarImage src={user.avatarUrl} alt={user.fullName} />
-                ) : null}
-                <AvatarFallback className="bg-secondary text-2xl font-semibold text-foreground">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <button
-                type="button"
-                disabled={avatarPending}
-                onClick={() => fileRef.current?.click()}
-                aria-label="Profil rasmini o‘zgartirish"
-                className={cn(
-                  "absolute bottom-0.5 right-0.5 flex size-9 items-center justify-center rounded-full",
-                  "bg-primary text-primary-foreground shadow-md",
-                  "transition hover:opacity-90 active:scale-95",
-                  "disabled:opacity-60",
-                )}
-              >
-                {avatarPending ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Camera className="size-4" strokeWidth={1.75} />
-                )}
-              </button>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                onChange={(e) => {
-                  onPickAvatar(e.target.files?.[0]);
-                  e.target.value = "";
-                }}
-              />
-            </div>
-
-            <h2 className="mt-4 text-center text-xl font-bold tracking-tight text-foreground">
-              {[firstName, lastName].filter(Boolean).join(" ") || user.fullName}
-            </h2>
-            {username ? (
-              <p className="mt-1 text-sm text-muted-foreground">@{username}</p>
-            ) : null}
-            {user.telegramId ? (
-              <span className="mt-3 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">
-                Telegram orqali ulangan
-              </span>
-            ) : null}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Editable fields */}
-      <Card className="mt-4 rounded-3xl border-0 bg-card py-0 shadow-[var(--shadow-soft)] ring-0">
-        <CardContent className="space-y-4 px-5 py-5">
-          <p className="text-sm font-semibold text-foreground">
-            Shaxsiy maʼlumotlar
-          </p>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field
-              label="Ism"
-              value={firstName}
-              onChange={setFirstName}
-              placeholder="Ism"
-              autoComplete="given-name"
-            />
-            <Field
-              label="Familiya"
-              value={lastName}
-              onChange={setLastName}
-              placeholder="Familiya"
-              autoComplete="family-name"
-            />
-          </div>
-
-          <Field
-            label="Username"
-            value={username}
-            onChange={(v) => setUsername(v.replace(/\s/g, ""))}
-            placeholder="username"
-            autoComplete="username"
-            leading={<AtSign className="size-4 text-muted-foreground" />}
-          />
-
-          <Field
-            label="Telefon"
-            value={phone}
-            onChange={(v) => setPhone(v.replace(/[^\d+]/g, ""))}
-            placeholder="+998901234567"
-            autoComplete="tel"
-            inputMode="tel"
-            leading={<Phone className="size-4 text-muted-foreground" />}
-          />
-
-          {error ? (
-            <p
-              role="alert"
-              className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
+      <div
+        role="tablist"
+        aria-label="Profil boʻlimlari"
+        className="mt-6 flex rounded-full bg-secondary p-1"
+      >
+        {(
+          [
+            { id: "profile", label: "Profil" },
+            { id: "orders", label: "Buyurtmalarim" },
+          ] as const
+        ).map((item) => {
+          const active = tab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setTab(item.id)}
+              className={cn(
+                "flex-1 rounded-full px-3 py-2.5 text-sm font-semibold transition",
+                active
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
             >
-              {error}
-            </p>
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === "orders" ? (
+        <AccountOrders />
+      ) : (
+        <>
+          <Card className="mt-6 overflow-hidden rounded-3xl border-0 bg-card py-0 shadow-[var(--shadow-soft)] ring-0">
+            <div className="relative h-28 bg-[linear-gradient(135deg,var(--hero-from),var(--hero-via),var(--hero-to))]">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.18),transparent_55%)]" />
+            </div>
+            <CardContent className="relative px-5 pb-6 pt-0">
+              <div className="-mt-12 flex flex-col items-center">
+                <div className="relative">
+                  <Avatar className="size-24 rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.18)] ring-4 ring-card after:hidden data-[size=default]:size-24">
+                    {user.avatarUrl ? (
+                      <AvatarImage src={user.avatarUrl} alt={user.fullName} />
+                    ) : null}
+                    <AvatarFallback className="bg-secondary text-2xl font-semibold text-foreground">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <button
+                    type="button"
+                    disabled={avatarPending}
+                    onClick={() => fileRef.current?.click()}
+                    aria-label="Profil rasmini o‘zgartirish"
+                    className={cn(
+                      "absolute bottom-0.5 right-0.5 flex size-9 items-center justify-center rounded-full",
+                      "bg-primary text-primary-foreground shadow-md",
+                      "transition hover:opacity-90 active:scale-95",
+                      "disabled:opacity-60",
+                    )}
+                  >
+                    {avatarPending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Camera className="size-4" strokeWidth={1.75} />
+                    )}
+                  </button>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      onPickAvatar(e.target.files?.[0]);
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+
+                <h2 className="mt-4 text-center text-xl font-bold tracking-tight text-foreground">
+                  {[firstName, lastName].filter(Boolean).join(" ") ||
+                    user.fullName}
+                </h2>
+                {username ? (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    @{username}
+                  </p>
+                ) : null}
+                {user.telegramId ? (
+                  <span className="mt-3 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">
+                    Telegram orqali ulangan
+                  </span>
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-4 rounded-3xl border-0 bg-card py-0 shadow-[var(--shadow-soft)] ring-0">
+            <CardContent className="space-y-4 px-5 py-5">
+              <p className="text-sm font-semibold text-foreground">
+                Shaxsiy maʼlumotlar
+              </p>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field
+                  label="Ism"
+                  value={firstName}
+                  onChange={setFirstName}
+                  placeholder="Ism"
+                  autoComplete="given-name"
+                />
+                <Field
+                  label="Familiya"
+                  value={lastName}
+                  onChange={setLastName}
+                  placeholder="Familiya"
+                  autoComplete="family-name"
+                />
+              </div>
+
+              <Field
+                label="Username"
+                value={username}
+                onChange={(v) => setUsername(v.replace(/\s/g, ""))}
+                placeholder="username"
+                autoComplete="username"
+                leading={<AtSign className="size-4 text-muted-foreground" />}
+              />
+
+              <Field
+                label="Telefon"
+                value={phone}
+                onChange={(v) => setPhone(v.replace(/[^\d+]/g, ""))}
+                placeholder="+998901234567"
+                autoComplete="tel"
+                inputMode="tel"
+                leading={<Phone className="size-4 text-muted-foreground" />}
+              />
+
+              {error ? (
+                <p
+                  role="alert"
+                  className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
+                >
+                  {error}
+                </p>
+              ) : null}
+
+              <Button
+                type="button"
+                disabled={pending || !dirty}
+                onClick={onSave}
+                className="h-12 w-full rounded-full text-base font-semibold"
+              >
+                {pending ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Saqlanmoqda…
+                  </>
+                ) : saved ? (
+                  <>
+                    <Check className="size-4" />
+                    Saqlandi
+                  </>
+                ) : (
+                  "Oʻzgarishlarni saqlash"
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {user.role === "admin" ||
+          normalizePhone(user.phone) === "+998947932005" ? (
+            <Card className="mt-4 rounded-3xl border-0 bg-card py-0 shadow-[var(--shadow-soft)] ring-0">
+              <CardContent className="flex flex-col gap-3 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Super Admin panel
+                  </p>
+                </div>
+                <Button
+                  className="h-11 rounded-full px-5"
+                  disabled={pending}
+                  onClick={() => {
+                    startTransition(async () => {
+                      setError(null);
+                      try {
+                        const latest =
+                          await useAuthStore.getState().refreshMe();
+                        if (latest.role === "admin") {
+                          router.push("/admin");
+                          return;
+                        }
+                        setError(
+                          "Admin huquqi topilmadi. +998947932005 raqami bilan OTP orqali qayta kiring.",
+                        );
+                      } catch {
+                        setError(
+                          "Sessiya tugagan. Qayta login qilib, keyin Admin panelga kiring.",
+                        );
+                        router.push("/login?next=/admin");
+                      }
+                    });
+                  }}
+                >
+                  <LayoutDashboard className="size-4" strokeWidth={1.75} />
+                  Admin panel
+                </Button>
+              </CardContent>
+            </Card>
           ) : null}
 
-          <Button
-            type="button"
-            disabled={pending || !dirty}
-            onClick={onSave}
-            className="h-12 w-full rounded-full text-base font-semibold"
+          <LogoutConfirm
+            className="mt-4 h-12 w-full rounded-full border-none bg-none"
+            redirectTo="/login"
           >
-            {pending ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                Saqlanmoqda…
-              </>
-            ) : saved ? (
-              <>
-                <Check className="size-4" />
-                Saqlandi
-              </>
-            ) : (
-              "Oʻzgarishlarni saqlash"
-            )}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {user.role === "admin" ||
-      normalizePhone(user.phone) === "+998947932005" ? (
-        <Card className="mt-4 rounded-3xl border-0 bg-card py-0 shadow-[var(--shadow-soft)] ring-0">
-          <CardContent className="flex flex-col gap-3 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-foreground">
-                Super Admin panel
-              </p>
-              
-            </div>
-            <Button
-              className="h-11 rounded-full px-5"
-              disabled={pending}
-              onClick={() => {
-                startTransition(async () => {
-                  setError(null);
-                  try {
-                    const latest = await useAuthStore.getState().refreshMe();
-                    if (latest.role === "admin") {
-                      router.push("/admin");
-                      return;
-                    }
-                    setError(
-                      "Admin huquqi topilmadi. +998947932005 raqami bilan OTP orqali qayta kiring.",
-                    );
-                  } catch {
-                    setError(
-                      "Sessiya tugagan. Qayta login qilib, keyin Admin panelga kiring.",
-                    );
-                    router.push("/login?next=/admin");
-                  }
-                });
-              }}
-            >
-              <LayoutDashboard className="size-4" strokeWidth={1.75} />
-              Admin panel
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <LogoutConfirm
-        className="mt-4 h-12 w-full rounded-full border-none bg-none"
-        redirectTo="/login"
-      >
-        <LogOut className="size-4" strokeWidth={1.75} />
-        Chiqish
-      </LogoutConfirm>
+            <LogOut className="size-4" strokeWidth={1.75} />
+            Chiqish
+          </LogoutConfirm>
+        </>
+      )}
     </div>
   );
 }
@@ -369,7 +412,6 @@ function AccountHeader() {
       <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-4xl">
         Profil
       </h1>
-     
     </header>
   );
 }

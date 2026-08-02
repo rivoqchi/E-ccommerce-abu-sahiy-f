@@ -30,6 +30,7 @@ export type ApiProduct = {
   _id: string;
   slug: string;
   name: string;
+  code?: string;
   description?: string;
   price: number;
   compareAtPrice?: number;
@@ -91,6 +92,7 @@ export function mapApiProduct(raw: ApiProduct): Product {
     id: String(raw._id),
     slug: raw.slug,
     name: raw.name,
+    code: raw.code?.trim() || undefined,
     description: raw.description?.trim() || raw.name,
     price: Number.isFinite(price) ? price : 0,
     wholesalePrice:
@@ -237,8 +239,22 @@ export async function fetchProductBySlug(
   slug: string,
 ): Promise<Product | null> {
   try {
+    // Next.js ba'zan params.slug ni allaqachon %D0%BA... ko'rinishida beradi —
+    // qayta encode qilmaslik uchun avval decode qilamiz.
+    let decoded = slug;
+    try {
+      for (let i = 0; i < 2; i++) {
+        const next = decodeURIComponent(decoded);
+        if (next === decoded) break;
+        decoded = next;
+      }
+    } catch {
+      decoded = slug;
+    }
+
     const raw = await publicFetch<ApiProduct>(
-      `/products/${encodeURIComponent(slug)}`,
+      `/products/${encodeURIComponent(decoded)}`,
+      { next: { revalidate: 0 } },
     );
     return mapApiProduct(raw);
   } catch {

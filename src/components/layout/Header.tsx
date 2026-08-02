@@ -87,9 +87,15 @@ export function Header() {
         <div className="mx-auto flex h-16 w-[80%] max-w-6xl items-center justify-between">
           <Link
             href="/"
-            className="text-lg font-semibold tracking-tight text-foreground transition-opacity hover:opacity-80"
+            className="inline-flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground transition-opacity hover:opacity-80"
           >
             {NAV_BRAND}
+            <Badge
+              variant="secondary"
+              className="badge-gold relative -top-1.5 h-3.5 rounded px-1 text-[8px] font-bold uppercase tracking-wide"
+            >
+              Beta
+            </Badge>
           </Link>
 
           <nav
@@ -149,8 +155,17 @@ export function Header() {
       {!isHome && !isProduct ? (
         <header className="sticky top-0 z-40 border-b border-border/50 bg-background/90 backdrop-blur-md md:hidden">
           <div className="mx-auto flex h-14 w-[90%] max-w-lg items-center justify-between">
-            <Link href="/" className="text-base font-semibold tracking-tight">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-base font-semibold tracking-tight"
+            >
               {NAV_BRAND}
+              <Badge
+                variant="secondary"
+                className="badge-gold relative -top-1.5 h-3.5 rounded px-1 text-[8px] font-bold uppercase tracking-wide"
+              >
+                Beta
+              </Badge>
             </Link>
             <div className="flex items-center gap-0.5 rounded-full bg-secondary px-1.5 py-1">
               <ThemeToggle size="icon-sm" />

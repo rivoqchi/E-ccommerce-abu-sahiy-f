@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { Loader2, Plus, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { Loader2, Plus, Search, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,18 +30,21 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmAction } from "@/components/ui/confirm-action";
+import { ProductExcelImport } from "@/components/admin/ProductExcelImport";
 import { useAdminApi } from "@/lib/admin-api";
 import { formatUZS } from "@/lib/format";
 import {
   PRODUCT_IMAGE_SIZE,
   fileToProductImageDataUrl,
 } from "@/lib/product-upload";
+import { cn } from "@/lib/utils";
 
 type RefItem = { _id: string; name: string };
 type Spec = { label: string; value: string };
 type Product = {
   _id: string;
   name: string;
+  code?: string;
   price: number;
   wholesalePrice?: number;
   stock: number;
@@ -55,6 +58,7 @@ type Product = {
 
 const emptyForm = {
   name: "",
+  code: "",
   price: "",
   wholesalePrice: "",
   stock: "0",
@@ -65,6 +69,86 @@ const emptyForm = {
   images: [] as string[],
   specs: [{ label: "", value: "" }] as Spec[],
 };
+
+function SearchableCategory({
+  categories,
+  value,
+  onChange,
+}: {
+  categories: RefItem[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const selected = categories.find((c) => c._id === value);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return categories;
+    return categories.filter((c) => c.name.toLowerCase().includes(q));
+  }, [categories, query]);
+
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <div className="relative">
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          className="h-12 pl-9"
+          placeholder="Kategoriyani qidirish…"
+          value={open ? query : selected?.name || query}
+          onFocus={() => {
+            setOpen(true);
+            setQuery(selected?.name || "");
+          }}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+            if (!e.target.value) onChange("");
+          }}
+        />
+      </div>
+      {open ? (
+        <ul className="absolute z-50 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-lg">
+          {filtered.length ? (
+            filtered.map((c) => (
+              <li key={c._id}>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted",
+                    c._id === value && "bg-muted font-medium",
+                  )}
+                  onClick={() => {
+                    onChange(c._id);
+                    setQuery(c.name);
+                    setOpen(false);
+                  }}
+                >
+                  {c.name}
+                </button>
+              </li>
+            ))
+          ) : (
+            <li className="px-3 py-2 text-sm text-muted-foreground">
+              Topilmadi
+            </li>
+          )}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
 
 export default function AdminProductsPage() {
   const { adminFetch } = useAdminApi();
@@ -93,6 +177,14 @@ export default function AdminProductsPage() {
     void load().catch((e: Error) => setError(e.message));
   }, [load]);
 
+  const productsByCode = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of items) {
+      if (p.code) map.set(p.code.toUpperCase(), p._id);
+    }
+    return map;
+  }, [items]);
+
   function openCreate() {
     setEditingId(null);
     setForm(emptyForm);
@@ -103,6 +195,7 @@ export default function AdminProductsPage() {
     setEditingId(p._id);
     setForm({
       name: p.name,
+      code: p.code ?? "",
       price: String(p.price),
       wholesalePrice: String(p.wholesalePrice ?? p.price),
       stock: String(p.stock),
@@ -143,11 +236,12 @@ export default function AdminProductsPage() {
     const stock = Number(form.stock);
     if (
       !form.name.trim() ||
+      !form.code.trim() ||
       !form.categoryId ||
       Number.isNaN(price) ||
       Number.isNaN(wholesalePrice)
     ) {
-      setError("Nom, kategoriya, oddiy va optom narx majburiy");
+      setError("Nom, kod, kategoriya, oddiy va optom narx majburiy");
       return;
     }
     if (form.images.length === 0) {
@@ -158,6 +252,7 @@ export default function AdminProductsPage() {
       try {
         const payload = {
           name: form.name.trim(),
+          code: form.code.trim(),
           price,
           wholesalePrice,
           stock: Number.isNaN(stock) ? 0 : stock,
@@ -202,11 +297,22 @@ export default function AdminProductsPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Mahsulotlar</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Qoʻlda qoʻshing yoki Excel (.xlsx) dan import qiling
+          </p>
         </div>
-        <Button className="rounded-full" onClick={openCreate}>
-          <Plus className="size-4" />
-          Qoʻshish
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <ProductExcelImport
+            categories={categories}
+            productsByCode={productsByCode}
+            onCategoriesChange={setCategories}
+            onDone={load}
+          />
+          <Button className="rounded-full" onClick={openCreate}>
+            <Plus className="size-4" />
+            Qoʻshish
+          </Button>
+        </div>
       </div>
 
       {error ? (
@@ -221,6 +327,7 @@ export default function AdminProductsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="pl-5">Nomi</TableHead>
+                <TableHead>Kod</TableHead>
                 <TableHead>Oddiy ($)</TableHead>
                 <TableHead>Optom ($)</TableHead>
                 <TableHead>Ombor</TableHead>
@@ -232,6 +339,9 @@ export default function AdminProductsPage() {
               {items.map((p) => (
                 <TableRow key={p._id}>
                   <TableCell className="pl-5 font-medium">{p.name}</TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {p.code || "—"}
+                  </TableCell>
                   <TableCell>{formatUZS(p.price)}</TableCell>
                   <TableCell>
                     {formatUZS(p.wholesalePrice ?? p.price)}
@@ -263,7 +373,7 @@ export default function AdminProductsPage() {
               {!items.length ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     className="py-10 text-center text-muted-foreground"
                   >
                     Mahsulotlar yoʻq
@@ -289,6 +399,13 @@ export default function AdminProductsPage() {
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="h-12"
+            />
+            <Input
+              placeholder="Kod (masalan: SM-001)"
+              value={form.code}
+              onChange={(e) => setForm({ ...form, code: e.target.value })}
+              className="h-12 font-mono uppercase"
+              autoCapitalize="characters"
             />
             <div className="grid gap-3 sm:grid-cols-3">
               <Input
@@ -317,23 +434,11 @@ export default function AdminProductsPage() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <Select
-                value={form.categoryId || null}
-                onValueChange={(v) =>
-                  setForm({ ...form, categoryId: v ?? "" })
-                }
-              >
-                <SelectTrigger className="h-12 w-full">
-                  <SelectValue placeholder="Kategoriya" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((c) => (
-                    <SelectItem key={c._id} value={c._id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableCategory
+                categories={categories}
+                value={form.categoryId}
+                onChange={(id) => setForm({ ...form, categoryId: id })}
+              />
 
               <Select
                 value={form.brandId || null}
@@ -379,7 +484,7 @@ export default function AdminProductsPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Xarakteristika</p>
+                <p className="text-sm font-medium">Xususiyatlar</p>
                 <Button
                   type="button"
                   variant="ghost"
@@ -470,7 +575,10 @@ export default function AdminProductsPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {form.images.map((url) => (
-                  <div key={url} className="relative size-20 overflow-hidden rounded-2xl bg-secondary">
+                  <div
+                    key={url}
+                    className="relative size-20 overflow-hidden rounded-2xl bg-secondary"
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={url} alt="" className="size-full object-cover" />
                     <button

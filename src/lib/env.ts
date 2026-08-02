@@ -2,6 +2,9 @@
  * Public URL lar.
  * Next.js NEXT_PUBLIC_* ni faqat to'liq statik nom bilan inline qiladi —
  * process.env[name] dinamik kalit ishlatilmasin.
+ *
+ * Muhim: bu modul client bundle ga ham tushadi — hech qachon throw qilmang,
+ * aks holda butun sahifa Uncaught Error bilan yiqiladi.
  */
 
 function stripSlash(url: string): string {
@@ -25,9 +28,10 @@ function resolveSiteUrl(): string {
     return "http://localhost:3000";
   }
 
-  throw new Error(
-    "Kerakli muhit o'zgaruvchisi topilmadi: NEXT_PUBLIC_SITE_URL. Vercel Project Settings → Environment Variables ga qo'shing.",
+  console.warn(
+    "[env] NEXT_PUBLIC_SITE_URL belgilanmagan. Vercel Environment Variables ga qo'shing.",
   );
+  return "http://localhost:3000";
 }
 
 function resolveApiUrl(): string {
@@ -38,19 +42,10 @@ function resolveApiUrl(): string {
     return "http://localhost:4000/api/v1";
   }
 
-  // Production build Vercel'da — API URL hali sozlanmagan bo'lsa ham
-  // collectPageData yiqilmasin (runtime'da to'g'ri URL qo'yilishi kerak).
-  // 127.0.0.1:9 — tez rad etiladi (placeholder.local DNS kutmaydi).
-  if (process.env.VERCEL) {
-    console.warn(
-      "[env] NEXT_PUBLIC_API_URL belgilanmagan. Vercel Environment Variables ga qo'shing (masalan https://api.example.com/api/v1).",
-    );
-    return "http://127.0.0.1:9/api/v1";
-  }
-
-  throw new Error(
-    "Kerakli muhit o'zgaruvchisi topilmadi: NEXT_PUBLIC_API_URL. Vercel Project Settings → Environment Variables ga qo'shing.",
+  console.warn(
+    "[env] NEXT_PUBLIC_API_URL belgilanmagan. Vercel Environment Variables ga qo'shing (masalan https://api.example.com/api/v1).",
   );
+  return "http://localhost:4000/api/v1";
 }
 
 export const SITE_URL = resolveSiteUrl();
