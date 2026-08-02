@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Heart, Minus, Plus, ShoppingBag } from "lucide-react";
 import type { Product } from "@/types/product";
 import { formatUZS } from "@/lib/format";
@@ -23,6 +23,8 @@ interface ProductQuickViewProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const DISMISS_DISTANCE = 110;
+
 export function ProductQuickView({
   product,
   open,
@@ -38,12 +40,21 @@ export function ProductQuickView({
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startYRef = useRef(0);
+  const dragYRef = useRef(0);
+  const draggingRef = useRef(false);
 
   useEffect(() => {
     if (open) {
       setActive(0);
       setQty(1);
       setAdded(false);
+      setDragY(0);
+      dragYRef.current = 0;
+      draggingRef.current = false;
+      setIsDragging(false);
     }
   }, [open, product?.id]);
 
@@ -58,35 +69,87 @@ export function ProductQuickView({
     window.setTimeout(() => setAdded(false), 1600);
   };
 
+  const isDesktopTouch = () =>
+    typeof window !== "undefined" &&
+    window.matchMedia("(min-width: 640px)").matches;
+
+  const onHandleTouchStart = (e: React.TouchEvent) => {
+    if (isDesktopTouch()) return;
+    startYRef.current = e.touches[0].clientY;
+    dragYRef.current = 0;
+    draggingRef.current = true;
+    setIsDragging(true);
+  };
+
+  const onHandleTouchMove = (e: React.TouchEvent) => {
+    if (!draggingRef.current || isDesktopTouch()) return;
+    const dy = Math.max(0, e.touches[0].clientY - startYRef.current);
+    dragYRef.current = dy;
+    setDragY(dy);
+  };
+
+  const onHandleTouchEnd = () => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    setIsDragging(false);
+    if (dragYRef.current >= DISMISS_DISTANCE) {
+      onOpenChange(false);
+      return;
+    }
+    setDragY(0);
+    dragYRef.current = 0;
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
         showCloseButton
+        style={{
+          transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
+          opacity: dragY > 0 ? Math.max(0.35, 1 - dragY / 420) : undefined,
+          transition: isDragging
+            ? "none"
+            : "transform 0.22s ease-out, opacity 0.22s ease-out",
+        }}
         className={cn(
           "gap-0 rounded-t-[1.75rem] border-0 p-0",
-          "h-[min(92dvh,880px)] max-h-[92dvh] w-full",
+          "mx-auto h-auto max-h-[90dvh] w-full max-w-[26rem] sm:max-w-[28rem]",
+          "sm:bottom-6 sm:rounded-3xl sm:border sm:border-border/60 sm:shadow-2xl",
           "pb-[max(0.75rem,env(safe-area-inset-bottom))]",
           "data-[side=bottom]:data-starting-style:translate-y-full",
           "data-[side=bottom]:data-ending-style:translate-y-full",
+          // Mobile: X yo'q; desktop: X bor
+          "max-sm:[&_[data-slot=sheet-close]]:hidden",
         )}
       >
-        {/* Drag handle */}
-        <div className="flex shrink-0 justify-center pt-3 pb-1">
+        {/* Drag handle — faqat mobile */}
+        <div
+          className="flex shrink-0 touch-none justify-center py-4 sm:hidden"
+          onTouchStart={onHandleTouchStart}
+          onTouchMove={onHandleTouchMove}
+          onTouchEnd={onHandleTouchEnd}
+          onTouchCancel={onHandleTouchEnd}
+        >
           <span
             aria-hidden
             className="h-1.5 w-10 rounded-full bg-muted-foreground/30"
           />
+          <span className="sr-only">Pastga tortib yoping</span>
+        </div>
+
+        <div className="hidden shrink-0 justify-center pt-3 pb-1 sm:flex">
+          <span className="sr-only">Mahsulot</span>
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
           <div className="relative mx-4 overflow-hidden rounded-[1.25rem] bg-[#ececee]">
-            <div className="relative aspect-[4/5] max-h-[42dvh] w-full sm:aspect-[5/4] sm:max-h-[320px]">
+            <div className="relative mx-auto aspect-square w-full max-w-[min(100%,280px)]">
               <ProductImage
                 src={current}
                 alt={product.name}
                 fill
-                className="object-cover"
+                className="object-contain p-3"
               />
             </div>
             {product.images.length > 1 ? (
@@ -118,9 +181,9 @@ export function ProductQuickView({
           </div>
 
           <div className="flex flex-1 flex-col px-5 pt-4">
-            <SheetHeader className="gap-1 p-0 pr-10">
+            <SheetHeader className="gap-1 p-0 sm:pr-10">
               <p className="text-xs text-muted-foreground">{product.brand}</p>
-              <SheetTitle className="text-left text-xl leading-snug font-semibold sm:text-2xl">
+              <SheetTitle className="text-left text-xl leading-snug font-semibold">
                 {product.name}
               </SheetTitle>
             </SheetHeader>
@@ -142,7 +205,7 @@ export function ProductQuickView({
               </p>
             ) : null}
 
-            <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted-foreground sm:line-clamp-4">
+            <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
               {product.description}
             </p>
 
@@ -162,9 +225,9 @@ export function ProductQuickView({
               </ul>
             ) : null}
 
-            <div className="sticky bottom-0 mt-auto flex flex-col gap-3 bg-popover pt-5 pb-2">
+            <div className="mt-5 flex flex-col gap-3 bg-popover pt-1 pb-2">
               <div className="flex items-center gap-3">
-                <div className="inline-flex h-11 flex-1 items-center justify-between gap-4 rounded-full bg-secondary px-4 sm:flex-none sm:justify-center">
+                <div className="inline-flex h-11 flex-1 items-center justify-between gap-4 rounded-full bg-secondary px-4">
                   <button
                     type="button"
                     aria-label="Kamaytirish"
