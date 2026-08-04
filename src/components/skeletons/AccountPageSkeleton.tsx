@@ -19,7 +19,7 @@ export function AccountPageSkeleton() {
 
         {/* Hero profile card */}
         <div className="mt-8 overflow-hidden rounded-3xl bg-card shadow-[var(--shadow-soft)]">
-          <Skeleton className="h-28 w-full rounded-none" />
+          <div className="profile-hero-gold h-28 w-full" aria-hidden />
           <div className="relative px-5 pb-6 pt-0">
             <div className="-mt-12 flex flex-col items-center">
               <Skeleton className="size-24 rounded-full ring-4 ring-card" />

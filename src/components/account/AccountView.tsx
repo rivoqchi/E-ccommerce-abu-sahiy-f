@@ -216,8 +216,8 @@ export function AccountView() {
       ) : (
         <>
           <Card className="mt-6 overflow-hidden rounded-3xl border-0 bg-card py-0 shadow-[var(--shadow-soft)] ring-0">
-            <div className="relative h-28 bg-[linear-gradient(135deg,var(--hero-from),var(--hero-via),var(--hero-to))]">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.18),transparent_55%)]" />
+            <div className="profile-hero-gold relative h-28">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,246,214,0.35),transparent_55%)]" />
             </div>
             <CardContent className="relative px-5 pb-6 pt-0">
               <div className="-mt-12 flex flex-col items-center">
@@ -320,6 +320,15 @@ export function AccountView() {
                 leading={<Phone className="size-4 text-muted-foreground" />}
               />
 
+              {inTelegram && !user.phone ? (
+                <TelegramPhoneButton
+                  onLinked={() => {
+                    const next = useAuthStore.getState().user;
+                    if (next?.phone) setPhone(next.phone);
+                  }}
+                />
+              ) : null}
+
               {error ? (
                 <p
                   role="alert"
@@ -413,6 +422,64 @@ function AccountHeader() {
         Profil
       </h1>
     </header>
+  );
+}
+
+function TelegramPhoneButton({ onLinked }: { onLinked: () => void }) {
+  const linkTelegramContact = useAuthStore((s) => s.linkTelegramContact);
+  const [pending, startTransition] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+
+  return (
+    <div className="space-y-2">
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={pending}
+        className="h-11 w-full rounded-full"
+        onClick={() => {
+          setMsg(null);
+          startTransition(async () => {
+            try {
+              const { requestTelegramContact } = await import("@/lib/telegram");
+              const contactData = await requestTelegramContact();
+              if (!contactData) {
+                setMsg("Telefon ulashish bekor qilindi");
+                return;
+              }
+              await linkTelegramContact(contactData);
+              onLinked();
+              setMsg(null);
+            } catch (err) {
+              setMsg(
+                err instanceof ApiClientError
+                  ? err.message
+                  : "Telefonni ulab boʻlmadi",
+              );
+            }
+          });
+        }}
+      >
+        {pending ? (
+          <>
+            <Loader2 className="size-4 animate-spin" />
+            Telegramdan olinmoqda…
+          </>
+        ) : (
+          <>
+            <Phone className="size-4" strokeWidth={1.75} />
+            Telegram orqali telefon ulashish
+          </>
+        )}
+      </Button>
+      {msg ? (
+        <p className="text-center text-xs text-muted-foreground">{msg}</p>
+      ) : (
+        <p className="text-center text-xs text-muted-foreground">
+          Telegramdagi raqamingizni bir marta tasdiqlang — avtomatik saqlanadi
+        </p>
+      )}
+    </div>
   );
 }
 

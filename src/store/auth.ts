@@ -27,6 +27,7 @@ interface AuthState {
   sendOtp: (phone: string) => Promise<SendOtpResponse>;
   verifyOtp: (phone: string, code: string) => Promise<AuthSession>;
   loginWithTelegram: (initData: string) => Promise<AuthSession>;
+  linkTelegramContact: (contactData: string) => Promise<AuthSession>;
   refreshMe: () => Promise<AuthUser>;
   updateProfile: (payload: {
     firstName?: string;
@@ -103,6 +104,18 @@ export const useAuthStore = create<AuthState>()(
         const session = await apiFetch<AuthSession>("/auth/telegram", {
           method: "POST",
           body: JSON.stringify({ initData }),
+        });
+        get().setSession(session);
+        return session;
+      },
+
+      linkTelegramContact: async (contactData) => {
+        const token = get().accessToken;
+        if (!token) throw new Error("Not authenticated");
+        const session = await apiFetch<AuthSession>("/auth/telegram/contact", {
+          method: "POST",
+          token,
+          body: JSON.stringify({ contactData }),
         });
         get().setSession(session);
         return session;

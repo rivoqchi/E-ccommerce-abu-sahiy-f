@@ -1,18 +1,54 @@
+export type TelegramWebAppUser = {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+  is_premium?: boolean;
+  photo_url?: string;
+};
+
+export type TelegramContactInfo = {
+  phone_number: string;
+  first_name: string;
+  last_name?: string;
+  user_id?: number;
+};
+
+export type TelegramContactResponse =
+  | {
+      status: "sent";
+      response: string;
+      responseUnsafe?: {
+        auth_date: string;
+        contact: TelegramContactInfo;
+        hash: string;
+      };
+    }
+  | { status: "cancelled" };
+
 export type TelegramWebApp = {
   initData: string;
   initDataUnsafe?: {
-    user?: {
-      id: number;
-      first_name?: string;
-      last_name?: string;
-      username?: string;
-    };
+    user?: TelegramWebAppUser;
   };
+  version?: string;
+  platform?: string;
   ready: () => void;
   expand: () => void;
   close?: () => void;
-  platform?: string;
-  version?: string;
+  isVersionAtLeast?: (version: string) => boolean;
+  requestContact?: (
+    callback?: (shared: boolean, response?: TelegramContactResponse) => void,
+  ) => void;
+  onEvent?: (
+    eventType: string,
+    eventHandler: (eventData: unknown) => void,
+  ) => void;
+  offEvent?: (
+    eventType: string,
+    eventHandler: (eventData: unknown) => void,
+  ) => void;
 };
 
 export function getTelegramWebApp(): TelegramWebApp | null {
@@ -54,5 +90,49 @@ export function waitForTelegramInitData(
     };
 
     tick();
+  });
+}
+
+/**
+ * Ask Telegram for the user's phone (native popup).
+ * Returns the signed `response` query string for server verification, or null if cancelled / unavailable.
+ */
+export function requestTelegramContact(
+  timeoutMs = 120_000,
+): Promise<string | null> {
+  return new Promise((resolve) => {
+    const wa = getTelegramWebApp();
+    if (!wa?.requestContact) {
+      resolve(null);
+      return;
+    }
+
+    if (wa.isVersionAtLeast && !wa.isVersionAtLeast("6.9")) {
+      resolve(null);
+      return;
+    }
+
+    let settled = false;
+    const finish = (value: string | null) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      resolve(value);
+    };
+
+    const timer = window.setTimeout(() => finish(null), timeoutMs);
+
+    try {
+      wa.requestContact((shared, response) => {
+        if (!shared || !response || response.status !== "sent") {
+          finish(null);
+          return;
+        }
+        const signed = response.response?.trim();
+        finish(signed && signed.length > 0 ? signed : null);
+      });
+    } catch {
+      finish(null);
+    }
   });
 }
