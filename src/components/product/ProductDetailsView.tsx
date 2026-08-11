@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowLeft, Heart, Minus, Plus } from "lucide-react";
+import { ArrowLeft, Check, Copy, Heart, Minus, Plus } from "lucide-react";
 import type { Product } from "@/types/product";
 import { formatUZS } from "@/lib/format";
 import { useCartStore } from "@/store/cart";
@@ -23,6 +23,55 @@ import { cn } from "@/lib/utils";
 
 interface ProductDetailsViewProps {
   product: Product;
+}
+
+function ProductCodeRow({
+  code,
+  className,
+}: {
+  code: string;
+  className?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return (
+    <div
+      className={cn(
+        "mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full bg-secondary/80 py-1 pr-1 pl-3",
+        className,
+      )}
+    >
+      <span className="truncate text-xs text-muted-foreground">Kod:</span>
+      <span className="truncate font-mono text-sm font-semibold tracking-tight text-foreground">
+        {code}
+      </span>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="size-8 shrink-0 rounded-full"
+        onClick={() => void handleCopy()}
+        aria-label={copied ? "Nusxa olindi" : "Kodni nusxalash"}
+        title={copied ? "Nusxa olindi" : "Nusxalash"}
+      >
+        {copied ? (
+          <Check className="size-3.5 text-emerald-600" strokeWidth={2.5} />
+        ) : (
+          <Copy className="size-3.5" strokeWidth={2} />
+        )}
+      </Button>
+    </div>
+  );
 }
 
 function formatBuyerLabel(count: number): string {
@@ -97,17 +146,57 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   const unitPrice = useProductUnitPrice(product);
 
   const handleBuy = () => {
-    if (!product.inStock) return;
+    if (!product.inStock || (product.stock || 0) <= 0) return;
     if (inCart) {
       router.push("/cart");
       return;
     }
-    addItem(product, qty);
+    addItem(product, Math.min(qty, product.stock || 0));
   };
 
   const handleWishlist = () => {
     toggleWishlist(product);
   };
+
+  const decreaseQty = () => setQty((q) => Math.max(1, q - 1));
+  const increaseQty = () =>
+    setQty((q) => Math.min(Math.max(1, product.stock || 0), q + 1));
+
+  const buyActions = (
+    <div className="flex w-full items-center gap-2.5">
+      <div className="inline-flex h-12 shrink-0 items-center gap-2.5 rounded-full bg-secondary px-3 shadow-sm">
+        <button
+          type="button"
+          aria-label="Kamaytirish"
+          className="flex size-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-background hover:text-foreground disabled:opacity-40"
+          onClick={decreaseQty}
+          disabled={qty <= 1 || !product.inStock}
+        >
+          <Minus className="size-4" strokeWidth={2.5} />
+        </button>
+        <span className="min-w-5 text-center text-sm font-semibold tabular-nums">
+          {qty}
+        </span>
+        <button
+          type="button"
+          aria-label="Ko'paytirish"
+          className="flex size-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-background hover:text-foreground disabled:opacity-40"
+          onClick={increaseQty}
+          disabled={!product.inStock || qty >= (product.stock || 0)}
+        >
+          <Plus className="size-4" strokeWidth={2.5} />
+        </button>
+      </div>
+      <Button
+        size="lg"
+        className="h-12 min-w-0 flex-1 rounded-full px-5 text-sm font-semibold shadow-lg sm:flex-none sm:px-8"
+        onClick={handleBuy}
+        disabled={!product.inStock}
+      >
+        {inCart ? "Savatga qaytish" : "Savatga qo'shish"}
+      </Button>
+    </div>
+  );
 
   return (
     <div className="relative mx-auto w-full max-w-6xl pb-28 md:pb-10">
@@ -186,6 +275,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
               <h2 className="text-2xl font-bold tracking-tight text-foreground">
                 {product.name}
               </h2>
+              {product.code ? <ProductCodeRow code={product.code} /> : null}
               <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <p className="text-xl font-bold tracking-tight tabular-nums">
                   {formatUZS(unitPrice)}
@@ -196,28 +286,6 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                   </p>
                 ) : null}
               </div>
-            </div>
-
-            <div className="inline-flex h-10 shrink-0 items-center gap-3 rounded-full bg-secondary px-3">
-              <button
-                type="button"
-                aria-label="Kamaytirish"
-                className="text-lg leading-none text-muted-foreground transition hover:text-foreground"
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-              >
-                <Minus className="size-3.5" strokeWidth={2.5} />
-              </button>
-              <span className="min-w-4 text-center text-sm font-semibold">
-                {qty}
-              </span>
-              <button
-                type="button"
-                aria-label="Ko'paytirish"
-                className="text-lg leading-none text-muted-foreground transition hover:text-foreground"
-                onClick={() => setQty((q) => q + 1)}
-              >
-                <Plus className="size-3.5" strokeWidth={2.5} />
-              </button>
             </div>
           </div>
 
@@ -247,16 +315,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
             "pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))]",
           )}
         >
-          <div className="pointer-events-auto w-[90%] max-w-lg">
-            <Button
-              size="lg"
-              className="h-14 w-full rounded-full text-base font-semibold shadow-lg"
-              onClick={handleBuy}
-              disabled={!product.inStock}
-            >
-              {inCart ? "Savatga qaytish" : "Savatga qo'shish"}
-            </Button>
-          </div>
+          <div className="pointer-events-auto w-[90%] max-w-lg">{buyActions}</div>
         </div>
       </div>
 
@@ -338,6 +397,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
             <h1 className="text-4xl font-bold tracking-tight text-foreground lg:text-5xl">
               {product.name}
             </h1>
+            {product.code ? <ProductCodeRow code={product.code} /> : null}
             <p className="mt-2 text-sm text-muted-foreground">{product.brand}</p>
 
             <div className="mt-6 flex flex-wrap items-center gap-4">
@@ -350,28 +410,6 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                     {formatUZS(product.compareAtPrice)}
                   </p>
                 ) : null}
-              </div>
-
-              <div className="inline-flex h-11 items-center gap-4 rounded-full bg-secondary px-4">
-                <button
-                  type="button"
-                  aria-label="Kamaytirish"
-                  className="text-muted-foreground transition hover:text-foreground"
-                  onClick={() => setQty((q) => Math.max(1, q - 1))}
-                >
-                  <Minus className="size-4" strokeWidth={2.5} />
-                </button>
-                <span className="min-w-5 text-center text-sm font-semibold">
-                  {qty}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Ko'paytirish"
-                  className="text-muted-foreground transition hover:text-foreground"
-                  onClick={() => setQty((q) => q + 1)}
-                >
-                  <Plus className="size-4" strokeWidth={2.5} />
-                </button>
               </div>
             </div>
 
@@ -386,16 +424,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
               <ProductSpecs specs={product.specs} />
             ) : null}
 
-            <div className="mt-10">
-              <Button
-                size="lg"
-                className="h-14 w-full rounded-full text-base font-semibold"
-                onClick={handleBuy}
-                disabled={!product.inStock}
-              >
-                {inCart ? "Savatga qaytish" : "Savatga qo'shish"}
-              </Button>
-            </div>
+            <div className="mt-10 max-w-md">{buyActions}</div>
           </div>
         </div>
 

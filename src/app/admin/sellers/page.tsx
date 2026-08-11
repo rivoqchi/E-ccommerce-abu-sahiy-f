@@ -143,9 +143,6 @@ export default function AdminSellersPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Sotuvchilar</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Rasm, ism, telefon va Telegram — bosh sahifada koʻrsatiladi
-          </p>
         </div>
         <Button
           className="rounded-full"

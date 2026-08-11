@@ -1,7 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Loader2, Plus, Search, Trash2, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
+import { PRODUCT_IMAGE_PLACEHOLDER } from "@/types/product";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -54,6 +64,33 @@ type Product = {
   images?: string[];
   specs?: Spec[];
   description?: string;
+  createdAt?: string;
+};
+
+function formatProductDate(value?: string) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function hasRealProductImage(images?: string[]) {
+  const url = images?.[0]?.trim();
+  if (!url) return false;
+  if (url === PRODUCT_IMAGE_PLACEHOLDER) return false;
+  if (url.includes("photo-1556911220-e15b29be8c8f")) return false;
+  return true;
+}
+
+const PAGE_SIZE = 100;
+
+type AdminProductsPage = {
+  items: Product[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 };
 
 const emptyForm = {
@@ -156,34 +193,57 @@ export default function AdminProductsPage() {
   const [items, setItems] = useState<Product[]>([]);
   const [categories, setCategories] = useState<RefItem[]>([]);
   const [brands, setBrands] = useState<RefItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const [query, setQuery] = useState("");
+  const [loadingList, setLoadingList] = useState(true);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const load = useCallback(async () => {
-    const [products, cats, brs] = await Promise.all([
-      adminFetch<Product[]>("/products/admin/all"),
+  const loadMeta = useCallback(async () => {
+    const [cats, brs] = await Promise.all([
       adminFetch<RefItem[]>("/categories?all=true"),
       adminFetch<RefItem[]>("/brands?all=true"),
     ]);
-    setItems(products);
     setCategories(cats);
     setBrands(brs);
   }, [adminFetch]);
 
-  useEffect(() => {
-    void load().catch((e: Error) => setError(e.message));
-  }, [load]);
+  const loadProducts = useCallback(
+    async (pageNum: number, q: string) => {
+      setLoadingList(true);
+      try {
+        const params = new URLSearchParams({
+          page: String(pageNum),
+          limit: String(PAGE_SIZE),
+        });
+        if (q.trim()) params.set("q", q.trim());
+        const data = await adminFetch<AdminProductsPage>(
+          `/products/admin/all?${params.toString()}`,
+        );
+        setItems(data.items ?? []);
+        setTotal(data.total ?? 0);
+        setTotalPages(data.totalPages ?? 1);
+        setPage(data.page ?? pageNum);
+      } finally {
+        setLoadingList(false);
+      }
+    },
+    [adminFetch],
+  );
 
-  const productsByCode = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const p of items) {
-      if (p.code) map.set(p.code.toUpperCase(), p._id);
-    }
-    return map;
-  }, [items]);
+  useEffect(() => {
+    void loadMeta().catch((e: Error) => setError(e.message));
+  }, [loadMeta]);
+
+  useEffect(() => {
+    void loadProducts(page, query).catch((e: Error) => setError(e.message));
+  }, [loadProducts, page, query]);
 
   function openCreate() {
     setEditingId(null);
@@ -275,7 +335,13 @@ export default function AdminProductsPage() {
           });
         }
         setOpen(false);
-        await load();
+        if (editingId) {
+          await loadProducts(page, query);
+        } else if (page === 1) {
+          await loadProducts(1, query);
+        } else {
+          setPage(1);
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Saqlanmadi");
       }
@@ -285,12 +351,24 @@ export default function AdminProductsPage() {
   async function remove(id: string) {
     try {
       await adminFetch(`/products/${id}`, { method: "DELETE" });
-      await load();
+      const nextTotal = Math.max(0, total - 1);
+      const nextPages = Math.max(1, Math.ceil(nextTotal / PAGE_SIZE));
+      const nextPage = Math.min(page, nextPages);
+      if (nextPage !== page) setPage(nextPage);
+      else await loadProducts(nextPage, query);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Oʻchirilmadi");
       throw e;
     }
   }
+
+  function applySearch() {
+    setPage(1);
+    setQuery(searchInput.trim());
+  }
+
+  const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const to = Math.min(page * PAGE_SIZE, total);
 
   return (
     <div className="space-y-6">
@@ -298,15 +376,27 @@ export default function AdminProductsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Mahsulotlar</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Qoʻlda qoʻshing yoki Excel (.xlsx) dan import qiling
+            Jami {total} ta · sahifada {PAGE_SIZE} tadan
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <ProductExcelImport
-            categories={categories}
-            productsByCode={productsByCode}
-            onCategoriesChange={setCategories}
-            onDone={load}
+            mode="add"
+            onDone={async () => {
+              await loadMeta();
+              if (page === 1) await loadProducts(1, query);
+              else setPage(1);
+            }}
+          />
+          <ProductExcelImport
+            mode="replace"
+            onDone={async () => {
+              setQuery("");
+              setSearchInput("");
+              setPage(1);
+              await loadMeta();
+              await loadProducts(1, "");
+            }}
           />
           <Button className="rounded-full" onClick={openCreate}>
             <Plus className="size-4" />
@@ -314,6 +404,41 @@ export default function AdminProductsPage() {
           </Button>
         </div>
       </div>
+
+      <form
+        className="flex flex-wrap gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          applySearch();
+        }}
+      >
+        <div className="relative min-w-[220px] flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="h-11 pl-9"
+            placeholder="Nom yoki kod boʻyicha qidirish…"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+        </div>
+        <Button type="submit" variant="outline" className="h-11 rounded-full">
+          Qidirish
+        </Button>
+        {query ? (
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-11 rounded-full"
+            onClick={() => {
+              setSearchInput("");
+              setQuery("");
+              setPage(1);
+            }}
+          >
+            Tozalash
+          </Button>
+        ) : null}
+      </form>
 
       {error ? (
         <p className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -326,54 +451,116 @@ export default function AdminProductsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-5">Nomi</TableHead>
+                <TableHead className="pl-5">Rasm</TableHead>
+                <TableHead>Nomi</TableHead>
                 <TableHead>Kod</TableHead>
                 <TableHead>Oddiy ($)</TableHead>
                 <TableHead>Optom ($)</TableHead>
-                <TableHead>Ombor</TableHead>
+                <TableHead>Soni</TableHead>
+                <TableHead>Sana</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="pr-5 text-right">Amallar</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((p) => (
-                <TableRow key={p._id}>
-                  <TableCell className="pl-5 font-medium">{p.name}</TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {p.code || "—"}
-                  </TableCell>
-                  <TableCell>{formatUZS(p.price)}</TableCell>
-                  <TableCell>
-                    {formatUZS(p.wholesalePrice ?? p.price)}
-                  </TableCell>
-                  <TableCell>{p.stock}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{p.status}</Badge>
-                  </TableCell>
-                  <TableCell className="pr-5 text-right space-x-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full"
-                      onClick={() => openEdit(p)}
-                    >
-                      Tahrir
-                    </Button>
-                    <ConfirmAction
-                      className="text-destructive"
-                      title="Mahsulotni oʻchirasizmi?"
-                      description={`“${p.name}” mahsuloti butunlay oʻchiriladi. Davom etasizmi?`}
-                      onConfirm={() => remove(p._id)}
-                    >
-                      <Trash2 className="size-4" />
-                    </ConfirmAction>
+              {loadingList ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="py-10 text-center">
+                    <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
                   </TableCell>
                 </TableRow>
-              ))}
-              {!items.length ? (
+              ) : null}
+              {!loadingList &&
+                items.map((p) => {
+                  const hasImage = hasRealProductImage(p.images);
+                  const thumb = hasImage ? p.images?.[0] : undefined;
+                  return (
+                    <TableRow
+                      key={p._id}
+                      className={cn(
+                        !hasImage &&
+                          "bg-destructive/10 text-destructive hover:bg-destructive/15",
+                      )}
+                    >
+                      <TableCell className="pl-5">
+                        {thumb ? (
+                          <img
+                            src={thumb}
+                            alt={p.name}
+                            className="size-12 rounded-xl object-cover bg-muted"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="flex size-12 items-center justify-center rounded-xl border border-destructive/40 bg-destructive/10 text-xs text-destructive">
+                            —
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-[220px] font-medium">
+                        <span className="line-clamp-2">{p.name}</span>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {p.code || "—"}
+                      </TableCell>
+                      <TableCell>{formatUZS(p.price)}</TableCell>
+                      <TableCell>
+                        {formatUZS(p.wholesalePrice ?? p.price)}
+                      </TableCell>
+                      <TableCell className="tabular-nums font-medium">
+                        {p.stock}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          "whitespace-nowrap text-sm",
+                          hasImage
+                            ? "text-muted-foreground"
+                            : "text-destructive/80",
+                        )}
+                      >
+                        {formatProductDate(p.createdAt)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            !hasImage &&
+                              "bg-destructive/15 text-destructive",
+                          )}
+                        >
+                          {p.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="pr-5 text-right space-x-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className={cn(
+                            "rounded-full",
+                            !hasImage && "text-destructive hover:text-destructive",
+                          )}
+                          onClick={() => openEdit(p)}
+                          aria-label="Tahrirlash"
+                          title="Tahrirlash"
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                        <ConfirmAction
+                          className="text-destructive"
+                          title="Mahsulotni oʻchirasizmi?"
+                          description={`“${p.name}” mahsuloti butunlay oʻchiriladi. Davom etasizmi?`}
+                          onConfirm={() => remove(p._id)}
+                        >
+                          <Trash2 className="size-4" />
+                        </ConfirmAction>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              {!loadingList && !items.length ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={9}
                     className="py-10 text-center text-muted-foreground"
                   >
                     Mahsulotlar yoʻq
@@ -382,6 +569,39 @@ export default function AdminProductsPage() {
               ) : null}
             </TableBody>
           </Table>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 px-5 py-3">
+            <p className="text-sm text-muted-foreground">
+              {from}–{to} / {total}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-full"
+                disabled={page <= 1 || loadingList}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="size-4" />
+                Oldingi
+              </Button>
+              <span className="min-w-20 text-center text-sm tabular-nums">
+                {page} / {totalPages}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-full"
+                disabled={page >= totalPages || loadingList}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Keyingi
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -547,8 +767,8 @@ export default function AdminProductsPage() {
                     Rasmlar <span className="text-destructive">*</span>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Majburiy · avtomatik {PRODUCT_IMAGE_SIZE}×
-                    {PRODUCT_IMAGE_SIZE} px kvadratga qirqiladi
+                    Majburiy · yuqori sifat (max {PRODUCT_IMAGE_SIZE}px,
+                    kichik rasm kattalashtirilmaydi)
                   </p>
                 </div>
                 <Button

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FileSpreadsheet, Loader2, Upload } from "lucide-react";
+import { FileSpreadsheet, Loader2, RefreshCw, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,215 +11,118 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAdminApi } from "@/lib/admin-api";
-import {
-  parseProductsExcel,
-  type ExcelProductRow,
-} from "@/lib/excel-products";
-import { PRODUCT_IMAGE_PLACEHOLDER } from "@/types/product";
 import { cn } from "@/lib/utils";
-
-type RefItem = { _id: string; name: string };
 
 type ImportResult = {
   ok: number;
   failed: number;
+  created: number;
+  updated: number;
+  deleted?: number;
   createdCategories: number;
+  totalRows: number;
   errors: string[];
 };
 
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-function normName(s: string) {
-  return s.trim().toLowerCase().replace(/\s+/g, " ");
-}
+type ImportMode = "add" | "replace";
 
 interface ProductExcelImportProps {
-  categories: RefItem[];
-  productsByCode: Map<string, string>;
-  onCategoriesChange: (cats: RefItem[]) => void;
+  mode?: ImportMode;
   onDone: () => Promise<void>;
 }
 
 export function ProductExcelImport({
-  categories,
-  productsByCode,
-  onCategoriesChange,
+  mode = "add",
   onDone,
 }: ProductExcelImportProps) {
   const { adminFetch } = useAdminApi();
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
-  const [rows, setRows] = useState<ExcelProductRow[]>([]);
-  const [fileName, setFileName] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
-  const [current, setCurrent] = useState(0);
   const [statusLine, setStatusLine] = useState("");
   const [result, setResult] = useState<ImportResult | null>(null);
 
-  async function onPickFile(file: File | null) {
-    if (!file) return;
+  const isReplace = mode === "replace";
+
+  function onPickFile(picked: File | null) {
+    if (!picked) return;
     setError(null);
     setResult(null);
-    setCurrent(0);
     setStatusLine("");
+    const name = picked.name.toLowerCase();
+    if (!name.endsWith(".xlsx")) {
+      setError("Faqat .xlsx format qabul qilinadi. Faylni .xlsx qilib saqlang.");
+      setFile(null);
+      return;
+    }
+    setFile(picked);
+    setOpen(true);
+  }
+
+  async function startImport() {
+    if (!file || running) return;
+    setRunning(true);
+    setError(null);
+    setResult(null);
+    setStatusLine(
+      isReplace
+        ? "Eski mahsulotlar o‘chiriladi; rasmlar original sifatda olinmoqda (biroz vaqt olishi mumkin)…"
+        : "Excel yuklanmoqda; rasmlar original sifatda olinmoqda (biroz vaqt olishi mumkin)…",
+    );
+
     try {
-      const parsed = await parseProductsExcel(file);
-      if (!parsed.length) {
-        setError("Excelda mahsulot qatorlari topilmadi");
-        setRows([]);
-        setFileName("");
-        return;
-      }
-      setRows(parsed);
-      setFileName(file.name);
-      setOpen(true);
+      const form = new FormData();
+      form.append("file", file);
+      if (isReplace) form.append("replace", "true");
+
+      const path = isReplace
+        ? "/products/import-excel?replace=true"
+        : "/products/import-excel";
+
+      const data = await adminFetch<ImportResult>(path, {
+        method: "POST",
+        body: form,
+      });
+
+      setResult(data);
+      setStatusLine("Tugadi");
+      await onDone();
     } catch (e) {
       setError(
         e instanceof Error
           ? e.message
           : "Excel oʻqilmadi. Faylni .xlsx formatida saqlab qayta urinib koʻring.",
       );
-      setRows([]);
+      setStatusLine("");
+    } finally {
+      setRunning(false);
     }
   }
-
-  async function ensureCategory(
-    name: string,
-    cache: Map<string, string>,
-    list: RefItem[],
-  ): Promise<{ id: string; created: boolean; list: RefItem[] }> {
-    const key = normName(name);
-    const existingId = cache.get(key);
-    if (existingId) return { id: existingId, created: false, list };
-
-    const created = await adminFetch<RefItem & { _id: string }>("/categories", {
-      method: "POST",
-      body: JSON.stringify({ name: name.trim(), isActive: true }),
-    });
-    const id = String(created._id);
-    cache.set(key, id);
-    const next = [...list, { _id: id, name: created.name || name.trim() }];
-    return { id, created: true, list: next };
-  }
-
-  async function startImport() {
-    if (!rows.length || running) return;
-    setRunning(true);
-    setError(null);
-    setResult(null);
-    setCurrent(0);
-
-    const catCache = new Map<string, string>();
-    for (const c of categories) {
-      catCache.set(normName(c.name), c._id);
-    }
-    let catList = [...categories];
-    let createdCategories = 0;
-    let ok = 0;
-    let failed = 0;
-    const errors: string[] = [];
-    const codeToId = new Map(productsByCode);
-
-    // Fallback kategoriya — Группа boʻsh boʻlsa
-    const fallbackName = "Boshqa";
-    if (![...catCache.keys()].includes(normName(fallbackName))) {
-      try {
-        const ensured = await ensureCategory(fallbackName, catCache, catList);
-        catList = ensured.list;
-        if (ensured.created) createdCategories += 1;
-      } catch {
-        /* ignore — later rows may still have groups */
-      }
-    }
-
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i]!;
-      setCurrent(i + 1);
-      setStatusLine(`${row.code} — ${row.name}`);
-
-      try {
-        let categoryId = catCache.get(normName(fallbackName)) || "";
-        if (row.categoryName.trim()) {
-          const ensured = await ensureCategory(
-            row.categoryName,
-            catCache,
-            catList,
-          );
-          catList = ensured.list;
-          categoryId = ensured.id;
-          if (ensured.created) createdCategories += 1;
-        }
-        if (!categoryId) {
-          throw new Error("Kategoriya topilmadi");
-        }
-
-        const payload = {
-          name: row.name,
-          code: row.code,
-          price: row.price,
-          wholesalePrice: row.wholesalePrice,
-          stock: row.stock,
-          categoryId,
-          description: row.name,
-          status: "active",
-          images: [PRODUCT_IMAGE_PLACEHOLDER],
-          specs: row.specs,
-        };
-
-        const existingId = codeToId.get(row.code.toUpperCase());
-        if (existingId) {
-          await adminFetch(`/products/${existingId}`, {
-            method: "PATCH",
-            body: JSON.stringify(payload),
-          });
-        } else {
-          const created = await adminFetch<{ _id: string }>("/products", {
-            method: "POST",
-            body: JSON.stringify(payload),
-          });
-          codeToId.set(row.code.toUpperCase(), String(created._id));
-        }
-        ok += 1;
-      } catch (e) {
-        failed += 1;
-        const msg = e instanceof Error ? e.message : "Xato";
-        errors.push(`Qator ${row.rowNumber} (${row.code}): ${msg}`);
-      }
-
-      // Sekin progress — UI yangilanishi uchun
-      await sleep(180);
-    }
-
-    onCategoriesChange(catList);
-    setResult({ ok, failed, createdCategories, errors: errors.slice(0, 40) });
-    setStatusLine("Tugadi");
-    setRunning(false);
-    await onDone();
-  }
-
-  const progress = rows.length ? Math.round((current / rows.length) * 100) : 0;
 
   return (
     <>
       <Button
         type="button"
-        variant="outline"
+        variant={isReplace ? "default" : "outline"}
         className="rounded-full"
         onClick={() => inputRef.current?.click()}
       >
-        <FileSpreadsheet className="size-4" />
-        Excel yuklash
+        {isReplace ? (
+          <RefreshCw className="size-4" />
+        ) : (
+          <FileSpreadsheet className="size-4" />
+        )}
+        {isReplace ? "Tovarlarni yangilash" : "Excel yuklash"}
       </Button>
       <input
         ref={inputRef}
         type="file"
-        accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         className="hidden"
         onChange={(e) => {
-          void onPickFile(e.target.files?.[0] ?? null);
+          onPickFile(e.target.files?.[0] ?? null);
           e.target.value = "";
         }}
       />
@@ -235,60 +138,84 @@ export function ProductExcelImport({
         onOpenChange={(v) => {
           if (running) return;
           setOpen(v);
+          if (!v) {
+            setFile(null);
+            setResult(null);
+            setError(null);
+          }
         }}
       >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Excel dan import</DialogTitle>
+            <DialogTitle>
+              {isReplace ? "Tovarlarni yangilash" : "Excel dan import"}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="rounded-2xl bg-muted/60 px-4 py-3 text-sm">
-              <p className="font-medium text-foreground">{fileName || "Fayl"}</p>
-              <p className="mt-1 text-muted-foreground">
-                {rows.length} ta mahsulot topildi.{" "}
-                <span className="text-foreground/80">
-                  Kod, nom, kategoriya (Группа) va xususiyatlar saqlanadi.
-                </span>
+              <p className="font-medium text-foreground">
+                {file?.name || "Fayl"}
               </p>
+              {isReplace ? (
+                <p className="mt-1 text-destructive">
+                  Diqqat: barcha eski mahsulotlar o‘chiriladi, o‘rniga Exceldagi
+                  yangi ro‘yxat yoziladi. Rasmlar ZIP ichidan original holda
+                  olinadi — biroz uzoqroq turishi mumkin.
+                </p>
+              ) : (
+                <p className="mt-1 text-muted-foreground">
+                  Прайс-лист (.xlsx): kod, nom, narx, guruh va rasmlar original
+                  sifatda olinadi (kattalashtirish/siqish yo‘q). Eski mahsulotlar
+                  saqlanadi.
+                </p>
+              )}
+              {file ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Hajm: {(file.size / (1024 * 1024)).toFixed(1)} MB
+                </p>
+              ) : null}
             </div>
 
-            {running || result ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    {current} / {rows.length}
-                  </span>
-                  <span>{progress}%</span>
-                </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className={cn(
-                      "h-full rounded-full bg-foreground transition-[width] duration-200 ease-out",
-                    )}
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-                {statusLine ? (
-                  <p className="truncate text-xs text-muted-foreground">
-                    {running ? "Yozilmoqda: " : ""}
-                    {statusLine}
-                  </p>
-                ) : null}
+            {running ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" />
+                <span className="truncate">{statusLine}</span>
               </div>
+            ) : null}
+
+            {!running && statusLine && result ? (
+              <p className="text-xs text-muted-foreground">{statusLine}</p>
             ) : null}
 
             {result ? (
               <div className="space-y-2 rounded-2xl border border-border/60 p-3 text-sm">
+                {typeof result.deleted === "number" && result.deleted > 0 ? (
+                  <p>
+                    O‘chirilgan:{" "}
+                    <span className="font-semibold text-destructive">
+                      {result.deleted}
+                    </span>
+                  </p>
+                ) : null}
                 <p>
                   Muvaffaqiyatli:{" "}
                   <span className="font-semibold text-emerald-600">
                     {result.ok}
                   </span>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    (yangi: {result.created}, yangilangan: {result.updated})
+                  </span>
                 </p>
                 <p>
                   Xato:{" "}
-                  <span className="font-semibold text-destructive">
+                  <span
+                    className={cn(
+                      "font-semibold",
+                      result.failed ? "text-destructive" : "text-foreground",
+                    )}
+                  >
                     {result.failed}
                   </span>
                 </p>
@@ -297,7 +224,7 @@ export function ProductExcelImport({
                     Yangi kategoriya: {result.createdCategories}
                   </p>
                 ) : null}
-                {result.errors.length ? (
+                {result.errors?.length ? (
                   <ul className="max-h-32 space-y-1 overflow-y-auto text-xs text-destructive">
                     {result.errors.map((e) => (
                       <li key={e}>{e}</li>
@@ -323,8 +250,9 @@ export function ProductExcelImport({
             </Button>
             {!result ? (
               <Button
+                variant={isReplace ? "destructive" : "default"}
                 className="rounded-full"
-                disabled={running || !rows.length}
+                disabled={running || !file}
                 onClick={() => void startImport()}
               >
                 {running ? (
@@ -332,7 +260,11 @@ export function ProductExcelImport({
                 ) : (
                   <Upload className="size-4" />
                 )}
-                {running ? "Import…" : "Boshlash"}
+                {running
+                  ? "Import…"
+                  : isReplace
+                    ? "O‘chirib yangilash"
+                    : "Boshlash"}
               </Button>
             ) : null}
           </DialogFooter>

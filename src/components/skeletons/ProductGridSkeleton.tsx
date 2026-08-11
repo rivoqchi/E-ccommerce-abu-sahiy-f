@@ -10,13 +10,26 @@ export function ProductGridSkeleton({
   count = 6,
   variant = "catalog",
 }: ProductGridSkeletonProps) {
-  const gridClass =
-    variant === "featured"
-      ? "grid grid-cols-2 gap-x-4 gap-y-6 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-4"
-      : "grid grid-cols-2 gap-4 sm:gap-5 xl:grid-cols-3";
+  if (variant === "featured") {
+    return (
+      <ul
+        className="columns-2 gap-4 sm:gap-5 md:columns-3 lg:columns-4"
+        aria-hidden
+      >
+        {Array.from({ length: count }).map((_, i) => (
+          <li key={i} className="mb-4 break-inside-avoid sm:mb-5">
+            <ProductCardSkeleton />
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
   return (
-    <ul className={gridClass} aria-hidden>
+    <ul
+      className="grid grid-cols-2 gap-4 sm:gap-5 xl:grid-cols-3"
+      aria-hidden
+    >
       {Array.from({ length: count }).map((_, i) => (
         <li key={i}>
           <ProductCardSkeleton />

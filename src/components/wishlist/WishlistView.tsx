@@ -32,16 +32,6 @@ export function WishlistView() {
         <p className="mt-5 text-lg font-semibold text-foreground">
           Hali sevimlilar yo&apos;q
         </p>
-        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-          Mahsulot kartasidagi yurak orqali sevimlilarga qo&apos;shing.
-        </p>
-        <Button
-          className="mt-6 h-11 rounded-full px-6"
-          nativeButton={false}
-          render={<Link href="/catalog" />}
-        >
-          Katalogga o&apos;tish
-        </Button>
       </div>
     );
   }
@@ -90,7 +80,10 @@ export function WishlistView() {
               <Button
                 type="button"
                 className="h-10 flex-1 gap-1.5 rounded-full"
-                onClick={() =>
+                disabled={(item.stock ?? 0) <= 0}
+                onClick={() => {
+                  const stock = Math.max(0, item.stock ?? 0);
+                  if (stock <= 0) return;
                   addToCart(
                     {
                       id: item.productId,
@@ -104,14 +97,15 @@ export function WishlistView() {
                       brand: item.brand,
                       images: [item.image],
                       specs: [],
-                      inStock: true,
+                      stock,
+                      inStock: stock > 0,
                     },
                     1,
-                  )
-                }
+                  );
+                }}
               >
                 <ShoppingBag className="size-3.5" strokeWidth={1.75} />
-                Savatga
+                {(item.stock ?? 0) <= 0 ? "Tugagan" : "Savatga"}
               </Button>
               <Button
                 type="button"

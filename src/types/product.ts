@@ -8,6 +8,8 @@ export interface CatalogCategory {
   slug: string;
   name: string;
   image?: string;
+  /** Active products in this category */
+  productCount?: number;
 }
 
 export interface CatalogBrand {
@@ -36,6 +38,8 @@ export interface Product {
   images: string[];
   specs: ProductSpec[];
   featured?: boolean;
+  /** Ombordagi qoldiq */
+  stock: number;
   inStock: boolean;
   rating?: number;
   /** Unique customers who purchased (paid/shipped/delivered). */
@@ -56,6 +60,8 @@ export interface CartItem {
   wholesalePrice: number;
   image: string;
   quantity: number;
+  /** Ombordagi maksimal miqdor (qo'shishda saqlanadi) */
+  stock: number;
 }
 
 export interface WishlistItem {
@@ -66,6 +72,7 @@ export interface WishlistItem {
   wholesalePrice: number;
   image: string;
   brand: string;
+  stock?: number;
 }
 
 export const PRODUCT_IMAGE_PLACEHOLDER =

@@ -63,15 +63,16 @@ export function ProductQuickView({
 
   const current = product.images[active] ?? product.images[0];
   const soldCount = product.buyerCount ?? 0;
+  const maxQty = Math.max(0, product.stock || 0);
 
   const handleAdd = () => {
-    if (!product.inStock) return;
+    if (!product.inStock || maxQty <= 0) return;
     if (inCart) {
       onOpenChange(false);
       router.push("/cart");
       return;
     }
-    addItem(product, qty);
+    addItem(product, Math.min(qty, maxQty));
   };
 
   const isDesktopTouch = () =>
@@ -189,7 +190,8 @@ export function ProductQuickView({
               <button
                 type="button"
                 aria-label="Kamaytirish"
-                className="text-muted-foreground transition hover:text-foreground"
+                className="text-muted-foreground transition hover:text-foreground disabled:opacity-40"
+                disabled={qty <= 1 || !product.inStock}
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
               >
                 <Minus className="size-3.5" strokeWidth={2.5} />
@@ -200,8 +202,9 @@ export function ProductQuickView({
               <button
                 type="button"
                 aria-label="Ko'paytirish"
-                className="text-muted-foreground transition hover:text-foreground"
-                onClick={() => setQty((q) => q + 1)}
+                className="text-muted-foreground transition hover:text-foreground disabled:opacity-40"
+                disabled={!product.inStock || qty >= maxQty}
+                onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
               >
                 <Plus className="size-3.5" strokeWidth={2.5} />
               </button>
@@ -211,7 +214,7 @@ export function ProductQuickView({
               type="button"
               size="lg"
               className="h-11 flex-1 gap-2 rounded-full text-sm font-semibold"
-              disabled={!product.inStock}
+              disabled={!product.inStock || maxQty <= 0}
               onClick={handleAdd}
             >
               <ShoppingBag className="size-4" strokeWidth={1.75} />

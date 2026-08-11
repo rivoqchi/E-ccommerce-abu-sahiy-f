@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
         hostname: "**.telegram.org",
       },
       {
+        protocol: "https",
+        hostname: "pub-f3b38e5cace645bdae0dc2dca5984181.r2.dev",
+      },
+      {
         protocol: "http",
         hostname: "localhost",
         port: "4000",

@@ -16,6 +16,8 @@ interface ProductCardProps {
   product: Product;
   className?: string;
   priority?: boolean;
+  /** Image frame aspect, e.g. aspect-square or aspect-[3/4] for masonry */
+  imageAspectClass?: string;
 }
 
 /** Scoop radius — same for pad corner + both concave fills */
@@ -27,7 +29,12 @@ function productRating(product: Product): number {
   return n % 2 === 0 ? 4 : 5;
 }
 
-export function ProductCard({ product, className, priority }: ProductCardProps) {
+export function ProductCard({
+  product,
+  className,
+  priority,
+  imageAspectClass = "aspect-square",
+}: ProductCardProps) {
   const [quickOpen, setQuickOpen] = useState(false);
   const toggleWishlist = useWishlistStore((s) => s.toggleItem);
   const liked = useWishlistStore((s) =>
@@ -48,7 +55,10 @@ export function ProductCard({ product, className, priority }: ProductCardProps) 
         <div className="relative">
           <Link
             href={`/product/${product.slug}`}
-            className="relative block aspect-square overflow-hidden rounded-[28px] bg-muted"
+            className={cn(
+              "relative block overflow-hidden rounded-[28px] bg-muted",
+              imageAspectClass,
+            )}
             aria-label={product.name}
           >
             <ProductImage
@@ -101,16 +111,19 @@ export function ProductCard({ product, className, priority }: ProductCardProps) 
             <Button
               type="button"
               size="sm"
-              className="relative h-10 gap-1.5 rounded-full bg-black px-4 text-[13px] font-medium text-white shadow-none hover:bg-neutral-900"
+              className="relative h-10 gap-1.5 rounded-full bg-black px-4 text-[13px] font-medium text-white shadow-none hover:bg-neutral-900 disabled:opacity-50"
+              disabled={!product.inStock || (product.stock || 0) <= 0}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 setQuickOpen(true);
               }}
-              aria-label="Mahsulotni ko'rish"
+              aria-label={
+                product.inStock ? "Mahsulotni ko'rish" : "Omborda yo'q"
+              }
             >
               <ShoppingBag className="size-3.5" strokeWidth={1.75} />
-              Shop
+              {product.inStock ? "Shop" : "Tugagan"}
             </Button>
           </div>
         </div>

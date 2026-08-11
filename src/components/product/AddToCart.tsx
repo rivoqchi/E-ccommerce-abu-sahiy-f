@@ -18,13 +18,15 @@ export function AddToCart({ product }: AddToCartProps) {
   );
   const [qty, setQty] = useState(1);
 
+  const maxQty = Math.max(0, product.stock || 0);
+
   const handleClick = () => {
-    if (!product.inStock) return;
+    if (!product.inStock || maxQty <= 0) return;
     if (inCart) {
       router.push("/cart");
       return;
     }
-    addItem(product, qty);
+    addItem(product, Math.min(qty, maxQty));
   };
 
   return (
@@ -33,7 +35,8 @@ export function AddToCart({ product }: AddToCartProps) {
         <button
           type="button"
           aria-label="Kamaytirish"
-          className="h-full px-3 text-lg text-muted-foreground hover:text-foreground"
+          className="h-full px-3 text-lg text-muted-foreground hover:text-foreground disabled:opacity-40"
+          disabled={qty <= 1 || !product.inStock}
           onClick={() => setQty((q) => Math.max(1, q - 1))}
         >
           −
@@ -42,8 +45,9 @@ export function AddToCart({ product }: AddToCartProps) {
         <button
           type="button"
           aria-label="Ko'paytirish"
-          className="h-full px-3 text-lg text-muted-foreground hover:text-foreground"
-          onClick={() => setQty((q) => q + 1)}
+          className="h-full px-3 text-lg text-muted-foreground hover:text-foreground disabled:opacity-40"
+          disabled={!product.inStock || qty >= maxQty}
+          onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
         >
           +
         </button>
@@ -52,7 +56,7 @@ export function AddToCart({ product }: AddToCartProps) {
       <Button
         size="lg"
         className="flex-1 sm:flex-none sm:min-w-48"
-        disabled={!product.inStock}
+        disabled={!product.inStock || maxQty <= 0}
         onClick={handleClick}
       >
         {inCart ? "Savatga qaytish" : "Savatga qo'shish"}

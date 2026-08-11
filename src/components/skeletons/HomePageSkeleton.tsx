@@ -42,10 +42,13 @@ export function HomePageSkeleton() {
         {/* Promo banner */}
         <Skeleton className="min-h-[168px] w-full rounded-3xl md:min-h-[200px]" />
 
-        {/* Category pills */}
-        <div className="flex gap-2 overflow-hidden">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-9 w-24 shrink-0 rounded-full" />
+        {/* Category grid */}
+        <div className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className="flex flex-col items-center gap-2.5">
+              <Skeleton className="size-20 rounded-full sm:size-[5.5rem]" />
+              <Skeleton className="h-3.5 w-16" />
+            </div>
           ))}
         </div>
 
@@ -56,7 +59,7 @@ export function HomePageSkeleton() {
             <Skeleton className="h-4 w-16" />
           </div>
           <div className="mt-4">
-            <ProductGridSkeleton count={8} variant="featured" />
+            <ProductGridSkeleton count={6} variant="catalog" />
           </div>
         </section>
       </div>

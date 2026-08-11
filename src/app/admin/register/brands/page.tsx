@@ -5,6 +5,7 @@ import { Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +30,9 @@ export default function AdminBrandsPage() {
   const { adminFetch } = useAdminApi();
   const [items, setItems] = useState<Brand[]>([]);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
+  const [isActive, setIsActive] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -42,31 +45,87 @@ export default function AdminBrandsPage() {
     void load().catch((e: Error) => setError(e.message));
   }, [load]);
 
-  function create() {
+  function resetForm() {
+    setEditingId(null);
+    setName("");
+    setIsActive(true);
+    setError(null);
+  }
+
+  function openCreate() {
+    resetForm();
+    setOpen(true);
+  }
+
+  function openEdit(brand: Brand) {
+    setEditingId(brand._id);
+    setName(brand.name);
+    setIsActive(brand.isActive);
+    setError(null);
+    setOpen(true);
+  }
+
+  function handleDialogChange(next: boolean) {
+    setOpen(next);
+    if (!next) resetForm();
+  }
+
+  function save() {
     if (!name.trim()) return;
     setError(null);
     startTransition(async () => {
       try {
-        await adminFetch("/brands", {
-          method: "POST",
-          body: JSON.stringify({ name: name.trim() }),
-        });
-        setName("");
+        const payload = { name: name.trim(), isActive };
+        if (editingId) {
+          await adminFetch(`/brands/${editingId}`, {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+          });
+        } else {
+          await adminFetch("/brands", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+        }
         setOpen(false);
+        resetForm();
         await load();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Xato");
+        setError(e instanceof Error ? e.message : "Saqlanmadi");
       }
     });
   }
 
   async function remove(id: string) {
+    const prev = items;
+    setItems((list) => list.filter((b) => b._id !== id));
+    setError(null);
     try {
       await adminFetch(`/brands/${id}`, { method: "DELETE" });
-      await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Xato");
+      setItems(prev);
+      setError(e instanceof Error ? e.message : "Oʻchirilmadi");
       throw e;
+    }
+  }
+
+  async function toggleActive(brand: Brand) {
+    const next = !brand.isActive;
+    setItems((list) =>
+      list.map((b) => (b._id === brand._id ? { ...b, isActive: next } : b)),
+    );
+    try {
+      await adminFetch(`/brands/${brand._id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isActive: next }),
+      });
+    } catch (e) {
+      setItems((list) =>
+        list.map((b) =>
+          b._id === brand._id ? { ...b, isActive: brand.isActive } : b,
+        ),
+      );
+      setError(e instanceof Error ? e.message : "Holat yangilanmadi");
     }
   }
 
@@ -75,9 +134,8 @@ export default function AdminBrandsPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Brendlar</h1>
-        
         </div>
-        <Button className="rounded-full" onClick={() => setOpen(true)}>
+        <Button className="rounded-full" onClick={openCreate}>
           <Plus className="size-4" />
           Qoʻshish
         </Button>
@@ -96,6 +154,7 @@ export default function AdminBrandsPage() {
               <TableRow>
                 <TableHead className="pl-5">Nomi</TableHead>
                 <TableHead>Slug</TableHead>
+                <TableHead>Holat</TableHead>
                 <TableHead className="pr-5 text-right">Amallar</TableHead>
               </TableRow>
             </TableHeader>
@@ -104,7 +163,22 @@ export default function AdminBrandsPage() {
                 <TableRow key={b._id}>
                   <TableCell className="pl-5 font-medium">{b.name}</TableCell>
                   <TableCell className="text-muted-foreground">{b.slug}</TableCell>
-                  <TableCell className="pr-5 text-right">
+                  <TableCell>
+                    <button type="button" onClick={() => void toggleActive(b)}>
+                      <Badge variant={b.isActive ? "default" : "outline"}>
+                        {b.isActive ? "Faol" : "Yashirin"}
+                      </Badge>
+                    </button>
+                  </TableCell>
+                  <TableCell className="space-x-1 pr-5 text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full"
+                      onClick={() => openEdit(b)}
+                    >
+                      Tahrir
+                    </Button>
                     <ConfirmAction
                       className="text-destructive"
                       title="Brendni oʻchirasizmi?"
@@ -119,7 +193,7 @@ export default function AdminBrandsPage() {
               {!items.length ? (
                 <TableRow>
                   <TableCell
-                    colSpan={3}
+                    colSpan={4}
                     className="py-10 text-center text-muted-foreground"
                   >
                     Brendlar yoʻq
@@ -131,22 +205,45 @@ export default function AdminBrandsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleDialogChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Yangi brend</DialogTitle>
+            <DialogTitle>
+              {editingId ? "Brendni tahrirlash" : "Yangi brend"}
+            </DialogTitle>
           </DialogHeader>
-          <Input
-            placeholder="Brend nomi"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="h-12"
-          />
-          <DialogFooter>
+          <div className="space-y-3">
+            <Input
+              placeholder="Brend nomi"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="h-12"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && name.trim() && !pending) save();
+              }}
+            />
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                className="size-4 rounded border"
+              />
+              Faol brend
+            </label>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={() => handleDialogChange(false)}
+            >
+              Bekor
+            </Button>
             <Button
               className="rounded-full"
               disabled={pending || !name.trim()}
-              onClick={create}
+              onClick={save}
             >
               {pending ? <Loader2 className="size-4 animate-spin" /> : null}
               Saqlash

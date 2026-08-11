@@ -12,9 +12,6 @@ export function ProductGrid({ products }: ProductGridProps) {
         <p className="text-base font-medium text-foreground">
           Mahsulot topilmadi
         </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Filtrlarni o&apos;zgartirib ko&apos;ring.
-        </p>
       </div>
     );
   }

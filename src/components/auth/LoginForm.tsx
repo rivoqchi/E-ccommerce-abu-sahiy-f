@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { LoginFormSkeleton } from "@/components/skeletons";
+import { CountryFlag } from "@/components/auth/CountryFlag";
 import {
   COUNTRIES,
   DEFAULT_COUNTRY,
@@ -296,9 +297,7 @@ function PhoneStep({
           >
             <SelectValue>
               <span className="flex items-center gap-1.5 text-[15px] font-medium tabular-nums">
-                <span aria-hidden className="text-base leading-none">
-                  {country.flag}
-                </span>
+                <CountryFlag code={country.code} title={country.name} />
                 <span>{country.dial}</span>
               </span>
             </SelectValue>
@@ -307,7 +306,7 @@ function PhoneStep({
             {COUNTRIES.map((item) => (
               <SelectItem key={item.code} value={item.code}>
                 <span className="flex items-center gap-2">
-                  <span aria-hidden>{item.flag}</span>
+                  <CountryFlag code={item.code} title={item.name} />
                   <span className="font-medium tabular-nums">{item.dial}</span>
                   <span className="text-muted-foreground">{item.name}</span>
                 </span>

@@ -65,6 +65,19 @@ const emptyDraft = (): DraftItem => ({
   durationMs: 5000,
 });
 
+function storyToDrafts(story: ApiStory): DraftItem[] {
+  if (!story.items?.length) return [emptyDraft()];
+  return story.items.map((item, i) => ({
+    key: item._id ?? `edit-${i}-${item.mediaUrl}`,
+    mediaType: item.mediaType,
+    mediaUrl: item.mediaUrl,
+    mediaUrlLow: item.mediaUrlLow ?? "",
+    thumbnailUrl: item.thumbnailUrl ?? "",
+    caption: item.caption ?? "",
+    durationMs: item.durationMs ?? 5000,
+  }));
+}
+
 export default function AdminStoriesPage() {
   const { adminFetch } = useAdminApi();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -72,8 +85,10 @@ export default function AdminStoriesPage() {
   const avatarRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<ApiStory[]>([]);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [authorName, setAuthorName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [isActive, setIsActive] = useState(true);
   const [drafts, setDrafts] = useState<DraftItem[]>([emptyDraft()]);
   const [activeDraftKey, setActiveDraftKey] = useState<string | null>(null);
   const [uploadTarget, setUploadTarget] = useState<"main" | "low">("main");
@@ -110,6 +125,7 @@ export default function AdminStoriesPage() {
       setError(e instanceof Error ? e.message : "Avatar yuklanmadi");
     } finally {
       setUploadingAvatar(false);
+      if (avatarRef.current) avatarRef.current.value = "";
     }
   }
 
@@ -150,70 +166,117 @@ export default function AdminStoriesPage() {
   }
 
   function resetForm() {
+    setEditingId(null);
     setAuthorName("");
     setAvatarUrl("");
+    setIsActive(true);
     setDrafts([emptyDraft()]);
+    setActiveDraftKey(null);
     setError(null);
   }
 
-  function create() {
+  function openCreate() {
+    resetForm();
+    setOpen(true);
+  }
+
+  function openEdit(story: ApiStory) {
+    setEditingId(story._id);
+    setAuthorName(story.authorName);
+    setAvatarUrl(story.avatarUrl ?? "");
+    setIsActive(story.isActive);
+    setDrafts(storyToDrafts(story));
+    setActiveDraftKey(null);
     setError(null);
+    setOpen(true);
+  }
+
+  function handleDialogChange(next: boolean) {
+    setOpen(next);
+    if (!next) resetForm();
+  }
+
+  function buildPayload() {
     const ready = drafts.filter((d) => d.mediaUrl);
-    if (!authorName.trim()) {
+    return {
+      authorName: authorName.trim(),
+      avatarUrl: avatarUrl || undefined,
+      items: ready.map((d) => ({
+        mediaType: d.mediaType,
+        mediaUrl: d.mediaUrl,
+        mediaUrlLow: d.mediaUrlLow || undefined,
+        thumbnailUrl: d.thumbnailUrl || undefined,
+        caption: d.caption.trim() || undefined,
+        durationMs: d.mediaType === "image" ? d.durationMs : undefined,
+      })),
+      isActive,
+    };
+  }
+
+  function save() {
+    setError(null);
+    const payload = buildPayload();
+    if (!payload.authorName) {
       setError("Muallif nomi kerak");
       return;
     }
-    if (!ready.length) {
+    if (!payload.items.length) {
       setError("Kamida bitta media yuklang");
       return;
     }
 
     startTransition(async () => {
       try {
-        await adminFetch("/stories", {
-          method: "POST",
-          body: JSON.stringify({
-            authorName: authorName.trim(),
-            avatarUrl: avatarUrl || undefined,
-            items: ready.map((d) => ({
-              mediaType: d.mediaType,
-              mediaUrl: d.mediaUrl,
-              mediaUrlLow: d.mediaUrlLow || undefined,
-              thumbnailUrl: d.thumbnailUrl || undefined,
-              caption: d.caption.trim() || undefined,
-              durationMs: d.mediaType === "image" ? d.durationMs : undefined,
-            })),
-            isActive: true,
-          }),
-        });
+        if (editingId) {
+          await adminFetch(`/stories/${editingId}`, {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+          });
+        } else {
+          await adminFetch("/stories", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+        }
         setOpen(false);
         resetForm();
         await load();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Xato");
+        setError(e instanceof Error ? e.message : "Saqlanmadi");
       }
     });
   }
 
   async function remove(id: string) {
+    const prev = items;
+    setItems((list) => list.filter((s) => s._id !== id));
+    setError(null);
     try {
       await adminFetch(`/stories/${id}`, { method: "DELETE" });
-      await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Xato");
+      setItems(prev);
+      setError(e instanceof Error ? e.message : "Oʻchirilmadi");
       throw e;
     }
   }
 
   async function toggleActive(story: ApiStory) {
+    const next = !story.isActive;
+    setItems((list) =>
+      list.map((s) => (s._id === story._id ? { ...s, isActive: next } : s)),
+    );
     try {
       await adminFetch(`/stories/${story._id}`, {
         method: "PATCH",
-        body: JSON.stringify({ isActive: !story.isActive }),
+        body: JSON.stringify({ isActive: next }),
       });
-      await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Xato");
+      setItems((list) =>
+        list.map((s) =>
+          s._id === story._id ? { ...s, isActive: story.isActive } : s,
+        ),
+      );
+      setError(e instanceof Error ? e.message : "Holat yangilanmadi");
     }
   }
 
@@ -223,19 +286,13 @@ export default function AdminStoriesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Istoriyalar</h1>
         </div>
-        <Button
-          className="rounded-full"
-          onClick={() => {
-            resetForm();
-            setOpen(true);
-          }}
-        >
+        <Button className="rounded-full" onClick={openCreate}>
           <Plus className="size-4" />
           Qoʻshish
         </Button>
       </div>
 
-      {error ? (
+      {error && !open ? (
         <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
@@ -319,10 +376,18 @@ export default function AdminStoriesPage() {
                         </Badge>
                       </button>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="space-x-1 text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full"
+                        onClick={() => openEdit(story)}
+                      >
+                        Tahrir
+                      </Button>
                       <ConfirmAction
                         title="Istoriyani oʻchirish?"
-                        description="Bu amalni qaytarib boʻlmaydi."
+                        description={`“${story.authorName}” istoriyasi oʻchiriladi. Bu amalni qaytarib boʻlmaydi.`}
                         className="text-destructive"
                         onConfirm={() => remove(story._id)}
                       >
@@ -347,11 +412,19 @@ export default function AdminStoriesPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleDialogChange}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Yangi istoriya</DialogTitle>
+            <DialogTitle>
+              {editingId ? "Istoriyani tahrirlash" : "Yangi istoriya"}
+            </DialogTitle>
           </DialogHeader>
+
+          {error ? (
+            <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
 
           <div className="space-y-4">
             <div className="space-y-2">
@@ -390,6 +463,17 @@ export default function AdminStoriesPage() {
                   )}
                   Yuklash
                 </Button>
+                {avatarUrl ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive"
+                    onClick={() => setAvatarUrl("")}
+                  >
+                    Olib tashlash
+                  </Button>
+                ) : null}
                 <input
                   ref={avatarRef}
                   type="file"
@@ -401,6 +485,16 @@ export default function AdminStoriesPage() {
                 />
               </div>
             </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                className="size-4 rounded border"
+              />
+              Faol istoriya
+            </label>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -440,6 +534,27 @@ export default function AdminStoriesPage() {
                     ) : null}
                   </div>
 
+                  {draft.mediaUrl ? (
+                    <div className="overflow-hidden rounded-xl bg-muted">
+                      {draft.mediaType === "video" ? (
+                        <video
+                          src={draft.mediaUrl}
+                          className="max-h-40 w-full object-contain"
+                          muted
+                          playsInline
+                          controls
+                        />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={draft.mediaUrl}
+                          alt=""
+                          className="max-h-40 w-full object-contain"
+                        />
+                      )}
+                    </div>
+                  ) : null}
+
                   <div className="flex flex-wrap gap-2">
                     <Button
                       type="button"
@@ -457,7 +572,7 @@ export default function AdminStoriesPage() {
                       ) : (
                         <Upload className="size-4" />
                       )}
-                      Asosiy media
+                      {draft.mediaUrl ? "Media almashtirish" : "Asosiy media"}
                     </Button>
                     {draft.mediaType === "video" ? (
                       <Button
@@ -476,15 +591,11 @@ export default function AdminStoriesPage() {
                     ) : null}
                   </div>
 
-                  {draft.mediaUrl ? (
-                    <p className="truncate text-xs text-muted-foreground">
-                      {draft.mediaUrl}
-                    </p>
-                  ) : (
+                  {!draft.mediaUrl ? (
                     <p className="text-xs text-muted-foreground">
                       Rasm yoki video (mp4/webm, max 200MB)
                     </p>
-                  )}
+                  ) : null}
 
                   {draft.mediaUrlLow ? (
                     <p
@@ -565,10 +676,13 @@ export default function AdminStoriesPage() {
           />
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => handleDialogChange(false)}
+            >
               Bekor
             </Button>
-            <Button disabled={pending} onClick={create}>
+            <Button disabled={pending} onClick={save}>
               {pending ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (

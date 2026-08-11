@@ -13,14 +13,14 @@ interface ProductImageProps {
   height?: number;
   sizes?: string;
   priority?: boolean;
-  /** Product photos are square (800×800); cover fills the frame evenly. */
+  /** Product photos are square; cover fills the frame evenly. */
   fit?: "contain" | "cover";
   className?: string;
 }
 
 /**
- * Native img for product media — avoids Next `/_next/image` 400 on
- * localhost API uploads and arbitrary admin image hosts.
+ * Native img for product media — avoids Next `/_next/image` re-encode
+ * (keeps original upload sharpness) and works with localhost API hosts.
  */
 export function ProductImage({
   src,
@@ -48,8 +48,11 @@ export function ProductImage({
       loading={priority ? "eager" : "lazy"}
       decoding="async"
       fetchPriority={priority ? "high" : "auto"}
+      draggable={false}
       className={cn(
         fill && "absolute inset-0 size-full",
+        // High-quality resample when the browser scales the bitmap
+        "[image-rendering:auto]",
         fit === "contain" ? "object-contain" : "object-cover object-center",
         className,
       )}

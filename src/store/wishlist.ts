@@ -28,6 +28,7 @@ function toWishlistItem(product: Product): WishlistItem {
         : product.price,
     image: product.images[0],
     brand: product.brand,
+    stock: Math.max(0, product.stock || 0),
   };
 }
 

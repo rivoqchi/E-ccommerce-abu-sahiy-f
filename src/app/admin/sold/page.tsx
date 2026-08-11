@@ -42,9 +42,6 @@ export default function AdminSoldPage() {
           <h1 className="text-2xl font-bold tracking-tight">
             Sotilgan mahsulotlar
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Excel yoki Word fayl sifatida yuklab oling
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button

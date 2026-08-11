@@ -6,6 +6,13 @@ import type { CartItem, Product } from "@/types/product";
 import { playAddToCartSound } from "@/lib/sounds";
 import { resolveUnitPrice, type PriceTier } from "@/lib/pricing";
 
+function resolveStock(product: Product): number {
+  if (typeof product.stock === "number" && Number.isFinite(product.stock)) {
+    return Math.max(0, Math.floor(product.stock));
+  }
+  return product.inStock ? Number.MAX_SAFE_INTEGER : 0;
+}
+
 interface CartState {
   items: CartItem[];
   hydrated: boolean;
@@ -31,6 +38,19 @@ export const useCartStore = create<CartState>()(
       },
 
       addItem: (product, quantity = 1) => {
+        const stock = resolveStock(product);
+        if (stock <= 0) return;
+
+        const addQty = Math.max(1, Math.floor(quantity));
+        const existing = get().items.find(
+          (item) => item.productId === product.id,
+        );
+        const currentQty = existing?.quantity ?? 0;
+        if (currentQty >= stock) return;
+
+        const nextQty = Math.min(stock, currentQty + addQty);
+        if (nextQty <= currentQty) return;
+
         playAddToCartSound();
         const wholesalePrice =
           Number.isFinite(product.wholesalePrice) && product.wholesalePrice >= 0
@@ -38,19 +58,20 @@ export const useCartStore = create<CartState>()(
             : product.price;
 
         set((state) => {
-          const existing = state.items.find(
+          const found = state.items.find(
             (item) => item.productId === product.id,
           );
 
-          if (existing) {
+          if (found) {
             return {
               items: state.items.map((item) =>
                 item.productId === product.id
                   ? {
                       ...item,
-                      quantity: item.quantity + quantity,
+                      quantity: nextQty,
                       price: product.price,
                       wholesalePrice,
+                      stock,
                     }
                   : item,
               ),
@@ -67,7 +88,8 @@ export const useCartStore = create<CartState>()(
                 price: product.price,
                 wholesalePrice,
                 image: product.images[0],
-                quantity,
+                quantity: nextQty,
+                stock,
               },
             ],
           };
@@ -86,9 +108,18 @@ export const useCartStore = create<CartState>()(
           return;
         }
         set((state) => ({
-          items: state.items.map((item) =>
-            item.productId === productId ? { ...item, quantity } : item,
-          ),
+          items: state.items.map((item) => {
+            if (item.productId !== productId) return item;
+            const max =
+              typeof item.stock === "number" && Number.isFinite(item.stock)
+                ? Math.max(0, Math.floor(item.stock))
+                : Number.MAX_SAFE_INTEGER;
+            if (max <= 0) return item;
+            return {
+              ...item,
+              quantity: Math.min(max, Math.floor(quantity)),
+            };
+          }),
         }));
       },
 
@@ -119,14 +150,23 @@ export const useCartStore = create<CartState>()(
           console.warn("[cart] rehydrate failed", error);
         }
         if (state) {
-          // Migrate old cart rows without wholesalePrice
-          state.items = state.items.map((item) => ({
-            ...item,
-            wholesalePrice:
-              typeof item.wholesalePrice === "number"
-                ? item.wholesalePrice
-                : item.price,
-          }));
+          // Migrate old cart rows without wholesalePrice / stock
+          state.items = state.items.map((item) => {
+            const qty = Math.max(1, Math.floor(item.quantity) || 1);
+            const stock =
+              typeof item.stock === "number" && Number.isFinite(item.stock)
+                ? Math.max(0, Math.floor(item.stock))
+                : qty;
+            return {
+              ...item,
+              wholesalePrice:
+                typeof item.wholesalePrice === "number"
+                  ? item.wholesalePrice
+                  : item.price,
+              stock,
+              quantity: Math.min(qty, Math.max(1, stock) || qty),
+            };
+          });
           state.setHydrated(true);
         } else {
           queueMicrotask(() => {

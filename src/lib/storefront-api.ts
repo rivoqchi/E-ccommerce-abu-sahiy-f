@@ -107,6 +107,7 @@ export function mapApiProduct(raw: ApiProduct): Product {
     images: normalizeImages(raw.images),
     specs: raw.specs ?? [],
     featured: tags.includes("featured"),
+    stock: Math.max(0, Number(raw.stock) || 0),
     inStock: (raw.stock ?? 0) > 0,
     buyerCount: Number(raw.buyerCount) || 0,
     recentBuyers: (raw.recentBuyers ?? [])
@@ -125,16 +126,20 @@ async function publicFetch<T>(
   path: string,
   init?: RequestInit & { next?: { revalidate?: number | false } },
 ): Promise<T> {
-  const { next, headers, ...rest } = init ?? {};
+  const { next, headers, cache, ...rest } = init ?? {};
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const useNoStore = cache === "no-store" || next?.revalidate === 0;
   const response = await fetch(`${API_BASE_URL}${normalizedPath}`, {
     ...rest,
+    ...(useNoStore ? { cache: "no-store" as RequestCache } : { cache }),
     signal: AbortSignal.timeout(PUBLIC_FETCH_TIMEOUT_MS),
     headers: {
       "Content-Type": "application/json",
       ...headers,
     },
-    next: { revalidate: 60, ...next },
+    ...(useNoStore
+      ? { next: { revalidate: 0 } }
+      : { next: { revalidate: 60, ...next } }),
   });
 
   const json = (await response.json()) as ApiSuccess<T> | ApiError;
@@ -161,13 +166,20 @@ function toQuery(params: Record<string, string | number | undefined>) {
 export async function fetchCategories(): Promise<CatalogCategory[]> {
   try {
     const rows = await publicFetch<
-      Array<{ _id: string; name: string; slug: string; image?: string }>
+      Array<{
+        _id: string;
+        name: string;
+        slug: string;
+        image?: string;
+        productCount?: number;
+      }>
     >("/categories");
     return rows.map((c) => ({
       id: String(c._id),
       name: c.name,
       slug: c.slug,
       image: c.image || undefined,
+      productCount: Number(c.productCount ?? 0),
     }));
   } catch {
     return [];
@@ -213,6 +225,8 @@ export async function fetchProducts(options?: {
         page,
         limit,
       })}`,
+      // Import/replace dan keyin bo'sh ISR cache qolib ketmasin
+      { cache: "no-store", next: { revalidate: 0 } },
     );
 
     const items = (data.items ?? []).map(mapApiProduct);
@@ -224,7 +238,8 @@ export async function fetchProducts(options?: {
       totalPages: data.totalPages ?? Math.max(1, Math.ceil(total / limit)),
       nextCursor: data.nextCursor ?? null,
     };
-  } catch {
+  } catch (err) {
+    console.error("[fetchProducts]", err);
     return {
       items: [],
       total: 0,

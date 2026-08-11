@@ -100,6 +100,10 @@ export function CartItems() {
                         size="icon-sm"
                         className="size-7 rounded-full"
                         aria-label="Ko'paytirish"
+                        disabled={
+                          typeof item.stock === "number" &&
+                          item.quantity >= item.stock
+                        }
                         onClick={() =>
                           updateQuantity(item.productId, item.quantity + 1)
                         }
