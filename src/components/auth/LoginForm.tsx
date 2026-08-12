@@ -19,6 +19,8 @@ const BOT_USERNAME =
   process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "").trim() ||
   "samipricebot";
 
+const TOKEN_LOGIN_TIMEOUT_MS = 20_000;
+
 const iconBtnClass =
   "rounded-full bg-card shadow-[var(--shadow-soft)] ring-1 ring-foreground/5";
 
@@ -36,6 +38,18 @@ function LoginTopBar({ onBack }: { onBack: () => void }) {
         <ArrowLeft className="size-[18px]" strokeWidth={1.75} />
       </Button>
       <ThemeToggle className={iconBtnClass} />
+    </div>
+  );
+}
+
+function LoginLoading({ label }: { label: string }) {
+  return (
+    <div className="mx-auto flex w-full max-w-md flex-col items-center gap-3 py-16">
+      <Loader2 className="size-8 animate-spin text-foreground" />
+      <p className="text-sm font-medium text-foreground">{label}</p>
+      <p className="text-center text-xs text-muted-foreground">
+        Bir necha soniya kuting…
+      </p>
     </div>
   );
 }
@@ -58,7 +72,9 @@ export function LoginForm() {
   const nextPath = searchParams.get("next") || "/account";
   const webToken = searchParams.get("token");
 
+  // Open Web ?token= bo‘lsa Mini App silent auth UI ni bloklamasin
   const telegramConnecting =
+    !webToken &&
     inTelegram &&
     (telegramAuthStatus === "idle" ||
       telegramAuthStatus === "pending" ||
@@ -75,6 +91,15 @@ export function LoginForm() {
     let cancelled = false;
     setTokenPending(true);
     setError(null);
+
+    const timeout = window.setTimeout(() => {
+      if (cancelled) return;
+      setError(
+        "Avtomatik kirish juda uzoq davom etdi. Botdan yangi Open Web link oling yoki kod bilan kiring.",
+      );
+      setTokenPending(false);
+    }, TOKEN_LOGIN_TIMEOUT_MS);
+
     (async () => {
       try {
         await loginWithBotWebToken(webToken);
@@ -91,12 +116,15 @@ export function LoginForm() {
                 : "Avtomatik kirish ishlamadi. Botdan yangi link yoki kod oling.";
           setError(msg);
           setTokenPending(false);
-          // Tokenni URLdan olib tashlamaymiz — xato ko‘rinsin
         }
+      } finally {
+        window.clearTimeout(timeout);
       }
     })();
+
     return () => {
       cancelled = true;
+      window.clearTimeout(timeout);
     };
   }, [
     hydrated,
@@ -125,13 +153,20 @@ export function LoginForm() {
     });
   }
 
-  if (
-    !hydrated ||
-    telegramConnecting ||
-    tokenPending ||
-    (hydrated && accessToken && !error)
-  ) {
+  if (!hydrated) {
     return <LoginFormSkeleton />;
+  }
+
+  if (tokenPending) {
+    return <LoginLoading label="Avtomatik kirish…" />;
+  }
+
+  if (telegramConnecting) {
+    return <LoginLoading label="Telegram orqali ulanilmoqda…" />;
+  }
+
+  if (hydrated && accessToken && !error) {
+    return <LoginLoading label="Hisobga yo‘naltirilmoqda…" />;
   }
 
   return (
@@ -152,7 +187,8 @@ export function LoginForm() {
           Hisobga kirish
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground md:text-[15px]">
-          Telegram botda <span className="font-medium text-foreground">Kod yuborish</span>{" "}
+          Telegram botda{" "}
+          <span className="font-medium text-foreground">Kod yuborish</span>{" "}
           tugmasini bosing — kod botga keladi. Keyin shu yerga 6 xonali kodni
           kiriting (10 daqiqa amal qiladi).
         </p>
@@ -210,7 +246,6 @@ export function LoginForm() {
               ))}
             </InputOTPGroup>
           </InputOTP>
-
 
           {pending ? (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">

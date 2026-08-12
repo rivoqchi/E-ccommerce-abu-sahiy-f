@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import { ApiClientError } from "@/lib/api";
 import {
   getTelegramWebApp,
-  isTelegramMiniApp,
   requestTelegramContact,
   waitForTelegramInitData,
 } from "@/lib/telegram";
@@ -50,6 +49,15 @@ export function TelegramAuthProvider({
     const { setTelegramAuth, loginWithTelegram, linkTelegramContact } =
       useAuthStore.getState();
 
+    // Open Web ?token= — Mini App silent auth o‘rniga token login
+    if (
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).has("token")
+    ) {
+      setTelegramAuth({ inTelegram: false, status: "unavailable" });
+      return;
+    }
+
     const ensurePhone = async () => {
       const current = useAuthStore.getState().user;
       if (!current || current.phone) return;
@@ -69,35 +77,30 @@ export function TelegramAuthProvider({
       }
     };
 
-    if (!isTelegramMiniApp()) {
-      setTelegramAuth({ inTelegram: false, status: "unavailable" });
-      return;
-    }
-
     void (async () => {
       const webApp = getTelegramWebApp();
-      try {
-        webApp?.ready();
-        webApp?.expand();
-      } catch {
-        // ignore
-      }
-
-      setTelegramAuth({ inTelegram: true, status: "pending" });
-
-      const initData = await waitForTelegramInitData(4500);
-      if (!initData) {
-        // Keep existing session if any; mark unavailable for silent auth
-        const hasToken = Boolean(useAuthStore.getState().accessToken);
-        setTelegramAuth({
-          inTelegram: true,
-          status: hasToken ? "done" : "unavailable",
-        });
+      if (!webApp) {
+        setTelegramAuth({ inTelegram: false, status: "unavailable" });
         return;
       }
 
       try {
-        // Always re-auth with fresh initData so name + photo stay up to date
+        webApp.ready();
+        webApp.expand();
+      } catch {
+        // ignore
+      }
+
+      // initData kelishini kutamiz — bo‘lmasa oddiy brauzer / in-app browser
+      const initData = await waitForTelegramInitData(4500);
+      if (!initData) {
+        setTelegramAuth({ inTelegram: false, status: "unavailable" });
+        return;
+      }
+
+      setTelegramAuth({ inTelegram: true, status: "pending" });
+
+      try {
         await loginWithTelegram(initData);
         setTelegramAuth({ inTelegram: true, status: "done" });
         await ensurePhone();

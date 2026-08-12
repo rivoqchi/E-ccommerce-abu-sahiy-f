@@ -59,14 +59,18 @@ export function getTelegramWebApp(): TelegramWebApp | null {
   );
 }
 
-/** True when opened inside Telegram (Mini App / WebApp). */
+/** True when opened as a real Telegram Mini App (initData bor). */
 export function isTelegramMiniApp(): boolean {
   const wa = getTelegramWebApp();
   if (!wa) return false;
-  if (wa.initData && wa.initData.length > 0) return true;
-  // Some clients expose platform before initData is ready
-  const platform = wa.platform;
-  return Boolean(platform && platform !== "unknown");
+  // Faqat initData — Telegram in-app browser ham WebApp script yuklaydi,
+  // platform bo‘lishi mumkin, lekin Mini App emas (Open Web link).
+  return Boolean(wa.initData && wa.initData.length > 0);
+}
+
+/** WebApp obyekti bor (script yuklangan), lekin Mini App bo‘lishi shart emas */
+export function hasTelegramWebAppObject(): boolean {
+  return getTelegramWebApp() != null;
 }
 
 export function waitForTelegramInitData(
