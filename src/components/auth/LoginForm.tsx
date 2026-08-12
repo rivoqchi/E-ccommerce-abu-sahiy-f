@@ -83,13 +83,15 @@ export function LoginForm() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(
+          const msg =
             err instanceof ApiClientError
               ? err.message
-              : "Avtomatik kirish ishlamadi. Botdan kod oling.",
-          );
+              : err instanceof TypeError
+                ? "API ga ulanib bo‘lmadi. Backend ishlayotganini tekshiring."
+                : "Avtomatik kirish ishlamadi. Botdan yangi link yoki kod oling.";
+          setError(msg);
           setTokenPending(false);
-          router.replace("/login");
+          // Tokenni URLdan olib tashlamaymiz — xato ko‘rinsin
         }
       }
     })();
