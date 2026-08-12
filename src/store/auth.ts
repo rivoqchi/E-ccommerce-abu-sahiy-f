@@ -26,6 +26,8 @@ interface AuthState {
   clearSession: () => void;
   sendOtp: (phone: string) => Promise<SendOtpResponse>;
   verifyOtp: (phone: string, code: string) => Promise<AuthSession>;
+  verifyBotOtp: (code: string) => Promise<AuthSession>;
+  loginWithBotWebToken: (token: string) => Promise<AuthSession>;
   loginWithTelegram: (initData: string) => Promise<AuthSession>;
   linkTelegramContact: (contactData: string) => Promise<AuthSession>;
   refreshMe: () => Promise<AuthUser>;
@@ -95,6 +97,24 @@ export const useAuthStore = create<AuthState>()(
         const session = await apiFetch<AuthSession>("/auth/otp/verify", {
           method: "POST",
           body: JSON.stringify({ phone, code }),
+        });
+        get().setSession(session);
+        return session;
+      },
+
+      verifyBotOtp: async (code) => {
+        const session = await apiFetch<AuthSession>("/auth/bot-otp/verify", {
+          method: "POST",
+          body: JSON.stringify({ code }),
+        });
+        get().setSession(session);
+        return session;
+      },
+
+      loginWithBotWebToken: async (token) => {
+        const session = await apiFetch<AuthSession>("/auth/bot-web-login", {
+          method: "POST",
+          body: JSON.stringify({ token }),
         });
         get().setSession(session);
         return session;

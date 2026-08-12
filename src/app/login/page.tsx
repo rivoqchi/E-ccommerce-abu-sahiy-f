@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { LoginFormSkeleton } from "@/components/skeletons";
 
 export const metadata: Metadata = {
   title: "Kirish",
-  description: "Telefon orqali Sami hisobiga kiring.",
+  description: "Telegram botdagi kod orqali Sami hisobiga kiring.",
   robots: { index: false, follow: false },
 };
 
@@ -20,7 +22,9 @@ export default function LoginPage() {
       />
 
       <div className="relative z-10 mx-auto flex w-[90%] max-w-lg flex-col pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] md:w-full md:pt-10">
-        <LoginForm />
+        <Suspense fallback={<LoginFormSkeleton />}>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );

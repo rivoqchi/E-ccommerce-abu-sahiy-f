@@ -1,37 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { LoginFormSkeleton } from "@/components/skeletons";
-import { CountryFlag } from "@/components/auth/CountryFlag";
-import {
-  COUNTRIES,
-  DEFAULT_COUNTRY,
-  isValidNational,
-  toE164,
-  type CountryOption,
-} from "@/lib/countries";
 import { ApiClientError } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
 
-type Step = "phone" | "otp";
+const BOT_USERNAME =
+  process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "").trim() ||
+  "samipricebot";
 
 const iconBtnClass =
   "rounded-full bg-card shadow-[var(--shadow-soft)] ring-1 ring-foreground/5";
@@ -56,27 +42,21 @@ function LoginTopBar({ onBack }: { onBack: () => void }) {
 
 export function LoginForm() {
   const router = useRouter();
-  const sendOtp = useAuthStore((s) => s.sendOtp);
-  const verifyOtp = useAuthStore((s) => s.verifyOtp);
+  const searchParams = useSearchParams();
+  const verifyBotOtp = useAuthStore((s) => s.verifyBotOtp);
+  const loginWithBotWebToken = useAuthStore((s) => s.loginWithBotWebToken);
   const accessToken = useAuthStore((s) => s.accessToken);
   const hydrated = useAuthStore((s) => s.hydrated);
   const inTelegram = useAuthStore((s) => s.inTelegram);
   const telegramAuthStatus = useAuthStore((s) => s.telegramAuthStatus);
 
-  const [step, setStep] = useState<Step>("phone");
-  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY.code);
-  const [national, setNational] = useState("");
   const [otp, setOtp] = useState("");
-  const [phoneE164, setPhoneE164] = useState("");
-  const [cooldown, setCooldown] = useState(0);
-  const [isMock, setIsMock] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tokenPending, setTokenPending] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const country = useMemo(
-    () => COUNTRIES.find((c) => c.code === countryCode) ?? DEFAULT_COUNTRY,
-    [countryCode],
-  );
+  const nextPath = searchParams.get("next") || "/account";
+  const webToken = searchParams.get("token");
 
   const telegramConnecting =
     inTelegram &&
@@ -85,52 +65,53 @@ export function LoginForm() {
       (telegramAuthStatus === "done" && !!accessToken));
 
   useEffect(() => {
-    if (hydrated && accessToken) {
-      router.replace("/account");
+    if (hydrated && accessToken && !webToken) {
+      router.replace(nextPath.startsWith("/") ? nextPath : "/account");
     }
-  }, [hydrated, accessToken, router]);
+  }, [hydrated, accessToken, router, nextPath, webToken]);
 
   useEffect(() => {
-    if (cooldown <= 0) return;
-    const id = window.setInterval(() => {
-      setCooldown((c) => Math.max(0, c - 1));
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [cooldown]);
-
-  function handleSend() {
+    if (!hydrated || !webToken || accessToken) return;
+    let cancelled = false;
+    setTokenPending(true);
     setError(null);
-    if (!isValidNational(country, national)) {
-      setError("Telefon raqamini toʻliq kiriting");
-      return;
-    }
-
-    const phone = toE164(country.dial, national);
-    startTransition(async () => {
+    (async () => {
       try {
-        const res = await sendOtp(phone);
-        setPhoneE164(phone);
-        setStep("otp");
-        setOtp("");
-        setCooldown(res.cooldown || 60);
-        setIsMock(Boolean(res.mock));
+        await loginWithBotWebToken(webToken);
+        if (!cancelled) {
+          router.replace(nextPath.startsWith("/") ? nextPath : "/account");
+        }
       } catch (err) {
-        setError(
-          err instanceof ApiClientError
-            ? err.message
-            : "Kod yuborib boʻlmadi. Qayta urinib koʻring.",
-        );
+        if (!cancelled) {
+          setError(
+            err instanceof ApiClientError
+              ? err.message
+              : "Avtomatik kirish ishlamadi. Botdan kod oling.",
+          );
+          setTokenPending(false);
+          router.replace("/login");
+        }
       }
-    });
-  }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    hydrated,
+    webToken,
+    accessToken,
+    loginWithBotWebToken,
+    router,
+    nextPath,
+  ]);
 
   function handleVerify(code: string) {
     if (code.length < 6) return;
     setError(null);
     startTransition(async () => {
       try {
-        await verifyOtp(phoneE164, code);
-        router.replace("/account");
+        await verifyBotOtp(code);
+        router.replace(nextPath.startsWith("/") ? nextPath : "/account");
       } catch (err) {
         setError(
           err instanceof ApiClientError
@@ -142,26 +123,12 @@ export function LoginForm() {
     });
   }
 
-  function handleResend() {
-    if (cooldown > 0 || !phoneE164) return;
-    setError(null);
-    startTransition(async () => {
-      try {
-        const res = await sendOtp(phoneE164);
-        setCooldown(res.cooldown || 60);
-        setOtp("");
-        setIsMock(Boolean(res.mock));
-      } catch (err) {
-        setError(
-          err instanceof ApiClientError
-            ? err.message
-            : "Qayta yuborib boʻlmadi.",
-        );
-      }
-    });
-  }
-
-  if (!hydrated || telegramConnecting || (hydrated && accessToken)) {
+  if (
+    !hydrated ||
+    telegramConnecting ||
+    tokenPending ||
+    (hydrated && accessToken && !error)
+  ) {
     return <LoginFormSkeleton />;
   }
 
@@ -169,12 +136,6 @@ export function LoginForm() {
     <div className="mx-auto flex w-full max-w-md flex-col">
       <LoginTopBar
         onBack={() => {
-          if (step === "otp") {
-            setStep("phone");
-            setError(null);
-            setOtp("");
-            return;
-          }
           if (typeof window !== "undefined" && window.history.length > 1) {
             router.back();
             return;
@@ -186,14 +147,12 @@ export function LoginForm() {
       <div className="mt-4">
         <p className="text-sm font-medium text-muted-foreground">Sami</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
-          {step === "phone" ? "Hisobga kirish" : "Kodni kiriting"}
+          Hisobga kirish
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground md:text-[15px]">
-          {step === "phone"
-            ? "Telefon raqamingizni yozing — kod Telegram Verification Codes’ga keladi."
-            : isMock
-              ? "Hozir mock rejim: Telegramga kod yuborilmaydi. Test kodi: 123456"
-              : `${phoneE164} raqamiga yuborilgan 6 xonali kodni kiriting.`}
+          Telegram botda <span className="font-medium text-foreground">Kod yuborish</span>{" "}
+          tugmasini bosing — kod botga keladi. Keyin shu yerga 6 xonali kodni
+          kiriting (10 daqiqa amal qiladi).
         </p>
       </div>
 
@@ -202,36 +161,62 @@ export function LoginForm() {
           role="status"
           className="mt-4 rounded-2xl bg-secondary px-4 py-3 text-sm text-muted-foreground"
         >
-          Telegram orqali ulanib boʻlmadi. Telefon orqali davom eting.
+          Telegram Mini App ulanmadi. Pastdagi bot orqali kod oling.
         </p>
       ) : null}
 
       <div className="mt-8 space-y-4">
-        {step === "phone" ? (
-          <PhoneStep
-            country={country}
-            countryCode={countryCode}
-            national={national}
-            pending={pending}
-            onCountryChange={setCountryCode}
-            onNationalChange={(value) =>
-              setNational(value.replace(/[^\d\s]/g, ""))
-            }
-            onSubmit={handleSend}
-          />
-        ) : (
-          <OtpStep
-            otp={otp}
-            pending={pending}
-            cooldown={cooldown}
-            isMock={isMock}
-            onOtpChange={(value) => {
+        <Button
+          type="button"
+          className="h-14 w-full rounded-full text-base font-semibold"
+          render={
+            <a
+              href={`https://t.me/${BOT_USERNAME}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            />
+          }
+        >
+          <ExternalLink className="size-4" />
+          Botni ochish (@{BOT_USERNAME})
+        </Button>
+
+        <div className="space-y-6">
+          <InputOTP
+            maxLength={6}
+            value={otp}
+            onChange={(value) => {
               setOtp(value);
               if (value.length === 6) handleVerify(value);
             }}
-            onResend={handleResend}
-          />
-        )}
+            disabled={pending}
+            containerClassName="w-full justify-between gap-2"
+            autoFocus
+          >
+            <InputOTPGroup className="flex w-full justify-between gap-2">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <InputOTPSlot
+                  key={index}
+                  index={index}
+                  className={cn(
+                    "h-14 w-full min-w-0 flex-1 rounded-2xl border-0 bg-card text-lg font-semibold",
+                    "shadow-[var(--shadow-soft)] ring-1 ring-foreground/8",
+                    "first:rounded-2xl first:border-0 last:rounded-2xl",
+                    "data-[active=true]:ring-2 data-[active=true]:ring-ring",
+                  )}
+                />
+              ))}
+            </InputOTPGroup>
+          </InputOTP>
+
+
+          {pending ? (
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" />
+              Tekshirilmoqda…
+            </div>
+          ) : null}
+        </div>
 
         {error ? (
           <p
@@ -242,195 +227,6 @@ export function LoginForm() {
           </p>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-function PhoneStep({
-  country,
-  countryCode,
-  national,
-  pending,
-  onCountryChange,
-  onNationalChange,
-  onSubmit,
-}: {
-  country: CountryOption;
-  countryCode: string;
-  national: string;
-  pending: boolean;
-  onCountryChange: (code: string) => void;
-  onNationalChange: (value: string) => void;
-  onSubmit: () => void;
-}) {
-  return (
-    <form
-      className="space-y-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit();
-      }}
-    >
-      {/* Single unified phone control — equal height, one surface */}
-      <div
-        className={cn(
-          "flex h-14 w-full items-stretch overflow-hidden rounded-2xl bg-card",
-          "shadow-[var(--shadow-soft)] ring-1 ring-foreground/8",
-          "focus-within:ring-2 focus-within:ring-ring/40",
-        )}
-      >
-        <Select
-          value={countryCode}
-          onValueChange={(value) => {
-            if (value) onCountryChange(value);
-          }}
-        >
-          <SelectTrigger
-            aria-label="Mamlakat kodi"
-            className={cn(
-              "h-full! min-h-14 w-auto shrink-0 rounded-none border-0 bg-transparent",
-              "px-3.5 shadow-none ring-0",
-              "data-[size=default]:h-full! data-[size=default]:min-h-14",
-              "focus-visible:ring-0 focus-visible:border-transparent",
-              "dark:bg-transparent dark:hover:bg-transparent",
-            )}
-          >
-            <SelectValue>
-              <span className="flex items-center gap-1.5 text-[15px] font-medium tabular-nums">
-                <CountryFlag code={country.code} title={country.name} />
-                <span>{country.dial}</span>
-              </span>
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent align="start" className="max-h-72 min-w-[16rem]">
-            {COUNTRIES.map((item) => (
-              <SelectItem key={item.code} value={item.code}>
-                <span className="flex items-center gap-2">
-                  <CountryFlag code={item.code} title={item.name} />
-                  <span className="font-medium tabular-nums">{item.dial}</span>
-                  <span className="text-muted-foreground">{item.name}</span>
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div
-          aria-hidden
-          className="my-3 w-px shrink-0 self-stretch bg-border"
-        />
-
-        <Input
-          type="tel"
-          inputMode="numeric"
-          autoComplete="tel-national"
-          placeholder="90 123 45 67"
-          value={national}
-          onChange={(e) => onNationalChange(e.target.value)}
-          className={cn(
-            "h-full min-h-14 flex-1 rounded-none border-0 bg-transparent px-4",
-            "text-[15px] shadow-none ring-0 focus-within:ring-0",
-            "dark:bg-transparent md:text-[15px]",
-          )}
-        />
-      </div>
-
-      <Button
-        type="submit"
-        disabled={pending}
-        className="h-14 w-full rounded-full text-base font-semibold"
-      >
-        {pending ? (
-          <>
-            <Loader2 className="size-4 animate-spin" />
-            Yuborilmoqda…
-          </>
-        ) : (
-          "Kod yuborish"
-        )}
-      </Button>
-    </form>
-  );
-}
-
-function OtpStep({
-  otp,
-  pending,
-  cooldown,
-  isMock,
-  onOtpChange,
-  onResend,
-}: {
-  otp: string;
-  pending: boolean;
-  cooldown: number;
-  isMock: boolean;
-  onOtpChange: (value: string) => void;
-  onResend: () => void;
-}) {
-  return (
-    <div className="space-y-6">
-      {isMock ? (
-        <div className="rounded-2xl bg-secondary px-4 py-3 text-sm text-secondary-foreground">
-          <p className="font-medium">Dev / mock rejim</p>
-          <p className="mt-1 text-muted-foreground">
-            Telegram Verification Codes’ga kod{" "}
-            <span className="font-semibold text-foreground">kelmaydi</span>.
-            Kirish uchun kod:{" "}
-            <span className="font-semibold tabular-nums text-foreground">
-              123456
-            </span>
-          </p>
-        </div>
-      ) : null}
-
-      <InputOTP
-        maxLength={6}
-        value={otp}
-        onChange={onOtpChange}
-        disabled={pending}
-        containerClassName="w-full justify-between gap-2"
-        autoFocus
-      >
-        <InputOTPGroup className="flex w-full justify-between gap-2">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <InputOTPSlot
-              key={index}
-              index={index}
-              className={cn(
-                "h-14 w-full min-w-0 flex-1 rounded-2xl border-0 bg-card text-lg font-semibold",
-                "shadow-[var(--shadow-soft)] ring-1 ring-foreground/8",
-                "first:rounded-2xl first:border-0 last:rounded-2xl",
-                "data-[active=true]:ring-2 data-[active=true]:ring-ring",
-              )}
-            />
-          ))}
-        </InputOTPGroup>
-      </InputOTP>
-
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <p className="text-muted-foreground">
-          {isMock
-            ? "Haqiqiy kod uchun Gateway token kerak"
-            : "Kod Telegramdagi Verification Codes’ga keladi"}
-        </p>
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={pending || cooldown > 0}
-          onClick={onResend}
-          className="h-9 shrink-0 rounded-full px-3"
-        >
-          {cooldown > 0 ? `${cooldown}s` : "Qayta yuborish"}
-        </Button>
-      </div>
-
-      {pending ? (
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" />
-          Tekshirilmoqda…
-        </div>
-      ) : null}
     </div>
   );
 }
