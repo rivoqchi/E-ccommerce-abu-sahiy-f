@@ -68,8 +68,8 @@ export function ProductExcelImport({
     setResult(null);
     setStatusLine(
       isReplace
-        ? "Eski mahsulotlar o‘chiriladi; rasmlar original sifatda olinmoqda (biroz vaqt olishi mumkin)…"
-        : "Excel yuklanmoqda; rasmlar original sifatda olinmoqda (biroz vaqt olishi mumkin)…",
+        ? "Kod bo‘yicha yangilanmoqda; mavjud rasmlarga tegilmaydi…"
+        : "Excel yuklanmoqda; mavjud tovar rasmlari saqlanadi…",
     );
 
     try {
@@ -158,16 +158,15 @@ export function ProductExcelImport({
                 {file?.name || "Fayl"}
               </p>
               {isReplace ? (
-                <p className="mt-1 text-destructive">
-                  Diqqat: barcha eski mahsulotlar o‘chiriladi, o‘rniga Exceldagi
-                  yangi ro‘yxat yoziladi. Rasmlar ZIP ichidan original holda
-                  olinadi — biroz uzoqroq turishi mumkin.
+                <p className="mt-1 text-muted-foreground">
+                  Faqat nom, narx, soni va boshqa maydonlar yangilanadi.
+                  Rasm hech qachon o‘zgarmaydi (Cloudflare R2 dagi eski URL
+                  qoladi). Mahsulotlar o‘chirilmaydi.
                 </p>
               ) : (
                 <p className="mt-1 text-muted-foreground">
-                  Прайс-лист (.xlsx): kod, nom, narx, guruh va rasmlar original
-                  sifatda olinadi (kattalashtirish/siqish yo‘q). Eski mahsulotlar
-                  saqlanadi.
+                  Прайс-лист (.xlsx). Bir xil kod bo‘lsa rasm umuman
+                  o‘zgarmaydi — faqat yangi tovarlarga rasm qo‘yiladi.
                 </p>
               )}
               {file ? (
@@ -250,7 +249,7 @@ export function ProductExcelImport({
             </Button>
             {!result ? (
               <Button
-                variant={isReplace ? "destructive" : "default"}
+                variant="default"
                 className="rounded-full"
                 disabled={running || !file}
                 onClick={() => void startImport()}
@@ -263,7 +262,7 @@ export function ProductExcelImport({
                 {running
                   ? "Import…"
                   : isReplace
-                    ? "O‘chirib yangilash"
+                    ? "Yangilash"
                     : "Boshlash"}
               </Button>
             ) : null}

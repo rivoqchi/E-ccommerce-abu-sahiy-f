@@ -83,6 +83,23 @@ function hasRealProductImage(images?: string[]) {
   return true;
 }
 
+/** Yetishmaydigan maydonlar — qizil qator / Muammoli tab. */
+function getProductIssues(p: {
+  name?: string;
+  code?: string;
+  price?: number;
+  images?: string[];
+}): string[] {
+  const issues: string[] = [];
+  if (!p.name?.trim()) issues.push("Nom");
+  if (!p.code?.trim()) issues.push("Kod");
+  if (p.price == null || Number(p.price) <= 0) issues.push("Narx");
+  if (!hasRealProductImage(p.images)) issues.push("Rasm");
+  return issues;
+}
+
+type ListTab = "all" | "incomplete";
+
 const PAGE_SIZE = 100;
 
 type AdminProductsPage = {
@@ -198,6 +215,7 @@ export default function AdminProductsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
+  const [listTab, setListTab] = useState<ListTab>("all");
   const [loadingList, setLoadingList] = useState(true);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -215,7 +233,7 @@ export default function AdminProductsPage() {
   }, [adminFetch]);
 
   const loadProducts = useCallback(
-    async (pageNum: number, q: string) => {
+    async (pageNum: number, q: string, tab: ListTab = listTab) => {
       setLoadingList(true);
       try {
         const params = new URLSearchParams({
@@ -223,6 +241,7 @@ export default function AdminProductsPage() {
           limit: String(PAGE_SIZE),
         });
         if (q.trim()) params.set("q", q.trim());
+        if (tab === "incomplete") params.set("incomplete", "true");
         const data = await adminFetch<AdminProductsPage>(
           `/products/admin/all?${params.toString()}`,
         );
@@ -234,7 +253,7 @@ export default function AdminProductsPage() {
         setLoadingList(false);
       }
     },
-    [adminFetch],
+    [adminFetch, listTab],
   );
 
   useEffect(() => {
@@ -242,8 +261,10 @@ export default function AdminProductsPage() {
   }, [loadMeta]);
 
   useEffect(() => {
-    void loadProducts(page, query).catch((e: Error) => setError(e.message));
-  }, [loadProducts, page, query]);
+    void loadProducts(page, query, listTab).catch((e: Error) =>
+      setError(e.message),
+    );
+  }, [loadProducts, page, query, listTab]);
 
   function openCreate() {
     setEditingId(null);
@@ -405,6 +426,40 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant={listTab === "all" ? "default" : "outline"}
+          className="rounded-full"
+          onClick={() => {
+            if (listTab === "all") return;
+            setListTab("all");
+            setPage(1);
+          }}
+        >
+          Barcha
+        </Button>
+        <Button
+          type="button"
+          variant={listTab === "incomplete" ? "default" : "outline"}
+          className={cn(
+            "rounded-full",
+            listTab === "incomplete" &&
+              "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+          )}
+          onClick={() => {
+            if (listTab === "incomplete") return;
+            setListTab("incomplete");
+            setPage(1);
+          }}
+        >
+          Muammoli
+          {listTab === "incomplete" && total > 0 ? (
+            <span className="ml-1 tabular-nums opacity-90">({total})</span>
+          ) : null}
+        </Button>
+      </div>
+
       <form
         className="flex flex-wrap gap-2"
         onSubmit={(e) => {
@@ -457,6 +512,7 @@ export default function AdminProductsPage() {
                 <TableHead>Oddiy ($)</TableHead>
                 <TableHead>Optom ($)</TableHead>
                 <TableHead>Soni</TableHead>
+                <TableHead>Muammo</TableHead>
                 <TableHead>Sana</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="pr-5 text-right">Amallar</TableHead>
@@ -465,20 +521,22 @@ export default function AdminProductsPage() {
             <TableBody>
               {loadingList ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="py-10 text-center">
+                  <TableCell colSpan={10} className="py-10 text-center">
                     <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ) : null}
               {!loadingList &&
                 items.map((p) => {
+                  const issues = getProductIssues(p);
+                  const hasProblems = issues.length > 0;
                   const hasImage = hasRealProductImage(p.images);
                   const thumb = hasImage ? p.images?.[0] : undefined;
                   return (
                     <TableRow
                       key={p._id}
                       className={cn(
-                        !hasImage &&
+                        hasProblems &&
                           "bg-destructive/10 text-destructive hover:bg-destructive/15",
                       )}
                     >
@@ -497,7 +555,7 @@ export default function AdminProductsPage() {
                         )}
                       </TableCell>
                       <TableCell className="max-w-[220px] font-medium">
-                        <span className="line-clamp-2">{p.name}</span>
+                        <span className="line-clamp-2">{p.name || "—"}</span>
                       </TableCell>
                       <TableCell className="font-mono text-sm">
                         {p.code || "—"}
@@ -509,12 +567,21 @@ export default function AdminProductsPage() {
                       <TableCell className="tabular-nums font-medium">
                         {p.stock}
                       </TableCell>
+                      <TableCell className="max-w-[140px] text-xs">
+                        {hasProblems ? (
+                          <span className="font-medium text-destructive">
+                            {issues.join(" · ")}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell
                         className={cn(
                           "whitespace-nowrap text-sm",
-                          hasImage
-                            ? "text-muted-foreground"
-                            : "text-destructive/80",
+                          hasProblems
+                            ? "text-destructive/80"
+                            : "text-muted-foreground",
                         )}
                       >
                         {formatProductDate(p.createdAt)}
@@ -523,7 +590,7 @@ export default function AdminProductsPage() {
                         <Badge
                           variant="secondary"
                           className={cn(
-                            !hasImage &&
+                            hasProblems &&
                               "bg-destructive/15 text-destructive",
                           )}
                         >
@@ -537,7 +604,8 @@ export default function AdminProductsPage() {
                           size="icon-sm"
                           className={cn(
                             "rounded-full",
-                            !hasImage && "text-destructive hover:text-destructive",
+                            hasProblems &&
+                              "text-destructive hover:text-destructive",
                           )}
                           onClick={() => openEdit(p)}
                           aria-label="Tahrirlash"
@@ -560,10 +628,12 @@ export default function AdminProductsPage() {
               {!loadingList && !items.length ? (
                 <TableRow>
                   <TableCell
-                    colSpan={9}
+                    colSpan={10}
                     className="py-10 text-center text-muted-foreground"
                   >
-                    Mahsulotlar yoʻq
+                    {listTab === "incomplete"
+                      ? "Muammoli mahsulotlar yoʻq"
+                      : "Mahsulotlar yoʻq"}
                   </TableCell>
                 </TableRow>
               ) : null}
