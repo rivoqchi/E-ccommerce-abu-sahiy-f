@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { apiFetch } from "@/lib/api";
+import { ApiClientError, apiFetch } from "@/lib/api";
 import type {
   AuthSession,
   AuthUser,
@@ -144,13 +144,23 @@ export const useAuthStore = create<AuthState>()(
       refreshMe: async () => {
         const token = get().accessToken;
         if (!token) throw new Error("Not authenticated");
-        const user = await apiFetch<AuthUser>("/users/me", { token });
-        const normalized: AuthUser = {
-          ...user,
-          priceTier: user.priceTier === "wholesale" ? "wholesale" : "retail",
-        };
-        set({ user: normalized });
-        return normalized;
+        try {
+          const user = await apiFetch<AuthUser>("/users/me", { token });
+          const normalized: AuthUser = {
+            ...user,
+            priceTier: user.priceTier === "wholesale" ? "wholesale" : "retail",
+          };
+          set({ user: normalized });
+          return normalized;
+        } catch (err) {
+          if (
+            err instanceof ApiClientError &&
+            (err.status === 401 || err.status === 404)
+          ) {
+            get().clearSession();
+          }
+          throw err;
+        }
       },
 
       updateProfile: async (payload) => {
