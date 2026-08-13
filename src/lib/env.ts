@@ -11,6 +11,11 @@ function stripSlash(url: string): string {
   return url.replace(/\/$/, "");
 }
 
+/** Node fetch `localhost` ni avval ::1 qiladi; Windowsda ECONNREFUSED bo'lishi mumkin */
+function preferIpv4(url: string): string {
+  return url.replace(/:\/\/localhost(?=[:/]|$)/, "://127.0.0.1");
+}
+
 function resolveSiteUrl(): string {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (explicit) return stripSlash(explicit);
@@ -34,27 +39,34 @@ function resolveSiteUrl(): string {
   return "http://localhost:3000";
 }
 
-function resolveApiUrl(): string {
+export function getApiBaseUrl(): string {
+  // Brauzer + next dev: same-origin rewrite (CORS / Failed to fetch yo'qoladi)
+  if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+    return "/api/v1";
+  }
+
   const explicit = process.env.NEXT_PUBLIC_API_URL?.trim();
-  if (explicit) return stripSlash(explicit);
+  if (explicit) return preferIpv4(stripSlash(explicit));
 
   if (process.env.NODE_ENV !== "production") {
-    return "http://localhost:4000/api/v1";
+    return "http://127.0.0.1:4000/api/v1";
   }
 
   console.warn(
     "[env] NEXT_PUBLIC_API_URL belgilanmagan. Vercel Environment Variables ga qo'shing (masalan https://api.example.com/api/v1).",
   );
-  return "http://localhost:4000/api/v1";
+  return "http://127.0.0.1:4000/api/v1";
 }
 
 export const SITE_URL = resolveSiteUrl();
 
-export const API_BASE_URL = resolveApiUrl();
+export const API_BASE_URL = getApiBaseUrl();
 
 /** Realtime (Socket.io) — ixtiyoriy; berilmasa API hostidan olinadi */
 export const WS_URL = (() => {
   const explicit = process.env.NEXT_PUBLIC_WS_URL?.trim();
-  if (explicit) return stripSlash(explicit);
-  return API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+  if (explicit) return preferIpv4(stripSlash(explicit));
+  const api = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (api) return preferIpv4(stripSlash(api).replace(/\/api\/v1\/?$/, ""));
+  return "http://127.0.0.1:4000";
 })();

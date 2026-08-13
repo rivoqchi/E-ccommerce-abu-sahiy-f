@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowLeft, Check, Copy, Heart, Minus, Plus } from "lucide-react";
+import { ArrowLeft, Check, Copy, Heart } from "lucide-react";
 import type { Product } from "@/types/product";
 import { formatUZS } from "@/lib/format";
 import { useCartStore } from "@/store/cart";
@@ -18,6 +18,7 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -158,35 +159,15 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
     toggleWishlist(product);
   };
 
-  const decreaseQty = () => setQty((q) => Math.max(1, q - 1));
-  const increaseQty = () =>
-    setQty((q) => Math.min(Math.max(1, product.stock || 0), q + 1));
-
   const buyActions = (
     <div className="flex w-full items-center gap-2.5">
-      <div className="inline-flex h-12 shrink-0 items-center gap-2.5 rounded-full bg-secondary px-3 shadow-sm">
-        <button
-          type="button"
-          aria-label="Kamaytirish"
-          className="flex size-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-background hover:text-foreground disabled:opacity-40"
-          onClick={decreaseQty}
-          disabled={qty <= 1 || !product.inStock}
-        >
-          <Minus className="size-4" strokeWidth={2.5} />
-        </button>
-        <span className="min-w-5 text-center text-sm font-semibold tabular-nums">
-          {qty}
-        </span>
-        <button
-          type="button"
-          aria-label="Ko'paytirish"
-          className="flex size-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-background hover:text-foreground disabled:opacity-40"
-          onClick={increaseQty}
-          disabled={!product.inStock || qty >= (product.stock || 0)}
-        >
-          <Plus className="size-4" strokeWidth={2.5} />
-        </button>
-      </div>
+      <QuantityStepper
+        size="lg"
+        value={qty}
+        max={product.stock || 0}
+        disabled={!product.inStock}
+        onChange={setQty}
+      />
       <Button
         size="lg"
         className="h-12 min-w-0 flex-1 rounded-full px-5 text-sm font-semibold shadow-lg sm:flex-none sm:px-8"

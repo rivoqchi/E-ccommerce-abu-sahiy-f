@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatUZS } from "@/lib/format";
 import { usePriceTier } from "@/hooks/use-price-tier";
 import { Button } from "@/components/ui/button";
+import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ProductImage } from "@/components/catalog/ProductImage";
@@ -78,39 +79,19 @@ export function CartItems() {
                   </div>
 
                   <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="inline-flex h-9 items-center rounded-full bg-secondary px-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        className="size-7 rounded-full"
-                        aria-label="Kamaytirish"
-                        onClick={() =>
-                          updateQuantity(item.productId, item.quantity - 1)
-                        }
-                      >
-                        <Minus className="size-3.5" strokeWidth={2.5} />
-                      </Button>
-                      <span className="min-w-6 text-center text-sm font-medium tabular-nums">
-                        {item.quantity}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        className="size-7 rounded-full"
-                        aria-label="Ko'paytirish"
-                        disabled={
-                          typeof item.stock === "number" &&
-                          item.quantity >= item.stock
-                        }
-                        onClick={() =>
-                          updateQuantity(item.productId, item.quantity + 1)
-                        }
-                      >
-                        <Plus className="size-3.5" strokeWidth={2.5} />
-                      </Button>
-                    </div>
+                    <QuantityStepper
+                      size="sm"
+                      value={item.quantity}
+                      max={
+                        typeof item.stock === "number" &&
+                        Number.isFinite(item.stock)
+                          ? item.stock
+                          : Number.MAX_SAFE_INTEGER
+                      }
+                      onChange={(next) =>
+                        updateQuantity(item.productId, next)
+                      }
+                    />
 
                     <p className="min-w-20 text-right text-sm font-semibold tabular-nums">
                       {formatUZS(unit * item.quantity)}

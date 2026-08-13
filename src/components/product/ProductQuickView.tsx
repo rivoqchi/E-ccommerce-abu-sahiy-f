@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Minus, Plus, ShoppingBag } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import type { Product } from "@/types/product";
 import { ProductImage } from "@/components/catalog/ProductImage";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useCartStore } from "@/store/cart";
+import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { cn } from "@/lib/utils";
 
 interface ProductQuickViewProps {
@@ -186,29 +187,14 @@ export function ProductQuickView({
           </div>
 
           <div className="mt-4 flex items-center gap-3">
-            <div className="inline-flex h-11 flex-1 items-center justify-between gap-4 rounded-full bg-secondary px-4">
-              <button
-                type="button"
-                aria-label="Kamaytirish"
-                className="text-muted-foreground transition hover:text-foreground disabled:opacity-40"
-                disabled={qty <= 1 || !product.inStock}
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-              >
-                <Minus className="size-3.5" strokeWidth={2.5} />
-              </button>
-              <span className="min-w-4 text-center text-sm font-semibold tabular-nums">
-                {qty}
-              </span>
-              <button
-                type="button"
-                aria-label="Ko'paytirish"
-                className="text-muted-foreground transition hover:text-foreground disabled:opacity-40"
-                disabled={!product.inStock || qty >= maxQty}
-                onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
-              >
-                <Plus className="size-3.5" strokeWidth={2.5} />
-              </button>
-            </div>
+            <QuantityStepper
+              size="md"
+              className="h-11 flex-1 justify-between"
+              value={qty}
+              max={maxQty}
+              disabled={!product.inStock}
+              onChange={setQty}
+            />
 
             <Button
               type="button"

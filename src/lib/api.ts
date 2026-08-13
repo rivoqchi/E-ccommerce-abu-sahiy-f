@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "@/lib/env";
+import { getApiBaseUrl } from "@/lib/env";
 import type { AuthTokens } from "@/types/auth";
 
 type ApiSuccess<T> = { success: true; data: T };
@@ -34,7 +34,7 @@ async function refreshAccessToken(): Promise<string | null> {
     if (!refreshToken) return null;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      const response = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken }),
@@ -79,7 +79,7 @@ export async function apiFetch<T>(
   const isFormData =
     typeof FormData !== "undefined" && rest.body instanceof FormData;
 
-  const response = await fetch(`${API_BASE_URL}${normalizedPath}`, {
+  const response = await fetch(`${getApiBaseUrl()}${normalizedPath}`, {
     ...rest,
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),

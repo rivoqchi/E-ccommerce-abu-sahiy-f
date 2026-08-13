@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "@/lib/env";
+import { getApiBaseUrl } from "@/lib/env";
 import { CATALOG_PAGE_SIZE } from "@/lib/catalog";
 import type {
   CatalogBrand,
@@ -129,20 +129,46 @@ async function publicFetch<T>(
   const { next, headers, cache, ...rest } = init ?? {};
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const useNoStore = cache === "no-store" || next?.revalidate === 0;
-  const response = await fetch(`${API_BASE_URL}${normalizedPath}`, {
-    ...rest,
-    ...(useNoStore ? { cache: "no-store" as RequestCache } : { cache }),
-    signal: AbortSignal.timeout(PUBLIC_FETCH_TIMEOUT_MS),
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
-    ...(useNoStore
-      ? { next: { revalidate: 0 } }
-      : { next: { revalidate: 60, ...next } }),
-  });
+  const method = String(rest.method ?? "GET").toUpperCase();
+  const hasJsonBody =
+    rest.body != null && method !== "GET" && method !== "HEAD";
+  const isServer = typeof window === "undefined";
 
-  const json = (await response.json()) as ApiSuccess<T> | ApiError;
+  let response: Response;
+  try {
+    response = await fetch(`${getApiBaseUrl()}${normalizedPath}`, {
+      ...rest,
+      ...(useNoStore ? { cache: "no-store" as RequestCache } : { cache }),
+      // AbortSignal.timeout + Next.js fetch patch brauzerda "Failed to fetch" beradi
+      ...(isServer && process.env.NODE_ENV === "production"
+        ? { signal: AbortSignal.timeout(PUBLIC_FETCH_TIMEOUT_MS) }
+        : {}),
+      headers: {
+        ...(hasJsonBody ? { "Content-Type": "application/json" } : {}),
+        ...headers,
+      },
+      ...(isServer
+        ? useNoStore
+          ? { next: { revalidate: 0 } }
+          : { next: { revalidate: 60, ...next } }
+        : {}),
+    });
+  } catch (err) {
+    const aborted =
+      err instanceof Error &&
+      (err.name === "TimeoutError" || err.name === "AbortError");
+    throw new Error(
+      aborted ? "API javob bermadi" : "API bilan aloqa yo'q. Backend ishlayaptimi?",
+    );
+  }
+
+  const text = await response.text();
+  let json: ApiSuccess<T> | ApiError;
+  try {
+    json = JSON.parse(text) as ApiSuccess<T> | ApiError;
+  } catch {
+    throw new Error("API javobi o'qilmadi");
+  }
   if (!response.ok || !json.success) {
     const err = json as ApiError;
     const message = Array.isArray(err.message)
@@ -239,7 +265,10 @@ export async function fetchProducts(options?: {
       nextCursor: data.nextCursor ?? null,
     };
   } catch (err) {
-    console.error("[fetchProducts]", err);
+    console.warn(
+      "[fetchProducts]",
+      err instanceof Error ? err.message : "so'rov xatosi",
+    );
     return {
       items: [],
       total: 0,
