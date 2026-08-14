@@ -11,6 +11,15 @@ import { useAuthStore } from "@/store/auth";
 
 const CONTACT_PROMPTED_KEY = "sami-tg-contact-prompted";
 
+function hasBotWebLoginToken(): boolean {
+  if (typeof window === "undefined") return false;
+  const fromQuery = new URLSearchParams(window.location.search).get("token");
+  if (fromQuery && fromQuery.trim().length >= 16) return true;
+  const hash = window.location.hash.replace(/^#/, "");
+  const fromHash = new URLSearchParams(hash).get("token");
+  return Boolean(fromHash && fromHash.trim().length >= 16);
+}
+
 function wasContactPrompted(telegramId: string | null | undefined): boolean {
   if (!telegramId || typeof window === "undefined") return false;
   try {
@@ -50,10 +59,7 @@ export function TelegramAuthProvider({
       useAuthStore.getState();
 
     // Open Web ?token= — Mini App silent auth o‘rniga token login
-    if (
-      typeof window !== "undefined" &&
-      new URLSearchParams(window.location.search).has("token")
-    ) {
+    if (hasBotWebLoginToken()) {
       setTelegramAuth({ inTelegram: false, status: "unavailable" });
       return;
     }

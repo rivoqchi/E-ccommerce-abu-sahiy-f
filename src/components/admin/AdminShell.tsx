@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LogoutConfirm } from "@/components/auth/LogoutConfirm";
+import { CenterToastHost } from "@/components/ui/center-toast";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
 
@@ -198,6 +199,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </header>
         <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
       </div>
+      <CenterToastHost />
     </div>
   );
 }

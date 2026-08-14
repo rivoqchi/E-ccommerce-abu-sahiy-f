@@ -40,8 +40,9 @@ function resolveSiteUrl(): string {
 }
 
 export function getApiBaseUrl(): string {
-  // Brauzer + next dev: same-origin rewrite (CORS / Failed to fetch yo'qoladi)
-  if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+  // Brauzer: always same-origin rewrite. Telegram in-app browser va CORS
+  // cross-origin fetch ni yiqitadi — /api/v1 Vercel/Next orqali backendga o‘tadi.
+  if (typeof window !== "undefined") {
     return "/api/v1";
   }
 

@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmAction } from "@/components/ui/confirm-action";
+import { showCenterToast } from "@/components/ui/center-toast";
 import { ProductExcelImport } from "@/components/admin/ProductExcelImport";
 import { useAdminApi } from "@/lib/admin-api";
 import { formatUZS } from "@/lib/format";
@@ -101,6 +102,46 @@ function getProductIssues(p: {
 type ListTab = "all" | "incomplete";
 
 const PAGE_SIZE = 100;
+
+function pageCount(totalItems: number) {
+  return Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+}
+
+type SavePayload = {
+  name: string;
+  code: string;
+  price: number;
+  wholesalePrice: number;
+  stock: number;
+  categoryId: string;
+  brandId?: string;
+  description: string;
+  status: string;
+  images: string[];
+  specs: Spec[];
+};
+
+function productFromPayload(
+  id: string,
+  payload: SavePayload,
+  prev?: Product,
+): Product {
+  return {
+    _id: id,
+    name: payload.name,
+    code: payload.code,
+    price: payload.price,
+    wholesalePrice: payload.wholesalePrice,
+    stock: payload.stock,
+    status: payload.status,
+    categoryId: payload.categoryId,
+    brandId: payload.brandId,
+    images: payload.images,
+    specs: payload.specs,
+    description: payload.description,
+    createdAt: prev?.createdAt ?? new Date().toISOString(),
+  };
+}
 
 type AdminProductsPage = {
   items: Product[];
@@ -222,6 +263,7 @@ export default function AdminProductsPage() {
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const silentLoadRef = useRef(false);
 
   const loadMeta = useCallback(async () => {
     const [cats, brs] = await Promise.all([
@@ -233,8 +275,14 @@ export default function AdminProductsPage() {
   }, [adminFetch]);
 
   const loadProducts = useCallback(
-    async (pageNum: number, q: string, tab: ListTab = listTab) => {
-      setLoadingList(true);
+    async (
+      pageNum: number,
+      q: string,
+      tab: ListTab = listTab,
+      opts?: { silent?: boolean },
+    ) => {
+      const silent = opts?.silent === true;
+      if (!silent) setLoadingList(true);
       try {
         const params = new URLSearchParams({
           page: String(pageNum),
@@ -250,7 +298,7 @@ export default function AdminProductsPage() {
         setTotalPages(data.totalPages ?? 1);
         setPage(data.page ?? pageNum);
       } finally {
-        setLoadingList(false);
+        if (!silent) setLoadingList(false);
       }
     },
     [adminFetch, listTab],
@@ -261,7 +309,9 @@ export default function AdminProductsPage() {
   }, [loadMeta]);
 
   useEffect(() => {
-    void loadProducts(page, query, listTab).catch((e: Error) =>
+    const silent = silentLoadRef.current;
+    silentLoadRef.current = false;
+    void loadProducts(page, query, listTab, { silent }).catch((e: Error) =>
       setError(e.message),
     );
   }, [loadProducts, page, query, listTab]);
@@ -269,11 +319,13 @@ export default function AdminProductsPage() {
   function openCreate() {
     setEditingId(null);
     setForm(emptyForm);
+    setError(null);
     setOpen(true);
   }
 
   function openEdit(p: Product) {
     setEditingId(p._id);
+    setError(null);
     setForm({
       name: p.name,
       code: p.code ?? "",
@@ -331,7 +383,7 @@ export default function AdminProductsPage() {
     }
     startTransition(async () => {
       try {
-        const payload = {
+        const payload: SavePayload = {
           name: form.name.trim(),
           code: form.code.trim(),
           price,
@@ -349,22 +401,44 @@ export default function AdminProductsPage() {
             method: "PATCH",
             body: JSON.stringify(payload),
           });
+          const prev = items.find((p) => p._id === editingId);
+          const next = productFromPayload(editingId, payload, prev);
+          const stillIncomplete = getProductIssues(next).length > 0;
+          if (listTab === "incomplete" && !stillIncomplete) {
+            setItems((rows) => rows.filter((p) => p._id !== editingId));
+            const n = Math.max(0, total - 1);
+            setTotal(n);
+            setTotalPages(pageCount(n));
+          } else {
+            setItems((rows) =>
+              rows.map((p) => (p._id === editingId ? next : p)),
+            );
+          }
+          showCenterToast("Mahsulot yangilandi");
         } else {
-          await adminFetch("/products", {
+          const created = await adminFetch<{ _id: string }>("/products", {
             method: "POST",
             body: JSON.stringify(payload),
           });
+          const next = productFromPayload(String(created._id), payload);
+          const incomplete = getProductIssues(next).length > 0;
+          const showInList =
+            listTab === "all" || (listTab === "incomplete" && incomplete);
+          if (showInList) {
+            if (page === 1) {
+              setItems((rows) => [next, ...rows].slice(0, PAGE_SIZE));
+            }
+            const n = total + 1;
+            setTotal(n);
+            setTotalPages(pageCount(n));
+          }
+          showCenterToast("Mahsulot qoʻshildi");
         }
         setOpen(false);
-        if (editingId) {
-          await loadProducts(page, query);
-        } else if (page === 1) {
-          await loadProducts(1, query);
-        } else {
-          setPage(1);
-        }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Saqlanmadi");
+        const msg = e instanceof Error ? e.message : "Saqlanmadi";
+        setError(msg);
+        showCenterToast(msg, "error");
       }
     });
   }
@@ -372,13 +446,20 @@ export default function AdminProductsPage() {
   async function remove(id: string) {
     try {
       await adminFetch(`/products/${id}`, { method: "DELETE" });
-      const nextTotal = Math.max(0, total - 1);
-      const nextPages = Math.max(1, Math.ceil(nextTotal / PAGE_SIZE));
-      const nextPage = Math.min(page, nextPages);
-      if (nextPage !== page) setPage(nextPage);
-      else await loadProducts(nextPage, query);
+      const remaining = items.filter((p) => p._id !== id);
+      const n = Math.max(0, total - 1);
+      const pages = pageCount(n);
+      setItems(remaining);
+      setTotal(n);
+      setTotalPages(pages);
+      if (remaining.length === 0 && page > 1) {
+        silentLoadRef.current = true;
+        setPage(Math.min(page - 1, pages));
+      }
+      showCenterToast("Mahsulot oʻchirildi");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Oʻchirilmadi");
+      const msg = e instanceof Error ? e.message : "Oʻchirilmadi";
+      showCenterToast(msg, "error");
       throw e;
     }
   }
@@ -405,18 +486,23 @@ export default function AdminProductsPage() {
             mode="add"
             onDone={async () => {
               await loadMeta();
-              if (page === 1) await loadProducts(1, query);
+              silentLoadRef.current = true;
+              if (page === 1) await loadProducts(1, query, listTab, { silent: true });
               else setPage(1);
             }}
           />
           <ProductExcelImport
             mode="replace"
             onDone={async () => {
-              setQuery("");
-              setSearchInput("");
-              setPage(1);
               await loadMeta();
-              await loadProducts(1, "");
+              silentLoadRef.current = true;
+              setSearchInput("");
+              if (query !== "" || page !== 1) {
+                setQuery("");
+                setPage(1);
+              } else {
+                await loadProducts(1, "", listTab, { silent: true });
+              }
             }}
           />
           <Button className="rounded-full" onClick={openCreate}>
@@ -519,16 +605,15 @@ export default function AdminProductsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loadingList ? (
+              {loadingList && items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} className="py-10 text-center">
                     <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ) : null}
-              {!loadingList &&
-                items.map((p) => {
-                  const issues = getProductIssues(p);
+              {items.map((p) => {
+                const issues = getProductIssues(p);
                   const hasProblems = issues.length > 0;
                   const hasImage = hasRealProductImage(p.images);
                   const thumb = hasImage ? p.images?.[0] : undefined;
@@ -675,7 +760,13 @@ export default function AdminProductsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) setError(null);
+        }}
+      >
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
@@ -888,6 +979,10 @@ export default function AdminProductsPage() {
               </div>
             </div>
           </div>
+
+          {error ? (
+            <p className="px-2 text-sm text-destructive">{error}</p>
+          ) : null}
 
           <DialogFooter className="shrink-0">
             <Button

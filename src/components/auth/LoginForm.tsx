@@ -19,7 +19,19 @@ const BOT_USERNAME =
   process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "").trim() ||
   "samipricebot";
 
-const TOKEN_LOGIN_TIMEOUT_MS = 20_000;
+const TOKEN_LOGIN_TIMEOUT_MS = 45_000;
+
+function safeNextPath(next: string): string {
+  return next.startsWith("/") ? next : "/account";
+}
+
+function tokenLoginErrorMessage(err: unknown): string {
+  if (err instanceof ApiClientError) return err.message;
+  if (err instanceof TypeError) {
+    return "API ga ulanib bo‘lmadi. Internetni tekshiring yoki botdan yangi link oling.";
+  }
+  return "Avtomatik kirish ishlamadi. Botdan yangi link yoki kod oling.";
+}
 
 const iconBtnClass =
   "rounded-full bg-card shadow-[var(--shadow-soft)] ring-1 ring-foreground/5";
@@ -66,11 +78,11 @@ export function LoginForm() {
 
   const [otp, setOtp] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [tokenPending, setTokenPending] = useState(false);
-  const [pending, startTransition] = useTransition();
-
   const nextPath = searchParams.get("next") || "/account";
   const webToken = searchParams.get("token");
+  const dest = safeNextPath(nextPath);
+  const [tokenPending, setTokenPending] = useState(() => Boolean(webToken));
+  const [pending, startTransition] = useTransition();
 
   // Open Web ?token= bo‘lsa Mini App silent auth UI ni bloklamasin
   const telegramConnecting =
@@ -81,59 +93,48 @@ export function LoginForm() {
       (telegramAuthStatus === "done" && !!accessToken));
 
   useEffect(() => {
-    if (hydrated && accessToken && !webToken) {
-      router.replace(nextPath.startsWith("/") ? nextPath : "/account");
+    if (hydrated && accessToken && !webToken && !tokenPending) {
+      router.replace(dest);
     }
-  }, [hydrated, accessToken, router, nextPath, webToken]);
+  }, [hydrated, accessToken, router, dest, webToken, tokenPending]);
 
   useEffect(() => {
-    if (!hydrated || !webToken || accessToken) return;
-    let cancelled = false;
+    if (!hydrated || !webToken) return;
+
     setTokenPending(true);
     setError(null);
 
     const timeout = window.setTimeout(() => {
-      if (cancelled) return;
+      if (useAuthStore.getState().accessToken) {
+        router.replace(dest);
+        return;
+      }
       setError(
         "Avtomatik kirish juda uzoq davom etdi. Botdan yangi Open Web link oling yoki kod bilan kiring.",
       );
       setTokenPending(false);
     }, TOKEN_LOGIN_TIMEOUT_MS);
 
-    (async () => {
+    void (async () => {
       try {
         await loginWithBotWebToken(webToken);
-        if (!cancelled) {
-          router.replace(nextPath.startsWith("/") ? nextPath : "/account");
-        }
-      } catch (err) {
-        if (!cancelled) {
-          const msg =
-            err instanceof ApiClientError
-              ? err.message
-              : err instanceof TypeError
-                ? "API ga ulanib bo‘lmadi. Backend ishlayotganini tekshiring."
-                : "Avtomatik kirish ishlamadi. Botdan yangi link yoki kod oling.";
-          setError(msg);
-          setTokenPending(false);
-        }
-      } finally {
         window.clearTimeout(timeout);
+        router.replace(dest);
+      } catch (err) {
+        window.clearTimeout(timeout);
+        if (useAuthStore.getState().accessToken) {
+          router.replace(dest);
+          return;
+        }
+        setError(tokenLoginErrorMessage(err));
+        setTokenPending(false);
       }
     })();
 
     return () => {
-      cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [
-    hydrated,
-    webToken,
-    accessToken,
-    loginWithBotWebToken,
-    router,
-    nextPath,
-  ]);
+  }, [hydrated, webToken, loginWithBotWebToken, router, dest]);
 
   function handleVerify(code: string) {
     if (code.length < 6) return;
@@ -141,7 +142,7 @@ export function LoginForm() {
     startTransition(async () => {
       try {
         await verifyBotOtp(code);
-        router.replace(nextPath.startsWith("/") ? nextPath : "/account");
+        router.replace(dest);
       } catch (err) {
         setError(
           err instanceof ApiClientError
@@ -151,6 +152,10 @@ export function LoginForm() {
         setOtp("");
       }
     });
+  }
+
+  if (webToken && (!hydrated || tokenPending)) {
+    return <LoginLoading label="Avtomatik kirish…" />;
   }
 
   if (!hydrated) {

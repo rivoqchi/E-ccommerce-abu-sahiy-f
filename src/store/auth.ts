@@ -41,6 +41,8 @@ interface AuthState {
   logout: () => Promise<void>;
 }
 
+const botWebLoginInflight = new Map<string, Promise<AuthSession>>();
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -112,12 +114,40 @@ export const useAuthStore = create<AuthState>()(
       },
 
       loginWithBotWebToken: async (token) => {
-        const session = await apiFetch<AuthSession>("/auth/bot-web-login", {
-          method: "POST",
-          body: JSON.stringify({ token }),
+        const existing = botWebLoginInflight.get(token);
+        if (existing) return existing;
+
+        const request = (async () => {
+          let lastError: unknown;
+          for (let attempt = 0; attempt < 3; attempt += 1) {
+            try {
+              const session = await apiFetch<AuthSession>(
+                "/auth/bot-web-login",
+                {
+                  method: "POST",
+                  body: JSON.stringify({ token }),
+                },
+              );
+              get().setSession(session);
+              return session;
+            } catch (err) {
+              lastError = err;
+              const retryable =
+                err instanceof TypeError ||
+                (err instanceof ApiClientError && err.status >= 500);
+              if (!retryable || attempt === 2) throw err;
+              await new Promise((resolve) =>
+                setTimeout(resolve, 700 * (attempt + 1)),
+              );
+            }
+          }
+          throw lastError;
+        })().finally(() => {
+          botWebLoginInflight.delete(token);
         });
-        get().setSession(session);
-        return session;
+
+        botWebLoginInflight.set(token, request);
+        return request;
       },
 
       loginWithTelegram: async (initData) => {
