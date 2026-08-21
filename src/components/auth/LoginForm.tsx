@@ -192,10 +192,12 @@ export function LoginForm() {
           Hisobga kirish
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground md:text-[15px]">
-          Telegram botda{" "}
+          Ro‘yxatdan o‘tish{" "}
+          <span className="font-medium text-foreground">Sami bot</span> orqali.
+          Botni ochib Start ni bosing va telefon raqamingizni yuboring.
+          Allaqachon ro‘yxatdan o‘tgan bo‘lsangiz — botdagi{" "}
           <span className="font-medium text-foreground">Kod yuborish</span>{" "}
-          tugmasini bosing — kod botga keladi. Keyin shu yerga 6 xonali kodni
-          kiriting (10 daqiqa amal qiladi).
+          tugmasi bilan 6 xonali kod oling.
         </p>
       </div>
 
@@ -221,7 +223,7 @@ export function LoginForm() {
           }
         >
           <ExternalLink className="size-4" />
-          Botni ochish (@{BOT_USERNAME})
+          Sami botda ro‘yxatdan o‘tish (@{BOT_USERNAME})
         </Button>
 
         <div className="space-y-6">

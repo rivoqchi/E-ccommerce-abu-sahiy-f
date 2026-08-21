@@ -5,7 +5,7 @@ import { LoginFormSkeleton } from "@/components/skeletons";
 
 export const metadata: Metadata = {
   title: "Kirish",
-  description: "Telegram botdagi kod orqali Sami hisobiga kiring.",
+  description: "Ro‘yxatdan o‘tish Sami bot orqali. Keyin kod bilan hisobga kiring.",
   robots: { index: false, follow: false },
 };
 
