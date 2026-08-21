@@ -5,6 +5,7 @@ import { persist } from "zustand/middleware";
 import type { CartItem, Product } from "@/types/product";
 import { playAddToCartSound } from "@/lib/sounds";
 import { resolveUnitPrice, type PriceTier } from "@/lib/pricing";
+import { isStorefrontReadyProduct } from "@/lib/product-image";
 
 function resolveStock(product: Product): number {
   if (typeof product.stock === "number" && Number.isFinite(product.stock)) {
@@ -38,6 +39,7 @@ export const useCartStore = create<CartState>()(
       },
 
       addItem: (product, quantity = 1) => {
+        if (!isStorefrontReadyProduct(product)) return;
         const stock = resolveStock(product);
         if (stock <= 0) return;
 

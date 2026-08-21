@@ -92,7 +92,11 @@ export function QuantityStepper({
           styles.btn,
         )}
         disabled={inactive || value <= min}
-        onClick={() => onChange(clampQty(value - 1, min, cap))}
+        onClick={() => {
+          const next = clampQty(value - 1, min, cap);
+          onChange(next);
+          setDraft(String(next));
+        }}
       >
         <Minus className={styles.icon} strokeWidth={2.5} />
       </button>
@@ -148,7 +152,11 @@ export function QuantityStepper({
           styles.btn,
         )}
         disabled={inactive || value >= cap}
-        onClick={() => onChange(clampQty(value + 1, min, cap))}
+        onClick={() => {
+          const next = clampQty(value + 1, min, cap);
+          onChange(next);
+          setDraft(String(next));
+        }}
       >
         <Plus className={styles.icon} strokeWidth={2.5} />
       </button>

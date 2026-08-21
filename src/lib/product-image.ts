@@ -1,5 +1,27 @@
 import { PRODUCT_IMAGE_PLACEHOLDER } from "@/types/product";
 
+/** Haqiqiy mahsulot rasmi bor (placeholder emas). */
+export function hasRealProductImage(images?: string[]): boolean {
+  const url = images?.[0]?.trim();
+  if (!url) return false;
+  if (url === PRODUCT_IMAGE_PLACEHOLDER) return false;
+  if (url.includes("photo-1556911220-e15b29be8c8f")) return false;
+  return true;
+}
+
+/** Admin «Muammoli» bilan bir xil: nom, kod, narx, haqiqiy rasm. */
+export function isStorefrontReadyProduct(p: {
+  name?: string;
+  code?: string;
+  price?: number;
+  images?: string[];
+}): boolean {
+  if (!p.name?.trim()) return false;
+  if (!p.code?.trim()) return false;
+  if (p.price == null || Number(p.price) <= 0) return false;
+  return hasRealProductImage(p.images);
+}
+
 /** Keep usable image URLs; replace broken/demo hosts with placeholder. */
 export function resolveProductImage(src?: string | null): string {
   if (!src?.trim()) return PRODUCT_IMAGE_PLACEHOLDER;

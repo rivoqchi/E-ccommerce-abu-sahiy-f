@@ -76,14 +76,7 @@ export function Footer() {
                 +998 90 123 45 67
               </a>
             </li>
-            <li>
-              <a
-                href="mailto:info@sami.uz"
-                className="hover:text-foreground"
-              >
-                info@sami.uz
-              </a>
-            </li>
+           
             <li>Toshkent, O&apos;zbekiston</li>
           </ul>
         </div>

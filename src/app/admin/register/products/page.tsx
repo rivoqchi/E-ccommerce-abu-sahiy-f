@@ -11,7 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { PRODUCT_IMAGE_PLACEHOLDER } from "@/types/product";
+import { hasRealProductImage } from "@/lib/product-image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -74,14 +74,6 @@ function formatProductDate(value?: string) {
   if (Number.isNaN(d.getTime())) return "—";
   const pad = (n: number) => n.toString().padStart(2, "0");
   return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function hasRealProductImage(images?: string[]) {
-  const url = images?.[0]?.trim();
-  if (!url) return false;
-  if (url === PRODUCT_IMAGE_PLACEHOLDER) return false;
-  if (url.includes("photo-1556911220-e15b29be8c8f")) return false;
-  return true;
 }
 
 /** Yetishmaydigan maydonlar — qizil qator / Muammoli tab. */

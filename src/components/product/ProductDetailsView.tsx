@@ -6,9 +6,9 @@ import { useState } from "react";
 import { ArrowLeft, Check, Copy, Heart } from "lucide-react";
 import type { Product } from "@/types/product";
 import { formatUZS } from "@/lib/format";
-import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
 import { useProductUnitPrice } from "@/hooks/use-price-tier";
+import { useProductCartQty } from "@/hooks/use-product-cart-qty";
 import { ProductImage } from "@/components/catalog/ProductImage";
 import { ProductSpecs } from "@/components/product/ProductSpecs";
 import {
@@ -133,38 +133,29 @@ function PurchaseSocialProof({
 
 export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   const router = useRouter();
-  const addItem = useCartStore((s) => s.addItem);
-  const inCart = useCartStore((s) =>
-    s.items.some((item) => item.productId === product.id),
-  );
+  const { qty, setQty, inCart, maxQty, addToCart } = useProductCartQty(product);
   const toggleWishlist = useWishlistStore((s) => s.toggleItem);
   const liked = useWishlistStore((s) =>
     s.items.some((item) => item.productId === product.id),
   );
   const [active, setActive] = useState(0);
-  const [qty, setQty] = useState(1);
   const current = product.images[active] ?? product.images[0];
   const unitPrice = useProductUnitPrice(product);
 
   const handleBuy = () => {
-    if (!product.inStock || (product.stock || 0) <= 0) return;
-    if (inCart) {
-      router.push("/cart");
-      return;
-    }
-    addItem(product, Math.min(qty, product.stock || 0));
+    if (addToCart() === "in-cart") router.push("/cart");
   };
 
   const handleWishlist = () => {
     toggleWishlist(product);
   };
 
-  const buyActions = (
+  const renderBuyActions = () => (
     <div className="flex w-full items-center gap-2.5">
       <QuantityStepper
         size="lg"
         value={qty}
-        max={product.stock || 0}
+        max={maxQty}
         disabled={!product.inStock}
         onChange={setQty}
       />
@@ -172,7 +163,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
         size="lg"
         className="h-12 min-w-0 flex-1 rounded-full px-5 text-sm font-semibold shadow-lg sm:flex-none sm:px-8"
         onClick={handleBuy}
-        disabled={!product.inStock}
+        disabled={!product.inStock || maxQty <= 0}
       >
         {inCart ? "Savatga qaytish" : "Savatga qo'shish"}
       </Button>
@@ -296,7 +287,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
             "pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))]",
           )}
         >
-          <div className="pointer-events-auto w-[90%] max-w-lg">{buyActions}</div>
+          <div className="pointer-events-auto w-[90%] max-w-lg">{renderBuyActions()}</div>
         </div>
       </div>
 
@@ -405,7 +396,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
               <ProductSpecs specs={product.specs} />
             ) : null}
 
-            <div className="mt-10 max-w-md">{buyActions}</div>
+            <div className="mt-10 max-w-md">{renderBuyActions()}</div>
           </div>
         </div>
 

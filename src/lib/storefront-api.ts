@@ -7,7 +7,7 @@ import type {
   ProductSpec,
 } from "@/types/product";
 import type { Story, StoryItem, StoryVideo } from "@/types/story";
-import { resolveProductImages } from "@/lib/product-image";
+import { resolveProductImages, isStorefrontReadyProduct } from "@/lib/product-image";
 
 type ApiSuccess<T> = { success: true; data: T };
 type ApiError = {
@@ -255,7 +255,9 @@ export async function fetchProducts(options?: {
       { cache: "no-store", next: { revalidate: 0 } },
     );
 
-    const items = (data.items ?? []).map(mapApiProduct);
+    const items = (data.items ?? [])
+      .filter(isStorefrontReadyProduct)
+      .map(mapApiProduct);
     const total = data.total ?? items.length;
     return {
       items,
@@ -300,6 +302,7 @@ export async function fetchProductBySlug(
       `/products/${encodeURIComponent(decoded)}`,
       { next: { revalidate: 0 } },
     );
+    if (!isStorefrontReadyProduct(raw)) return null;
     return mapApiProduct(raw);
   } catch {
     return null;

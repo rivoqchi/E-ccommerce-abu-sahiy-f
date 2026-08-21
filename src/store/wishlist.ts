@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Product, WishlistItem } from "@/types/product";
+import { isStorefrontReadyProduct } from "@/lib/product-image";
 
 interface WishlistState {
   items: WishlistItem[];
@@ -44,6 +45,7 @@ export const useWishlistStore = create<WishlistState>()(
       },
 
       addItem: (product) => {
+        if (!isStorefrontReadyProduct(product)) return;
         set((state) => {
           if (state.items.some((item) => item.productId === product.id)) {
             return state;

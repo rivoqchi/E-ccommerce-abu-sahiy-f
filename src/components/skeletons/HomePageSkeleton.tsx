@@ -45,8 +45,8 @@ export function HomePageSkeleton() {
         {/* Category grid */}
         <div className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
           {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="flex flex-col items-center gap-2.5">
-              <Skeleton className="size-20 rounded-full sm:size-[5.5rem]" />
+            <div key={i} className="flex flex-col items-center gap-2">
+              <Skeleton className="aspect-square w-full rounded-2xl" />
               <Skeleton className="h-3.5 w-16" />
             </div>
           ))}

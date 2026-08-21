@@ -11,8 +11,8 @@ import {
   SheetContent,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useCartStore } from "@/store/cart";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
+import { useProductCartQty } from "@/hooks/use-product-cart-qty";
 import { cn } from "@/lib/utils";
 
 interface ProductQuickViewProps {
@@ -35,14 +35,9 @@ export function ProductQuickView({
   onOpenChange,
 }: ProductQuickViewProps) {
   const router = useRouter();
-  const addItem = useCartStore((s) => s.addItem);
-  const inCart = useCartStore((s) =>
-    product
-      ? s.items.some((item) => item.productId === product.id)
-      : false,
-  );
+  const { qty, setQty, inCart, maxQty, addToCart } =
+    useProductCartQty(product);
   const [active, setActive] = useState(0);
-  const [qty, setQty] = useState(1);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startYRef = useRef(0);
@@ -52,7 +47,6 @@ export function ProductQuickView({
   useEffect(() => {
     if (open) {
       setActive(0);
-      setQty(1);
       setDragY(0);
       dragYRef.current = 0;
       draggingRef.current = false;
@@ -64,16 +58,12 @@ export function ProductQuickView({
 
   const current = product.images[active] ?? product.images[0];
   const soldCount = product.buyerCount ?? 0;
-  const maxQty = Math.max(0, product.stock || 0);
 
   const handleAdd = () => {
-    if (!product.inStock || maxQty <= 0) return;
-    if (inCart) {
+    if (addToCart() === "in-cart") {
       onOpenChange(false);
       router.push("/cart");
-      return;
     }
-    addItem(product, Math.min(qty, maxQty));
   };
 
   const isDesktopTouch = () =>

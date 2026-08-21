@@ -1,11 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import type { Product } from "@/types/product";
-import { useCartStore } from "@/store/cart";
 import { Button } from "@/components/ui/button";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
+import { useProductCartQty } from "@/hooks/use-product-cart-qty";
 
 interface AddToCartProps {
   product: Product;
@@ -13,21 +12,11 @@ interface AddToCartProps {
 
 export function AddToCart({ product }: AddToCartProps) {
   const router = useRouter();
-  const addItem = useCartStore((s) => s.addItem);
-  const inCart = useCartStore((s) =>
-    s.items.some((item) => item.productId === product.id),
-  );
-  const [qty, setQty] = useState(1);
-
-  const maxQty = Math.max(0, product.stock || 0);
+  const { qty, setQty, inCart, maxQty, addToCart } = useProductCartQty(product);
 
   const handleClick = () => {
-    if (!product.inStock || maxQty <= 0) return;
-    if (inCart) {
-      router.push("/cart");
-      return;
-    }
-    addItem(product, Math.min(qty, maxQty));
+    const result = addToCart();
+    if (result === "in-cart") router.push("/cart");
   };
 
   return (

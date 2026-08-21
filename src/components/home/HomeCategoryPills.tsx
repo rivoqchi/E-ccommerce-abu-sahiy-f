@@ -30,34 +30,33 @@ export function HomeCategoryPills({
             <Link
               key={cat.id}
               href={href}
-              className="group flex flex-col items-center gap-2.5"
+              aria-label={`${cat.name}, ${count} ta mahsulot`}
+              className="group flex flex-col items-center gap-2"
             >
               <span
                 className={cn(
-                  "relative flex size-20 items-center justify-center overflow-hidden rounded-full bg-secondary transition duration-200 sm:size-[5.5rem]",
-                  "group-hover:scale-[1.04] group-hover:bg-muted",
+                  "relative block aspect-square w-full overflow-hidden rounded-2xl bg-secondary transition duration-200",
+                  "group-hover:scale-[1.03] group-hover:bg-muted",
                   isActive && "ring-2 ring-inset ring-foreground",
                 )}
               >
                 {cat.image ? (
-                  <>
-                    <ProductImage
-                      src={cat.image}
-                      alt={cat.name}
-                      fill
-                      fit="cover"
-                      className="transition duration-200"
-                    />
-                    <span className="absolute inset-0 bg-black/35" aria-hidden />
-                    <span className="relative z-10 text-xl font-bold tabular-nums text-white sm:text-2xl">
-                      {count}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-xl font-bold tabular-nums text-muted-foreground sm:text-2xl">
-                    {count}
-                  </span>
-                )}
+                  <ProductImage
+                    src={cat.image}
+                    alt=""
+                    fill
+                    fit="cover"
+                    sizes="(max-width: 640px) 30vw, (max-width: 1024px) 18vw, 12vw"
+                    className="transition duration-200"
+                  />
+                ) : null}
+
+                <span
+                  className="absolute top-1.5 right-1.5 z-10 inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-foreground px-1 text-[11px] font-bold tabular-nums text-background sm:h-7 sm:min-w-7 sm:text-xs"
+                  aria-hidden
+                >
+                  {count}
+                </span>
               </span>
               <span
                 className={cn(
