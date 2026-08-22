@@ -88,12 +88,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             hardReplace("/login?next=/admin");
           }
           return;
+
         }
 
         const latest = await useAuthStore.getState().refreshMe();
         if (cancelled) return;
 
         if (latest?.role === "admin") {
+          
           setAllowed(true);
         } else {
           setAllowed(false);
