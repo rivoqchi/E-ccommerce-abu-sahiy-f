@@ -9,7 +9,7 @@ export function hasRealProductImage(images?: string[]): boolean {
   return true;
 }
 
-/** Admin «Muammoli» bilan bir xil: nom, kod, narx, haqiqiy rasm. */
+/** Do‘kon UI: nom va haqiqiy rasm. Kod/narx yashirilganda ham tovar chiqadi. */
 export function isStorefrontReadyProduct(p: {
   name?: string;
   code?: string;
@@ -17,8 +17,6 @@ export function isStorefrontReadyProduct(p: {
   images?: string[];
 }): boolean {
   if (!p.name?.trim()) return false;
-  if (!p.code?.trim()) return false;
-  if (p.price == null || Number(p.price) <= 0) return false;
   return hasRealProductImage(p.images);
 }
 
