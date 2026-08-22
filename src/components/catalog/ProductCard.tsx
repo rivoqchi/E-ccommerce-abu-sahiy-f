@@ -54,7 +54,8 @@ export function ProductCard({
   const priceTier = usePriceTier();
   const usdToUzs = useUsdToUzs();
   const showPrice = useProductFieldVisible("price");
-  const showCompareAt = useProductFieldVisible("compareAtPrice");
+  const showCompareAtField = useProductFieldVisible("compareAtPrice");
+  const showCompareAt = showPrice && showCompareAtField;
   const showRating = useProductFieldVisible("rating");
 
   const scoopFill = {

@@ -37,6 +37,10 @@ export function useProductFieldVisible(field: ProductDisplayField): boolean {
   return !useContext(ProductDisplayContext).hiddenFields.includes(field);
 }
 
+export function useStorefrontPricesVisible(): boolean {
+  return useProductFieldVisible("price");
+}
+
 export function useVisibleSpecs<T extends { label: string }>(specs: T[]): T[] {
   const { hiddenFields, hiddenSpecLabels } = useContext(ProductDisplayContext);
   if (hiddenFields.includes("specs")) return [];

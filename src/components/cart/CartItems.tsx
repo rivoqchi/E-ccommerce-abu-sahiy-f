@@ -6,6 +6,8 @@ import { useCartStore } from "@/store/cart";
 import { formatMoney } from "@/lib/format";
 import { usePriceTier } from "@/hooks/use-price-tier";
 import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
+import { useStorefrontPricesVisible } from "@/components/product/ProductDisplayProvider";
+import { NegotiatePriceNote } from "@/components/product/NegotiatePriceNote";
 import { Button } from "@/components/ui/button";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,7 +29,8 @@ function CartLine({
   const linePrice = useCartStore((s) => s.linePrice);
   const priceTier = usePriceTier();
   const usdToUzs = useUsdToUzs();
-  const unit = linePrice(item, priceTier, usdToUzs);
+  const showPrice = useStorefrontPricesVisible();
+  const unit = showPrice ? linePrice(item, priceTier, usdToUzs) : 0;
   const href = productHref({
     slug: item.slug,
     source: productSourceOf(item.source),
@@ -52,9 +55,13 @@ function CartLine({
             >
               {item.name}
             </Link>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {formatMoney(unit, priceTier)}
-            </p>
+            {showPrice ? (
+              <p className="mt-1 text-sm text-muted-foreground">
+                {formatMoney(unit, priceTier)}
+              </p>
+            ) : (
+              <NegotiatePriceNote className="mt-1" />
+            )}
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -71,9 +78,11 @@ function CartLine({
               }
             />
 
-            <p className="min-w-20 text-right text-sm font-semibold tabular-nums">
-              {formatMoney(unit * item.quantity, priceTier)}
-            </p>
+            {showPrice ? (
+              <p className="min-w-20 text-right text-sm font-semibold tabular-nums">
+                {formatMoney(unit * item.quantity, priceTier)}
+              </p>
+            ) : null}
 
             <Button
               variant="ghost"

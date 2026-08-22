@@ -14,7 +14,11 @@ export function organizationJsonLd() {
   };
 }
 
-export function productJsonLd(product: Product, usdToUzs = 0) {
+export function productJsonLd(
+  product: Product,
+  usdToUzs = 0,
+  hidePrice = false,
+) {
   const price = resolveUnitPrice(product, "retail", usdToUzs);
   return {
     "@context": "https://schema.org",
@@ -34,8 +38,12 @@ export function productJsonLd(product: Product, usdToUzs = 0) {
     offers: {
       "@type": "Offer",
       url: `${SITE_URL}/product/${product.slug}`,
-      priceCurrency: "UZS",
-      price: Number.isFinite(price) ? price : 0,
+      ...(hidePrice
+        ? {}
+        : {
+            priceCurrency: "UZS",
+            price: Number.isFinite(price) ? price : 0,
+          }),
       availability: product.inStock
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",

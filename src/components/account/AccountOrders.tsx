@@ -8,6 +8,14 @@ import { ApiClientError, apiFetch } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
+import { useStorefrontPricesVisible } from "@/components/product/ProductDisplayProvider";
+import { NegotiatePriceNote } from "@/components/product/NegotiatePriceNote";
+import {
+  givenQty,
+  isUnavailable,
+  originalLineTotal,
+  type OrderSubstitute,
+} from "@/lib/order-fulfillment";
 
 type OrderItem = {
   name: string;
@@ -16,6 +24,9 @@ type OrderItem = {
   unitPrice: number;
   source?: "store" | "hamkor";
   partnerName?: string;
+  givenQuantity?: number;
+  fulfillmentStatus?: string;
+  substitutes?: OrderSubstitute[];
 };
 
 type AccountOrder = {
@@ -28,6 +39,7 @@ type AccountOrder = {
   createdAt?: string;
   notes?: string;
   items?: OrderItem[];
+  originalTotal?: number;
   shippingAddress?: {
     fullName: string;
     phone: string;
@@ -63,6 +75,7 @@ function formatDate(value?: string) {
 
 export function AccountOrders() {
   const accessToken = useAuthStore((s) => s.accessToken);
+  const showPrice = useStorefrontPricesVisible();
   const [orders, setOrders] = useState<AccountOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -176,37 +189,120 @@ export function AccountOrders() {
                 </p>
               </div>
               <p className="shrink-0 text-sm font-bold tracking-tight text-foreground">
-                {formatMoney(order.total, order.currency)}
+                {showPrice ? (
+                  formatMoney(order.total, order.currency)
+                ) : (
+                  <NegotiatePriceNote as="span" className="font-medium" />
+                )}
               </p>
             </button>
 
             {expanded ? (
               <CardContent className="space-y-3 border-t border-border/50 px-5 py-4">
                 {order.items?.length ? (
-                  <ul className="space-y-2">
-                    {order.items.map((item, idx) => (
-                      <li
-                        key={`${item.slug ?? item.name}-${idx}`}
-                        className="flex items-start justify-between gap-3 text-sm"
-                      >
-                        <div className="min-w-0">
-                          <p className="font-medium text-foreground">
-                            {item.name}
-                            {item.source === "hamkor" ? (
-                              <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                {item.partnerName || "Hamkor"}
-                              </span>
-                            ) : null}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {item.quantity} × {formatMoney(item.unitPrice, order.currency)}
-                          </p>
-                        </div>
-                        <p className="shrink-0 font-medium text-foreground">
-                          {formatMoney(item.unitPrice * item.quantity, order.currency)}
-                        </p>
-                      </li>
-                    ))}
+                  <ul className="space-y-3">
+                    {order.items.map((item, idx) => {
+                      const given = givenQty(item);
+                      const unavailable = isUnavailable(item) || given === 0;
+                      const origCharged = unavailable
+                        ? 0
+                        : given * item.unitPrice;
+                      return (
+                        <li
+                          key={`${item.slug ?? item.name}-${idx}`}
+                          className="space-y-1.5 text-sm"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground">
+                                {item.name}
+                                {item.source === "hamkor" ? (
+                                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                    {item.partnerName || "Hamkor"}
+                                  </span>
+                                ) : null}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Buyurtma: {item.quantity}
+                                {showPrice ? (
+                                  <>
+                                    {" "}
+                                    × {formatMoney(item.unitPrice, order.currency)}
+                                  </>
+                                ) : null}
+                              </p>
+                              {unavailable ? (
+                                <p className="text-xs font-medium text-destructive">
+                                  Qolmagan
+                                  {showPrice ? " — narx hisoblanmadi" : ""}
+                                </p>
+                              ) : given !== item.quantity ? (
+                                <p className="text-xs text-muted-foreground">
+                                  Berildi: {given} / {item.quantity}
+                                </p>
+                              ) : null}
+                            </div>
+                            <p
+                              className={cn(
+                                "shrink-0 font-medium",
+                                unavailable
+                                  ? "text-muted-foreground line-through"
+                                  : "text-foreground",
+                              )}
+                            >
+                              {showPrice
+                                ? unavailable
+                                  ? formatMoney(
+                                      originalLineTotal(item),
+                                      order.currency,
+                                    )
+                                  : formatMoney(origCharged, order.currency)
+                                : null}
+                            </p>
+                          </div>
+                          {item.substitutes?.length ? (
+                            <ul className="ml-1 space-y-1 border-l border-border/60 pl-3">
+                              <li className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                                Almashtirilgan tovarlar
+                              </li>
+                              {item.substitutes.map((sub, sIdx) => (
+                                <li
+                                  key={`${sub.slug ?? sub.name}-${sIdx}`}
+                                  className="flex items-start justify-between gap-3"
+                                >
+                                  <div className="min-w-0">
+                                    <p className="font-medium text-foreground">
+                                      {sub.name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {sub.quantity}
+                                      {showPrice ? (
+                                        <>
+                                          {" "}
+                                          ×{" "}
+                                          {formatMoney(
+                                            sub.unitPrice,
+                                            order.currency,
+                                          )}
+                                        </>
+                                      ) : null}
+                                    </p>
+                                  </div>
+                                  {showPrice ? (
+                                    <p className="shrink-0 font-medium text-foreground">
+                                      {formatMoney(
+                                        sub.quantity * sub.unitPrice,
+                                        order.currency,
+                                      )}
+                                    </p>
+                                  ) : null}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : null}
 
@@ -234,11 +330,27 @@ export function AccountOrders() {
                   </p>
                 ) : null}
 
-                <div className="flex items-center justify-between border-t border-border/40 pt-3 text-sm">
-                  <span className="text-muted-foreground">Jami</span>
-                  <span className="font-bold text-foreground">
-                    {formatMoney(order.total, order.currency)}
-                  </span>
+                <div className="space-y-1 border-t border-border/40 pt-3 text-sm">
+                  {showPrice &&
+                  order.originalTotal != null &&
+                  order.originalTotal !== order.total ? (
+                    <div className="flex items-center justify-between text-muted-foreground">
+                      <span>Buyurtma jami</span>
+                      <span className="line-through">
+                        {formatMoney(order.originalTotal, order.currency)}
+                      </span>
+                    </div>
+                  ) : null}
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Yakuniy hisob</span>
+                    {showPrice ? (
+                      <span className="font-bold text-foreground">
+                        {formatMoney(order.total, order.currency)}
+                      </span>
+                    ) : (
+                      <NegotiatePriceNote as="span" className="font-medium" />
+                    )}
+                  </div>
                 </div>
               </CardContent>
             ) : null}

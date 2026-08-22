@@ -1,9 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
+import { FileSpreadsheet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  downloadOrderExcel,
+  downloadOrdersExcel,
+} from "@/lib/order-export";
 import {
   Sheet,
   SheetContent,
@@ -29,6 +34,14 @@ import {
 import { useAdminApi } from "@/lib/admin-api";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { OrderFulfillmentEditor } from "@/components/admin/OrderFulfillmentEditor";
+import {
+  givenQty,
+  hasFulfillmentChange,
+  isUnavailable,
+  itemFulfillmentLabel,
+  type OrderSubstitute,
+} from "@/lib/order-fulfillment";
 
 type OrderItem = {
   name: string;
@@ -37,6 +50,9 @@ type OrderItem = {
   unitPrice: number;
   source?: "store" | "hamkor";
   partnerName?: string;
+  givenQuantity?: number;
+  fulfillmentStatus?: "given" | "unavailable" | "substituted" | string;
+  substitutes?: OrderSubstitute[];
 };
 
 type ShippingAddress = {
@@ -61,6 +77,10 @@ type Order = {
   paymentRef?: string;
   items?: OrderItem[];
   shippingAddress?: ShippingAddress;
+  originalSubtotal?: number;
+  originalShippingFee?: number;
+  originalTotal?: number;
+  fulfilledAt?: string;
 };
 
 const NEXT: Record<string, string[]> = {
@@ -85,6 +105,27 @@ function formatDate(value?: string) {
   if (Number.isNaN(d.getTime())) return "—";
   const pad = (n: number) => n.toString().padStart(2, "0");
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function itemsSummary(items?: OrderItem[]) {
+  if (!items?.length) return "—";
+  return items
+    .map((i) => {
+      const label = itemFulfillmentLabel(i);
+      const given = givenQty(i);
+      const subs = (i.substitutes ?? [])
+        .map((s) => `→ ${s.name} ×${s.quantity}`)
+        .join(" ");
+      if (isUnavailable(i)) return `${i.name} (qolmagan)${subs ? ` ${subs}` : ""}`;
+      if (given !== i.quantity) {
+        return `${i.name} ×${given}/${i.quantity}${subs ? ` ${subs}` : ""}`;
+      }
+      if (label === "Almashtirilgan") {
+        return `${i.name}${subs ? ` ${subs}` : ""}`;
+      }
+      return `${i.name} ×${i.quantity}`;
+    })
+    .join(", ");
 }
 
 function splitName(fullName?: string) {
@@ -133,8 +174,20 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Buyurtmalar</h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Buyurtmalar</h1>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="rounded-full"
+          disabled={!items.length}
+          onClick={() => downloadOrdersExcel(items)}
+        >
+          <FileSpreadsheet className="size-4" />
+          Barchasi Excel
+        </Button>
       </div>
 
       {error ? (
@@ -174,22 +227,37 @@ export default function AdminOrdersPage() {
                       {o.shippingAddress?.phone ?? ""}
                     </div>
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate text-sm">
-                    {(o.items ?? [])
-                      .map((i) => `${i.name} ×${i.quantity}`)
-                      .join(", ") || "—"}
+                  <TableCell className="max-w-[220px] truncate text-sm">
+                    {itemsSummary(o.items)}
                   </TableCell>
                   <TableCell>{formatMoney(o.total, o.currency)}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">
-                      {STATUS_LABEL[o.status] ?? o.status}
-                    </Badge>
+                    <div className="flex flex-col items-start gap-1">
+                      <Badge variant="secondary">
+                        {STATUS_LABEL[o.status] ?? o.status}
+                      </Badge>
+                      {(o.items ?? []).some(hasFulfillmentChange) ? (
+                        <span className="text-[11px] text-muted-foreground">
+                          Hisob yangilangan
+                        </span>
+                      ) : null}
+                    </div>
                   </TableCell>
                   <TableCell className="pr-5 text-right">
                     <div
                       className="flex items-center justify-end gap-2"
                       onClick={(e) => e.stopPropagation()}
                     >
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full"
+                        onClick={() => downloadOrderExcel(o)}
+                      >
+                        <FileSpreadsheet className="size-4" />
+                        Excel
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -270,6 +338,16 @@ export default function AdminOrdersPage() {
                   <Badge variant="secondary">
                     {STATUS_LABEL[selected.status] ?? selected.status}
                   </Badge>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                    onClick={() => downloadOrderExcel(selected)}
+                  >
+                    <FileSpreadsheet className="size-4" />
+                    Excel
+                  </Button>
                 </div>
                 <p className="text-xs tabular-nums text-muted-foreground">
                   {formatDate(selected.createdAt)}
@@ -314,39 +392,28 @@ export default function AdminOrdersPage() {
                   </p>
                 </section>
 
-                <section className="space-y-2">
-                  <h3 className="font-semibold">Mahsulotlar</h3>
-                  <ul className="divide-y rounded-2xl bg-muted/50">
-                    {(selected.items ?? []).map((item, idx) => (
-                      <li
-                        key={`${item.slug ?? item.name}-${idx}`}
-                        className="flex items-start justify-between gap-3 px-3 py-2.5"
-                      >
-                        <div>
-                          <p className="font-medium">
-                            {item.name}
-                            {item.source === "hamkor" ? (
-                              <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                {item.partnerName || "Hamkor"}
-                              </span>
-                            ) : null}
-                          </p>
-                          <p className="text-muted-foreground">
-                            {formatMoney(item.unitPrice, selected.currency)} × {item.quantity}
-                          </p>
-                        </div>
-                        <p className="shrink-0 font-medium">
-                          {formatMoney(item.unitPrice * item.quantity, selected.currency)}
-                        </p>
-                      </li>
-                    ))}
-                    {!selected.items?.length ? (
-                      <li className="px-3 py-2.5 text-muted-foreground">
-                        Mahsulotlar yoʻq
-                      </li>
-                    ) : null}
-                  </ul>
-                </section>
+                <OrderFulfillmentEditor
+                  key={`${selected._id}-${selected.fulfilledAt ?? "new"}`}
+                  orderId={selected._id}
+                  items={selected.items ?? []}
+                  currency={selected.currency}
+                  shippingFee={selected.shippingFee ?? 0}
+                  readOnly={
+                    selected.status === "delivered" ||
+                    selected.status === "cancelled"
+                  }
+                  disabled={pending}
+                  onSaved={(updated) => {
+                    const next = updated as Order;
+                    setSelected(next);
+                    setItems((prev) =>
+                      prev.map((row) =>
+                        row._id === next._id ? { ...row, ...next } : row,
+                      ),
+                    );
+                  }}
+                  onError={setError}
+                />
 
                 <section className="space-y-1.5">
                   <h3 className="font-semibold">Izoh</h3>
@@ -358,6 +425,15 @@ export default function AdminOrdersPage() {
 
               <SheetFooter className="mt-0 shrink-0 gap-3 border-t border-border/60 px-5 py-4">
                 <div className="w-full space-y-1.5 text-sm">
+                  {selected.originalTotal != null &&
+                  selected.originalTotal !== selected.total ? (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Buyurtma jami</span>
+                      <span className="line-through">
+                        {formatMoney(selected.originalTotal, selected.currency)}
+                      </span>
+                    </div>
+                  ) : null}
                   <div className="flex justify-between text-muted-foreground">
                     <span>Oraliq summa</span>
                     <span>
@@ -369,7 +445,7 @@ export default function AdminOrdersPage() {
                     <span>{formatMoney(selected.shippingFee ?? 0, selected.currency)}</span>
                   </div>
                   <div className="flex justify-between text-base font-semibold">
-                    <span>Jami</span>
+                    <span>Yakuniy hisob</span>
                     <span>{formatMoney(selected.total, selected.currency)}</span>
                   </div>
                 </div>

@@ -6,6 +6,7 @@ import {
   fetchExchangeRate,
   fetchHamkorProductBySlug,
   fetchHamkorRelatedProducts,
+  fetchProductDisplaySettings,
 } from "@/lib/storefront-api";
 import {
   breadcrumbJsonLd,
@@ -48,9 +49,10 @@ export default async function HamkorProductPage({
   params,
 }: HamkorProductPageProps) {
   const { slug } = await params;
-  const [product, exchangeRate] = await Promise.all([
+  const [product, exchangeRate, displaySettings] = await Promise.all([
     fetchHamkorProductBySlug(slug),
     fetchExchangeRate(),
+    fetchProductDisplaySettings(),
   ]);
 
   if (!product) {
@@ -64,7 +66,11 @@ export default async function HamkorProductPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={jsonLdScript(
-          productJsonLd(product, exchangeRate?.usdToUzs),
+          productJsonLd(
+            product,
+            exchangeRate?.usdToUzs,
+            displaySettings.hiddenFields.includes("price"),
+          ),
         )}
       />
       <script

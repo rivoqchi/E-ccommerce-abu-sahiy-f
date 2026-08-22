@@ -5,6 +5,8 @@ import { useCartStore } from "@/store/cart";
 import { formatMoney } from "@/lib/format";
 import { usePriceTier } from "@/hooks/use-price-tier";
 import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
+import { useStorefrontPricesVisible } from "@/components/product/ProductDisplayProvider";
+import { NegotiatePriceNote } from "@/components/product/NegotiatePriceNote";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,7 +24,8 @@ export function CartSummary() {
   const totalPriceFn = useCartStore((s) => s.totalPrice);
   const priceTier = usePriceTier();
   const usdToUzs = useUsdToUzs();
-  const totalPrice = totalPriceFn(priceTier, usdToUzs);
+  const showPrice = useStorefrontPricesVisible();
+  const totalPrice = showPrice ? totalPriceFn(priceTier, usdToUzs) : 0;
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   if (!hydrated) {
@@ -42,9 +45,13 @@ export function CartSummary() {
           <span className="text-muted-foreground">
             Mahsulotlar ({totalItems})
           </span>
-          <span className="font-medium tabular-nums">
-            {formatMoney(totalPrice, priceTier)}
-          </span>
+          {showPrice ? (
+            <span className="font-medium tabular-nums">
+              {formatMoney(totalPrice, priceTier)}
+            </span>
+          ) : (
+            <NegotiatePriceNote as="span" className="text-right font-medium" />
+          )}
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Yetkazib berish</span>
@@ -53,9 +60,13 @@ export function CartSummary() {
         <Separator />
         <div className="flex justify-between text-base">
           <span className="font-semibold">Jami</span>
-          <span className="font-semibold tabular-nums">
-            {formatMoney(totalPrice, priceTier)}
-          </span>
+          {showPrice ? (
+            <span className="font-semibold tabular-nums">
+              {formatMoney(totalPrice, priceTier)}
+            </span>
+          ) : (
+            <NegotiatePriceNote as="span" className="text-right font-semibold" />
+          )}
         </div>
       </CardContent>
 

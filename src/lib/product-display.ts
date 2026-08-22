@@ -19,7 +19,7 @@ export const PRODUCT_DISPLAY_FIELD_OPTIONS: Array<{
   { id: "code", label: "Kod", hint: "Mahsulot kodi (SKU)" },
   { id: "description", label: "Tavsif", hint: "Mahsulot tavsifi" },
   { id: "brand", label: "Brend", hint: "Brend nomi" },
-  { id: "price", label: "Narx", hint: "Katalog va mahsulot sahifasidagi narx" },
+  { id: "price", label: "Narx", hint: "Katalog, savat, checkout va buyurtmalardagi narx" },
   { id: "compareAtPrice", label: "Eski narx", hint: "Chizilgan solishtirma narx" },
   {
     id: "buyerCount",
@@ -65,3 +65,5 @@ export type ProductDisplaySettings = {
   hiddenFields: ProductDisplayField[];
   hiddenSpecLabels: string[];
 };
+
+export const PRICE_NEGOTIATE_HINT = "Narxni do'kon bilan kelishasiz";

@@ -6,6 +6,7 @@ import {
   fetchExchangeRate,
   fetchProductBySlug,
   fetchRelatedProducts,
+  fetchProductDisplaySettings,
 } from "@/lib/storefront-api";
 import {
   breadcrumbJsonLd,
@@ -51,9 +52,10 @@ export async function generateMetadata({
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
-  const [product, exchangeRate] = await Promise.all([
+  const [product, exchangeRate, displaySettings] = await Promise.all([
     fetchProductBySlug(slug),
     fetchExchangeRate(),
+    fetchProductDisplaySettings(),
   ]);
 
   if (!product) {
@@ -67,7 +69,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={jsonLdScript(
-          productJsonLd(product, exchangeRate?.usdToUzs),
+          productJsonLd(
+            product,
+            exchangeRate?.usdToUzs,
+            displaySettings.hiddenFields.includes("price"),
+          ),
         )}
       />
       <script

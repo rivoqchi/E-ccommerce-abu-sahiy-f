@@ -10,6 +10,7 @@ import { useWishlistStore } from "@/store/wishlist";
 import { usePriceTier } from "@/hooks/use-price-tier";
 import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
 import { useProductFieldVisible } from "@/components/product/ProductDisplayProvider";
+import { NegotiatePriceNote } from "@/components/product/NegotiatePriceNote";
 import { resolveUnitPrice } from "@/lib/pricing";
 import { cartLineKey, productHref, productSourceOf } from "@/types/product";
 
@@ -85,7 +86,9 @@ export function WishlistView() {
                     priceTier,
                   )}
                 </p>
-              ) : null}
+              ) : (
+                <NegotiatePriceNote className="mt-1" />
+              )}
             </div>
 
             <div className="flex gap-2">

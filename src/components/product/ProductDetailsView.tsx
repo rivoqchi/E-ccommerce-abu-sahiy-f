@@ -8,6 +8,7 @@ import type { Product } from "@/types/product";
 import { formatMoney } from "@/lib/format";
 import { resolveCompareAtPrice } from "@/lib/pricing";
 import { useProductFieldVisible } from "@/components/product/ProductDisplayProvider";
+import { NegotiatePriceNote } from "@/components/product/NegotiatePriceNote";
 import { useWishlistStore } from "@/store/wishlist";
 import { usePriceTier, useProductUnitPrice } from "@/hooks/use-price-tier";
 import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
@@ -148,7 +149,8 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   const usdToUzs = useUsdToUzs();
   const showCode = useProductFieldVisible("code");
   const showPrice = useProductFieldVisible("price");
-  const showCompareAt = useProductFieldVisible("compareAtPrice");
+  const showCompareAtField = useProductFieldVisible("compareAtPrice");
+  const showCompareAt = showPrice && showCompareAtField;
   const showBrand = useProductFieldVisible("brand");
   const showSpecs = useProductFieldVisible("specs");
   const showDescription = useProductFieldVisible("description");
@@ -282,7 +284,9 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                     </p>
                   ) : null}
                 </div>
-              ) : null}
+              ) : (
+                <NegotiatePriceNote className="mt-2" />
+              )}
             </div>
           </div>
 
@@ -429,7 +433,9 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                   ) : null}
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <NegotiatePriceNote className="mt-6" />
+            )}
 
             {showBuyerCount ? (
               <PurchaseSocialProof

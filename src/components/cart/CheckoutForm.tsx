@@ -11,6 +11,8 @@ import { useCartStore } from "@/store/cart";
 import { safeReplace } from "@/lib/safe-navigate";
 import { usePriceTier } from "@/hooks/use-price-tier";
 import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
+import { useStorefrontPricesVisible } from "@/components/product/ProductDisplayProvider";
+import { NegotiatePriceNote } from "@/components/product/NegotiatePriceNote";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,7 +37,8 @@ export function CheckoutForm() {
   const totalPriceFn = useCartStore((s) => s.totalPrice);
   const priceTier = usePriceTier();
   const usdToUzs = useUsdToUzs();
-  const totalPrice = totalPriceFn(priceTier, usdToUzs);
+  const showPrice = useStorefrontPricesVisible();
+  const totalPrice = showPrice ? totalPriceFn(priceTier, usdToUzs) : 0;
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const [firstName, setFirstName] = useState("");
@@ -139,6 +142,12 @@ export function CheckoutForm() {
         </h2>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">
           Tez orada siz bilan bog&apos;lanamiz. Rahmat!
+          {showPrice ? null : (
+            <>
+              {" "}
+              Narxni do&apos;kon bilan kelishasiz.
+            </>
+          )}
         </p>
         <Button className="mt-6 h-11 rounded-full px-8" render={<Link href="/" />}>
           Bosh sahifa
@@ -170,14 +179,22 @@ export function CheckoutForm() {
       </div>
 
       <div className="mb-6 space-y-2 rounded-2xl bg-secondary/60 px-4 py-3 text-sm">
-        <div className="flex justify-between">
+        <div className="flex justify-between gap-3">
           <span className="text-muted-foreground">Mahsulotlar ({totalItems})</span>
-          <span className="font-medium tabular-nums">{formatMoney(totalPrice, priceTier)}</span>
+          {showPrice ? (
+            <span className="font-medium tabular-nums">{formatMoney(totalPrice, priceTier)}</span>
+          ) : (
+            <NegotiatePriceNote as="span" className="text-right font-medium" />
+          )}
         </div>
         <Separator />
-        <div className="flex justify-between text-base">
+        <div className="flex justify-between gap-3 text-base">
           <span className="font-semibold">Jami</span>
-          <span className="font-semibold tabular-nums">{formatMoney(totalPrice, priceTier)}</span>
+          {showPrice ? (
+            <span className="font-semibold tabular-nums">{formatMoney(totalPrice, priceTier)}</span>
+          ) : (
+            <NegotiatePriceNote as="span" className="text-right font-semibold" />
+          )}
         </div>
       </div>
 
