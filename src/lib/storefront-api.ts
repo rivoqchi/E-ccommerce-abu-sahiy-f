@@ -8,6 +8,11 @@ import type {
 } from "@/types/product";
 import type { Story, StoryItem, StoryVideo } from "@/types/story";
 import { resolveProductImages, isStorefrontReadyProduct } from "@/lib/product-image";
+import {
+  sanitizeHiddenFields,
+  sanitizeHiddenSpecLabels,
+  type ProductDisplaySettings,
+} from "@/lib/product-display";
 
 type ApiSuccess<T> = { success: true; data: T };
 type ApiError = {
@@ -81,7 +86,10 @@ function normalizeImages(images?: string[]): string[] {
 export function mapApiProduct(raw: ApiProduct): Product {
   const categorySlug = slugOf(raw.categoryId, "uncategorized");
   const categoryLabel = nameOf(raw.categoryId, "Kategoriya");
-  const brandName = nameOf(raw.brandId, "Brendsiz");
+  const brandName =
+    raw.brandId && typeof raw.brandId === "object"
+      ? raw.brandId.name?.trim() || ""
+      : "Brendsiz";
   const brandSlug = slugOf(raw.brandId) || undefined;
   const tags = raw.tags ?? [];
   const price = Number(raw.price);
@@ -93,7 +101,7 @@ export function mapApiProduct(raw: ApiProduct): Product {
     slug: raw.slug,
     name: raw.name,
     code: raw.code?.trim() || undefined,
-    description: raw.description?.trim() || raw.name,
+    description: raw.description?.trim() ?? "",
     price: Number.isFinite(price) ? price : 0,
     wholesalePrice:
       Number.isFinite(wholesale) && wholesale >= 0 ? wholesale : Number.isFinite(price) ? price : 0,
@@ -224,6 +232,24 @@ export async function fetchBrands(): Promise<CatalogBrand[]> {
     }));
   } catch {
     return [];
+  }
+}
+
+export async function fetchProductDisplaySettings(): Promise<ProductDisplaySettings> {
+  try {
+    const data = await publicFetch<{
+      hiddenFields?: unknown;
+      hiddenSpecLabels?: unknown;
+    }>("/products/display-settings", {
+      cache: "no-store",
+      next: { revalidate: 0 },
+    });
+    return {
+      hiddenFields: sanitizeHiddenFields(data.hiddenFields),
+      hiddenSpecLabels: sanitizeHiddenSpecLabels(data.hiddenSpecLabels),
+    };
+  } catch {
+    return { hiddenFields: [], hiddenSpecLabels: [] };
   }
 }
 

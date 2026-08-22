@@ -10,6 +10,7 @@ import { ProductImage } from "@/components/catalog/ProductImage";
 import { ProductQuickView } from "@/components/product/ProductQuickView";
 import { useWishlistStore } from "@/store/wishlist";
 import { useProductUnitPrice } from "@/hooks/use-price-tier";
+import { useProductFieldVisible } from "@/components/product/ProductDisplayProvider";
 import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
@@ -42,6 +43,9 @@ export function ProductCard({
   );
   const rating = productRating(product);
   const unitPrice = useProductUnitPrice(product);
+  const showPrice = useProductFieldVisible("price");
+  const showCompareAt = useProductFieldVisible("compareAtPrice");
+  const showRating = useProductFieldVisible("rating");
 
   const scoopFill = {
     width: R,
@@ -132,29 +136,35 @@ export function ProductCard({
           <h3 className="line-clamp-2 min-h-[2lh] text-[15px] font-medium leading-snug text-foreground">
             <Link href={`/product/${product.slug}`}>{product.name}</Link>
           </h3>
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[15px] font-bold leading-snug tracking-tight text-foreground tabular-nums">
-                {formatUZS(unitPrice)}
-              </p>
-              {product.compareAtPrice ? (
-                <p className="text-xs text-muted-foreground line-through tabular-nums">
-                  {formatUZS(product.compareAtPrice)}
-                </p>
+          {showPrice || showCompareAt || showRating ? (
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                {showPrice ? (
+                  <p className="text-[15px] font-bold leading-snug tracking-tight text-foreground tabular-nums">
+                    {formatUZS(unitPrice)}
+                  </p>
+                ) : null}
+                {showCompareAt && product.compareAtPrice ? (
+                  <p className="text-xs text-muted-foreground line-through tabular-nums">
+                    {formatUZS(product.compareAtPrice)}
+                  </p>
+                ) : null}
+              </div>
+              {showRating ? (
+                <span className="inline-flex shrink-0 items-center gap-1 pt-0.5 text-sm font-medium text-foreground">
+                  <Star
+                    className={cn(
+                      "size-3.5",
+                      rating >= 5
+                        ? "fill-black text-black"
+                        : "fill-amber-400 text-amber-400",
+                    )}
+                  />
+                  {rating}
+                </span>
               ) : null}
             </div>
-            <span className="inline-flex shrink-0 items-center gap-1 pt-0.5 text-sm font-medium text-foreground">
-              <Star
-                className={cn(
-                  "size-3.5",
-                  rating >= 5
-                    ? "fill-black text-black"
-                    : "fill-amber-400 text-amber-400",
-                )}
-              />
-              {rating}
-            </span>
-          </div>
+          ) : null}
         </div>
       </article>
 

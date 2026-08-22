@@ -18,12 +18,16 @@ export function productJsonLd(product: Product) {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    description: product.description,
+    description: product.description || product.name,
     image: product.images,
-    brand: {
-      "@type": "Brand",
-      name: product.brand,
-    },
+    ...(product.brand
+      ? {
+          brand: {
+            "@type": "Brand",
+            name: product.brand,
+          },
+        }
+      : {}),
     category: product.categoryLabel,
     offers: {
       "@type": "Offer",

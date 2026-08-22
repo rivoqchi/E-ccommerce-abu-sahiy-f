@@ -42,6 +42,7 @@ import { Badge } from "@/components/ui/badge";
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { showCenterToast } from "@/components/ui/center-toast";
 import { ProductExcelImport } from "@/components/admin/ProductExcelImport";
+import { ProductDisplaySettingsModal } from "@/components/admin/ProductDisplaySettingsModal";
 import { useAdminApi } from "@/lib/admin-api";
 import { formatUZS } from "@/lib/format";
 import {
@@ -474,6 +475,7 @@ export default function AdminProductsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <ProductDisplaySettingsModal />
           <ProductExcelImport
             mode="add"
             onDone={async () => {

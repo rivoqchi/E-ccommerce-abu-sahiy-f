@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useAdminApi } from "@/lib/admin-api";
 
 type UserRow = {
@@ -72,6 +73,20 @@ export default function AdminUsersPage() {
     });
   }
 
+  async function setRole(user: UserRow, role: "admin" | "customer") {
+    setError(null);
+    try {
+      await adminFetch(`/users/${user.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ role }),
+      });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Xato");
+      throw e;
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -106,54 +121,88 @@ export default function AdminUsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((u) => (
-                <TableRow key={u.id}>
-                  <TableCell className="pl-5 font-medium">
-                    {u.fullName}
-                  </TableCell>
-                  <TableCell>{u.phone ?? "—"}</TableCell>
-                  <TableCell>
-                    {u.username ? `@${u.username}` : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{u.role}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        u.priceTier === "wholesale" ? "default" : "secondary"
-                      }
-                    >
-                      {u.priceTier === "wholesale" ? "Optom" : "Oddiy"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {u.isActive ? "Aktiv" : "Bloklangan"}
-                  </TableCell>
-                  <TableCell className="pr-5 text-right space-x-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full"
-                      disabled={pending}
-                      onClick={() => togglePriceTier(u)}
-                    >
-                      {u.priceTier === "wholesale"
-                        ? "Oddiyga"
-                        : "Optomga"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full"
-                      disabled={pending}
-                      onClick={() => toggleActive(u)}
-                    >
-                      {u.isActive ? "Bloklash" : "Faollashtirish"}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {items.map((u) => {
+                const isAdmin = u.role === "admin";
+                return (
+                  <TableRow key={u.id}>
+                    <TableCell className="pl-5 font-medium">
+                      {u.fullName}
+                    </TableCell>
+                    <TableCell>{u.phone ?? "—"}</TableCell>
+                    <TableCell>
+                      {u.username ? `@${u.username}` : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={isAdmin ? "default" : "secondary"}>
+                        {isAdmin ? "Admin" : "Customer"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          u.priceTier === "wholesale" ? "default" : "secondary"
+                        }
+                      >
+                        {u.priceTier === "wholesale" ? "Optom" : "Oddiy"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {u.isActive ? "Aktiv" : "Bloklangan"}
+                    </TableCell>
+                    <TableCell className="space-x-1 pr-5 text-right">
+                      {isAdmin ? (
+                        <ConfirmAction
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full"
+                          disabled={pending}
+                          title="Admin huquqini olasizmi?"
+                          description={`“${u.fullName}” endi admin panelga kira olmaydi. Davom etasizmi?`}
+                          confirmLabel="Ha, olish"
+                          pendingLabel="Olinmoqda…"
+                          onConfirm={() => setRole(u, "customer")}
+                        >
+                          Admindan olish
+                        </ConfirmAction>
+                      ) : (
+                        <ConfirmAction
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full"
+                          disabled={pending}
+                          title="Admin qilasizmi?"
+                          description={`“${u.fullName}” admin panelga kira oladi. Davom etasizmi?`}
+                          confirmLabel="Ha, admin qilish"
+                          pendingLabel="Saqlanmoqda…"
+                          onConfirm={() => setRole(u, "admin")}
+                        >
+                          Admin qilish
+                        </ConfirmAction>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full"
+                        disabled={pending}
+                        onClick={() => togglePriceTier(u)}
+                      >
+                        {u.priceTier === "wholesale"
+                          ? "Oddiyga"
+                          : "Optomga"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full"
+                        disabled={pending}
+                        onClick={() => toggleActive(u)}
+                      >
+                        {u.isActive ? "Bloklash" : "Faollashtirish"}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               {!items.length ? (
                 <TableRow>
                   <TableCell

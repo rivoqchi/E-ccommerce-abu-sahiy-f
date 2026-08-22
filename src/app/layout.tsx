@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Instrument_Serif, Plus_Jakarta_Sans } from "next/font/google";
 import { AppShell } from "@/components/layout/AppShell";
+import { ProductDisplayProvider } from "@/components/product/ProductDisplayProvider";
 import { TelegramAuthProvider } from "@/components/telegram/TelegramAuthProvider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { themeInitScript } from "@/lib/theme-script";
+import { fetchProductDisplaySettings } from "@/lib/storefront-api";
 import {
   jsonLdScript,
   organizationJsonLd,
@@ -54,11 +56,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const displaySettings = await fetchProductDisplaySettings();
+
   return (
     <html
       lang="uz"
@@ -90,7 +94,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TelegramAuthProvider>
-            <AppShell>{children}</AppShell>
+            <ProductDisplayProvider settings={displaySettings}>
+              <AppShell>{children}</AppShell>
+            </ProductDisplayProvider>
           </TelegramAuthProvider>
         </ThemeProvider>
       </body>

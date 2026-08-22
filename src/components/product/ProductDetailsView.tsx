@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ArrowLeft, Check, Copy, Heart } from "lucide-react";
 import type { Product } from "@/types/product";
 import { formatUZS } from "@/lib/format";
+import { useProductFieldVisible } from "@/components/product/ProductDisplayProvider";
 import { useWishlistStore } from "@/store/wishlist";
 import { useProductUnitPrice } from "@/hooks/use-price-tier";
 import { useProductCartQty } from "@/hooks/use-product-cart-qty";
@@ -141,6 +142,13 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   const [active, setActive] = useState(0);
   const current = product.images[active] ?? product.images[0];
   const unitPrice = useProductUnitPrice(product);
+  const showCode = useProductFieldVisible("code");
+  const showPrice = useProductFieldVisible("price");
+  const showCompareAt = useProductFieldVisible("compareAtPrice");
+  const showBrand = useProductFieldVisible("brand");
+  const showSpecs = useProductFieldVisible("specs");
+  const showDescription = useProductFieldVisible("description");
+  const showBuyerCount = useProductFieldVisible("buyerCount");
 
   const handleBuy = () => {
     if (addToCart() === "in-cart") router.push("/cart");
@@ -247,39 +255,49 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
               <h2 className="text-2xl font-bold tracking-tight text-foreground">
                 {product.name}
               </h2>
-              {product.code ? <ProductCodeRow code={product.code} /> : null}
-              <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <p className="text-xl font-bold tracking-tight tabular-nums">
-                  {formatUZS(unitPrice)}
-                </p>
-                {product.compareAtPrice ? (
-                  <p className="text-sm text-muted-foreground line-through tabular-nums">
-                    {formatUZS(product.compareAtPrice)}
-                  </p>
-                ) : null}
-              </div>
+              {showCode && product.code ? (
+                <ProductCodeRow code={product.code} />
+              ) : null}
+              {showPrice || (showCompareAt && product.compareAtPrice) ? (
+                <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  {showPrice ? (
+                    <p className="text-xl font-bold tracking-tight tabular-nums">
+                      {formatUZS(unitPrice)}
+                    </p>
+                  ) : null}
+                  {showCompareAt && product.compareAtPrice ? (
+                    <p className="text-sm text-muted-foreground line-through tabular-nums">
+                      {formatUZS(product.compareAtPrice)}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
 
-          <PurchaseSocialProof
-            buyerCount={product.buyerCount}
-            recentBuyers={product.recentBuyers}
-            compact
-          />
+          {showBuyerCount ? (
+            <PurchaseSocialProof
+              buyerCount={product.buyerCount}
+              recentBuyers={product.recentBuyers}
+              compact
+            />
+          ) : null}
 
           <Separator className="my-5" />
 
-          {product.specs?.length ? (
+          {showSpecs && product.specs?.length ? (
             <ProductSpecs specs={product.specs} />
           ) : null}
         </div>
 
-        <section className="mt-2 w-full px-[5%] pt-6 pb-8">
-          <h3 className="text-base font-semibold tracking-tight">Tavsif</h3>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            {product.description}
-          </p>
-        </section>
+        {showDescription && product.description ? (
+          <section className="mt-2 w-full px-[5%] pt-6 pb-8">
+            <h3 className="text-base font-semibold tracking-tight">Tavsif</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {product.description}
+            </p>
+          </section>
+        ) : null}
 
         <div
           className={cn(
@@ -369,30 +387,42 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
             <h1 className="text-4xl font-bold tracking-tight text-foreground lg:text-5xl">
               {product.name}
             </h1>
-            {product.code ? <ProductCodeRow code={product.code} /> : null}
-            <p className="mt-2 text-sm text-muted-foreground">{product.brand}</p>
+            {showCode && product.code ? (
+              <ProductCodeRow code={product.code} />
+            ) : null}
+            {showBrand && product.brand ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                {product.brand}
+              </p>
+            ) : null}
 
-            <div className="mt-6 flex flex-wrap items-center gap-4">
-              <div className="flex items-baseline gap-3">
-                <p className="text-3xl font-bold tracking-tight tabular-nums">
-                  {formatUZS(unitPrice)}
-                </p>
-                {product.compareAtPrice ? (
-                  <p className="text-base text-muted-foreground line-through tabular-nums">
-                    {formatUZS(product.compareAtPrice)}
-                  </p>
-                ) : null}
+            {showPrice || (showCompareAt && product.compareAtPrice) ? (
+              <div className="mt-6 flex flex-wrap items-center gap-4">
+                <div className="flex items-baseline gap-3">
+                  {showPrice ? (
+                    <p className="text-3xl font-bold tracking-tight tabular-nums">
+                      {formatUZS(unitPrice)}
+                    </p>
+                  ) : null}
+                  {showCompareAt && product.compareAtPrice ? (
+                    <p className="text-base text-muted-foreground line-through tabular-nums">
+                      {formatUZS(product.compareAtPrice)}
+                    </p>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            ) : null}
 
-            <PurchaseSocialProof
-              buyerCount={product.buyerCount}
-              recentBuyers={product.recentBuyers}
-            />
+            {showBuyerCount ? (
+              <PurchaseSocialProof
+                buyerCount={product.buyerCount}
+                recentBuyers={product.recentBuyers}
+              />
+            ) : null}
 
             <Separator className="my-8" />
 
-            {product.specs?.length ? (
+            {showSpecs && product.specs?.length ? (
               <ProductSpecs specs={product.specs} />
             ) : null}
 
@@ -400,12 +430,14 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
           </div>
         </div>
 
-        <section className="mt-14 w-full border-t border-border pt-10">
-          <h2 className="text-lg font-semibold tracking-tight">Tavsif</h2>
-          <p className="mt-3 max-w-none text-base leading-relaxed text-muted-foreground">
-            {product.description}
-          </p>
-        </section>
+        {showDescription && product.description ? (
+          <section className="mt-14 w-full border-t border-border pt-10">
+            <h2 className="text-lg font-semibold tracking-tight">Tavsif</h2>
+            <p className="mt-3 max-w-none text-base leading-relaxed text-muted-foreground">
+              {product.description}
+            </p>
+          </section>
+        ) : null}
       </div>
     </div>
   );

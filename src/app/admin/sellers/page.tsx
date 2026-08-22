@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -72,6 +72,7 @@ export default function AdminSellersPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<Seller[]>([]);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -84,6 +85,37 @@ export default function AdminSellersPage() {
   useEffect(() => {
     void load().catch((e: Error) => setError(e.message));
   }, [load]);
+
+  function resetForm() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setError(null);
+  }
+
+  function openCreate() {
+    resetForm();
+    setOpen(true);
+  }
+
+  function openEdit(seller: Seller) {
+    setEditingId(seller._id);
+    setForm({
+      fullName: seller.fullName,
+      phone: seller.phone,
+      telegramUsername: seller.telegramUsername
+        ? `@${seller.telegramUsername.replace(/^@+/, "")}`
+        : "",
+      avatarUrl: seller.avatarUrl ?? "",
+      status: seller.status || "active",
+    });
+    setError(null);
+    setOpen(true);
+  }
+
+  function handleDialogChange(next: boolean) {
+    setOpen(next);
+    if (!next) resetForm();
+  }
 
   async function onPickAvatar(file: File | null) {
     if (!file) return;
@@ -104,23 +136,31 @@ export default function AdminSellersPage() {
     }
   }
 
-  function create() {
+  function save() {
     setError(null);
     const username = form.telegramUsername.trim().replace(/^@+/, "");
     startTransition(async () => {
       try {
-        await adminFetch("/sellers", {
-          method: "POST",
-          body: JSON.stringify({
-            fullName: form.fullName.trim(),
-            phone: form.phone.trim(),
-            telegramUsername: username || undefined,
-            avatarUrl: form.avatarUrl || undefined,
-            status: form.status,
-          }),
-        });
+        const payload = {
+          fullName: form.fullName.trim(),
+          phone: form.phone.trim(),
+          telegramUsername: username || undefined,
+          avatarUrl: form.avatarUrl || undefined,
+          status: form.status,
+        };
+        if (editingId) {
+          await adminFetch(`/sellers/${editingId}`, {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+          });
+        } else {
+          await adminFetch("/sellers", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+        }
         setOpen(false);
-        setForm(emptyForm);
+        resetForm();
         await load();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Xato");
@@ -144,13 +184,7 @@ export default function AdminSellersPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Sotuvchilar</h1>
         </div>
-        <Button
-          className="rounded-full"
-          onClick={() => {
-            setForm(emptyForm);
-            setOpen(true);
-          }}
-        >
+        <Button className="rounded-full" onClick={openCreate}>
           <Plus className="size-4" />
           Qoʻshish
         </Button>
@@ -217,7 +251,16 @@ export default function AdminSellersPage() {
                     <TableCell>
                       <Badge variant="secondary">{s.status}</Badge>
                     </TableCell>
-                    <TableCell className="pr-5 text-right">
+                    <TableCell className="space-x-1 pr-5 text-right">
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        className="rounded-full"
+                        onClick={() => openEdit(s)}
+                        aria-label="Tahrirlash"
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
                       <ConfirmAction
                         className="text-destructive"
                         title="Sotuvchini oʻchirasizmi?"
@@ -245,10 +288,12 @@ export default function AdminSellersPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleDialogChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Yangi sotuvchi</DialogTitle>
+            <DialogTitle>
+              {editingId ? "Sotuvchini tahrirlash" : "Yangi sotuvchi"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="flex items-center gap-4">
@@ -334,7 +379,7 @@ export default function AdminSellersPage() {
                 !form.fullName.trim() ||
                 !form.phone.trim()
               }
-              onClick={create}
+              onClick={save}
             >
               {pending ? <Loader2 className="size-4 animate-spin" /> : null}
               Saqlash

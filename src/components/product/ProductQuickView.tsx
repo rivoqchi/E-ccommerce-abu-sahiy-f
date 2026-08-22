@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sheet";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { useProductCartQty } from "@/hooks/use-product-cart-qty";
+import { useProductFieldVisible } from "@/components/product/ProductDisplayProvider";
 import { cn } from "@/lib/utils";
 
 interface ProductQuickViewProps {
@@ -43,6 +44,7 @@ export function ProductQuickView({
   const startYRef = useRef(0);
   const dragYRef = useRef(0);
   const draggingRef = useRef(false);
+  const showBuyerCount = useProductFieldVisible("buyerCount");
 
   useEffect(() => {
     if (open) {
@@ -149,11 +151,13 @@ export function ProductQuickView({
               />
             </div>
 
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/35 to-transparent px-4 pt-12 pb-4">
-              <p className="text-center text-sm font-semibold tracking-tight text-white tabular-nums">
-                {formatSoldLabel(soldCount)}
-              </p>
-            </div>
+            {showBuyerCount ? (
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/35 to-transparent px-4 pt-12 pb-4">
+                <p className="text-center text-sm font-semibold tracking-tight text-white tabular-nums">
+                  {formatSoldLabel(soldCount)}
+                </p>
+              </div>
+            ) : null}
 
             {product.images.length > 1 ? (
               <ul className="absolute inset-x-0 top-3 flex justify-center gap-1.5 px-3">

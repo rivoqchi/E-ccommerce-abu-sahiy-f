@@ -8,6 +8,7 @@ import { formatUZS } from "@/lib/format";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
 import { usePriceTier } from "@/hooks/use-price-tier";
+import { useProductFieldVisible } from "@/components/product/ProductDisplayProvider";
 import { resolveUnitPrice } from "@/lib/pricing";
 
 export function WishlistView() {
@@ -16,6 +17,8 @@ export function WishlistView() {
   const removeItem = useWishlistStore((s) => s.removeItem);
   const addToCart = useCartStore((s) => s.addItem);
   const priceTier = usePriceTier();
+  const showBrand = useProductFieldVisible("brand");
+  const showPrice = useProductFieldVisible("price");
 
   if (!hydrated) {
     return (
@@ -56,24 +59,28 @@ export function WishlistView() {
 
           <div className="space-y-3 p-4">
             <div>
-              <p className="text-xs text-muted-foreground">{item.brand}</p>
+              {showBrand && item.brand ? (
+                <p className="text-xs text-muted-foreground">{item.brand}</p>
+              ) : null}
               <Link
                 href={`/product/${item.slug}`}
                 className="mt-0.5 line-clamp-2 text-sm font-semibold text-foreground"
               >
                 {item.name}
               </Link>
-              <p className="mt-1 text-sm font-bold tabular-nums">
-                {formatUZS(
-                  resolveUnitPrice(
-                    {
-                      price: item.price,
-                      wholesalePrice: item.wholesalePrice ?? item.price,
-                    },
-                    priceTier,
-                  ),
-                )}
-              </p>
+              {showPrice ? (
+                <p className="mt-1 text-sm font-bold tabular-nums">
+                  {formatUZS(
+                    resolveUnitPrice(
+                      {
+                        price: item.price,
+                        wholesalePrice: item.wholesalePrice ?? item.price,
+                      },
+                      priceTier,
+                    ),
+                  )}
+                </p>
+              ) : null}
             </div>
 
             <div className="flex gap-2">
