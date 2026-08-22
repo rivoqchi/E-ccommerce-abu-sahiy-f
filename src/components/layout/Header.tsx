@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Heart, Home, Search, ShoppingBag, User } from "lucide-react";
+import { Bell, Handshake, Heart, Home, Search, ShoppingBag, User } from "lucide-react";
 import { useSyncExternalStore } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -17,6 +17,7 @@ const NAV_BRAND = "Sami";
 const desktopBaseLinks = [
   { href: "/", label: "Bosh sahifa" },
   { href: "/catalog", label: "Katalog" },
+  { href: "/hamkor", label: "Hamkor" },
   { href: "/wishlist", label: "Sevimlilar" },
   { href: "/cart", label: "Savat" },
 ] as const;
@@ -67,7 +68,8 @@ export function Header() {
   const isHome = pathname === "/";
   const isWelcome = pathname === "/welcome";
   const isLogin = pathname === "/login";
-  const isProduct = pathname.startsWith("/product/");
+  const isProduct =
+    pathname.startsWith("/product/") || pathname.startsWith("/hamkor/product/");
 
   const authLink =
     authNav === "profile"
@@ -87,16 +89,17 @@ export function Header() {
         <div className="mx-auto flex h-16 w-[80%] max-w-6xl items-center justify-between">
           <Link
             href="/"
+            prefetch={false}
             className="inline-flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground transition-opacity hover:opacity-80"
           >
-            {NAV_BRAND}
-            <Badge
-              variant="secondary"
-              className="badge-gold relative -top-1.5 h-3.5 rounded px-1 text-[8px] font-bold uppercase tracking-wide"
-            >
-              Beta
-            </Badge>
-          </Link>
+              {NAV_BRAND}
+              <Badge
+                variant="secondary"
+                className="badge-gold relative -top-1.5 h-3.5 rounded px-1 text-[8px] font-bold uppercase tracking-wide"
+              >
+                Beta
+              </Badge>
+            </Link>
 
           <nav
             className="flex items-center gap-1"
@@ -108,13 +111,17 @@ export function Header() {
                   ? pathname === "/"
                   : pathname.startsWith(link.href);
               return (
-                <Button
+                <Link
                   key={link.href}
-                  variant={active ? "default" : "ghost"}
-                  size="sm"
-                  nativeButton={false}
-                  render={<Link href={link.href} />}
-                  className="rounded-full px-4"
+                  href={link.href}
+                  prefetch={false}
+                  className={cn(
+                    buttonVariants({
+                      variant: active ? "default" : "ghost",
+                      size: "sm",
+                    }),
+                    "rounded-full px-4",
+                  )}
                 >
                   {link.label}
                   {link.href === "/cart" && count > 0 ? (
@@ -125,21 +132,25 @@ export function Header() {
                       {count}
                     </Badge>
                   ) : null}
-                </Button>
+                </Link>
               );
             })}
             {authLink ? (
-              <Button
-                variant={
-                  pathname.startsWith(authLink.href) ? "default" : "ghost"
-                }
-                size="sm"
-                nativeButton={false}
-                render={<Link href={authLink.href} />}
-                className="rounded-full px-4"
+              <Link
+                href={authLink.href}
+                prefetch={false}
+                className={cn(
+                  buttonVariants({
+                    variant: pathname.startsWith(authLink.href)
+                      ? "default"
+                      : "ghost",
+                    size: "sm",
+                  }),
+                  "rounded-full px-4",
+                )}
               >
                 {authLink.label}
-              </Button>
+              </Link>
             ) : (
               <span
                 aria-hidden
@@ -157,16 +168,17 @@ export function Header() {
           <div className="mx-auto flex h-14 w-[90%] max-w-lg items-center justify-between">
             <Link
               href="/"
+              prefetch={false}
               className="inline-flex items-center gap-1.5 text-base font-semibold tracking-tight"
             >
-              {NAV_BRAND}
-              <Badge
-                variant="secondary"
-                className="badge-gold relative -top-1.5 h-3.5 rounded px-1 text-[8px] font-bold uppercase tracking-wide"
-              >
-                Beta
-              </Badge>
-            </Link>
+                {NAV_BRAND}
+                <Badge
+                  variant="secondary"
+                  className="badge-gold relative -top-1.5 h-3.5 rounded px-1 text-[8px] font-bold uppercase tracking-wide"
+                >
+                  Beta
+                </Badge>
+              </Link>
             <div className="flex items-center gap-0.5 rounded-full bg-secondary px-1.5 py-1">
               <ThemeToggle size="icon-sm" />
               <Separator orientation="vertical" className="mx-0.5 h-4!" />
@@ -179,13 +191,14 @@ export function Header() {
                 <Bell className="size-4" strokeWidth={1.75} />
               </Button>
               <Separator orientation="vertical" className="mx-0.5 h-4!" />
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                nativeButton={false}
-                render={<Link href="/cart" />}
-                className="relative rounded-full"
+              <Link
+                href="/cart"
+                prefetch={false}
                 aria-label="Savat"
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "icon-sm" }),
+                  "relative rounded-full",
+                )}
               >
                 <ShoppingBag className="size-4" strokeWidth={1.75} />
                 {count > 0 ? (
@@ -193,7 +206,7 @@ export function Header() {
                     {count}
                   </span>
                 ) : null}
-              </Button>
+              </Link>
             </div>
           </div>
         </header>
@@ -217,6 +230,12 @@ const mobileItems = [
     icon: Search,
     match: (path: string) =>
       path.startsWith("/catalog") || path.startsWith("/product"),
+  },
+  {
+    href: "/hamkor",
+    label: "Hamkor",
+    icon: Handshake,
+    match: (path: string) => path.startsWith("/hamkor"),
   },
   {
     href: "/wishlist",
@@ -259,6 +278,7 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 aria-current="page"
                 className="flex h-11 items-center justify-center gap-2 rounded-full bg-nav-dock-foreground px-4 text-nav-dock transition-transform active:scale-[0.98]"
               >
@@ -274,6 +294,7 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               aria-label={item.label}
               className="flex size-11 shrink-0 items-center justify-center rounded-full bg-nav-dock-muted text-nav-dock-foreground transition-opacity hover:opacity-90 active:scale-[0.96]"
             >

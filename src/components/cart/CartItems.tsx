@@ -3,22 +3,97 @@
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
-import { formatUZS } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { usePriceTier } from "@/hooks/use-price-tier";
+import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
 import { Button } from "@/components/ui/button";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ProductImage } from "@/components/catalog/ProductImage";
 import { CartItemsSkeleton } from "@/components/skeletons";
+import type { CartItem } from "@/types/product";
+import { cartLineKey, productHref, productSourceOf } from "@/types/product";
 
-export function CartItems() {
-  const items = useCartStore((s) => s.items);
-  const hydrated = useCartStore((s) => s.hydrated);
+function CartLine({
+  item,
+  showSeparator,
+}: {
+  item: CartItem;
+  showSeparator: boolean;
+}) {
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
   const linePrice = useCartStore((s) => s.linePrice);
   const priceTier = usePriceTier();
+  const usdToUzs = useUsdToUzs();
+  const unit = linePrice(item, priceTier, usdToUzs);
+  const href = productHref({
+    slug: item.slug,
+    source: productSourceOf(item.source),
+  });
+
+  return (
+    <li>
+      {showSeparator ? <Separator /> : null}
+      <div className="flex gap-4 p-4 sm:p-5">
+        <Link
+          href={href}
+          className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted"
+        >
+          <ProductImage src={item.image} alt={item.name} fill sizes="96px" />
+        </Link>
+
+        <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <Link
+              href={href}
+              className="line-clamp-2 text-sm font-semibold text-foreground hover:text-accent"
+            >
+              {item.name}
+            </Link>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {formatMoney(unit, priceTier)}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            <QuantityStepper
+              size="sm"
+              value={item.quantity}
+              max={
+                typeof item.stock === "number" && Number.isFinite(item.stock)
+                  ? item.stock
+                  : Number.MAX_SAFE_INTEGER
+              }
+              onChange={(next) =>
+                updateQuantity(item.productId, next, item.source)
+              }
+            />
+
+            <p className="min-w-20 text-right text-sm font-semibold tabular-nums">
+              {formatMoney(unit * item.quantity, priceTier)}
+            </p>
+
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="size-8 rounded-full text-muted-foreground hover:text-destructive"
+              aria-label="O'chirish"
+              onClick={() => removeItem(item.productId, item.source)}
+            >
+              <Trash2 className="size-4" strokeWidth={1.75} />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+export function CartItems() {
+  const items = useCartStore((s) => s.items);
+  const hydrated = useCartStore((s) => s.hydrated);
 
   if (!hydrated) {
     return <CartItemsSkeleton />;
@@ -44,75 +119,67 @@ export function CartItems() {
     );
   }
 
+  const storeItems = items.filter(
+    (item) => productSourceOf(item.source) === "store",
+  );
+  const hamkorItems = items.filter(
+    (item) => productSourceOf(item.source) === "hamkor",
+  );
+
+  const hamkorGroups = new Map<string, CartItem[]>();
+  for (const item of hamkorItems) {
+    const key = item.partnerId || item.partnerName || "hamkor";
+    const list = hamkorGroups.get(key) ?? [];
+    list.push(item);
+    hamkorGroups.set(key, list);
+  }
+
   return (
-    <Card className="gap-0 overflow-hidden rounded-3xl py-0 shadow-none ring-1 ring-border">
-      <ul>
-        {items.map((item, index) => {
-          const unit = linePrice(item, priceTier);
-          return (
-            <li key={item.productId}>
-              {index > 0 ? <Separator /> : null}
-              <div className="flex gap-4 p-4 sm:p-5">
-                <Link
-                  href={`/product/${item.slug}`}
-                  className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted"
-                >
-                  <ProductImage
-                    src={item.image}
-                    alt={item.name}
-                    fill
-                    sizes="96px"
-                  />
-                </Link>
+    <div className="space-y-4">
+      {storeItems.length > 0 ? (
+        <Card className="gap-0 overflow-hidden rounded-3xl py-0 shadow-none ring-1 ring-border">
+          <ul>
+            {storeItems.map((item, index) => (
+              <CartLine
+                key={cartLineKey(item.source, item.productId)}
+                item={item}
+                showSeparator={index > 0}
+              />
+            ))}
+          </ul>
+        </Card>
+      ) : null}
 
-                <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <Link
-                      href={`/product/${item.slug}`}
-                      className="line-clamp-2 text-sm font-semibold text-foreground hover:text-accent"
-                    >
-                      {item.name}
-                    </Link>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {formatUZS(unit)}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <QuantityStepper
-                      size="sm"
-                      value={item.quantity}
-                      max={
-                        typeof item.stock === "number" &&
-                        Number.isFinite(item.stock)
-                          ? item.stock
-                          : Number.MAX_SAFE_INTEGER
-                      }
-                      onChange={(next) =>
-                        updateQuantity(item.productId, next)
-                      }
-                    />
-
-                    <p className="min-w-20 text-right text-sm font-semibold tabular-nums">
-                      {formatUZS(unit * item.quantity)}
-                    </p>
-
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="size-8 rounded-full text-muted-foreground hover:text-destructive"
-                      aria-label="O'chirish"
-                      onClick={() => removeItem(item.productId)}
-                    >
-                      <Trash2 className="size-4" strokeWidth={1.75} />
-                    </Button>
-                  </div>
-                </div>
+      {Array.from(hamkorGroups.entries()).map(([groupKey, groupItems]) => {
+        const first = groupItems[0]!;
+        const name = first.partnerName?.trim() || "Hamkor";
+        const logo = first.partnerLogo || "/hamkor-logo.svg";
+        return (
+          <Card
+            key={groupKey}
+            className="gap-0 overflow-hidden rounded-3xl py-0 shadow-none ring-1 ring-border"
+          >
+            <div className="flex items-center gap-2.5 px-4 pt-4 sm:px-5">
+              <img src={logo} alt="" className="size-8 rounded-lg object-cover" />
+              <div>
+                <p className="text-sm font-semibold tracking-tight">{name}</p>
+                <p className="text-xs text-muted-foreground">
+                  Hamkor mahsulotlari
+                </p>
               </div>
-            </li>
-          );
-        })}
-      </ul>
-    </Card>
+            </div>
+            <ul>
+              {groupItems.map((item) => (
+                <CartLine
+                  key={cartLineKey(item.source, item.productId)}
+                  item={item}
+                  showSeparator
+                />
+              ))}
+            </ul>
+          </Card>
+        );
+      })}
+    </div>
   );
 }

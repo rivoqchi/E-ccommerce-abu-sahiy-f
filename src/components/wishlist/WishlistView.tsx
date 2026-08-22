@@ -4,12 +4,14 @@ import Link from "next/link";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductImage } from "@/components/catalog/ProductImage";
-import { formatUZS } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/wishlist";
 import { usePriceTier } from "@/hooks/use-price-tier";
+import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
 import { useProductFieldVisible } from "@/components/product/ProductDisplayProvider";
 import { resolveUnitPrice } from "@/lib/pricing";
+import { cartLineKey, productHref, productSourceOf } from "@/types/product";
 
 export function WishlistView() {
   const items = useWishlistStore((s) => s.items);
@@ -17,6 +19,7 @@ export function WishlistView() {
   const removeItem = useWishlistStore((s) => s.removeItem);
   const addToCart = useCartStore((s) => s.addItem);
   const priceTier = usePriceTier();
+  const usdToUzs = useUsdToUzs();
   const showBrand = useProductFieldVisible("brand");
   const showPrice = useProductFieldVisible("price");
 
@@ -43,11 +46,11 @@ export function WishlistView() {
     <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((item) => (
         <li
-          key={item.productId}
+          key={cartLineKey(item.source, item.productId)}
           className="overflow-hidden rounded-3xl bg-card shadow-[var(--shadow-soft)]"
         >
           <Link
-            href={`/product/${item.slug}`}
+            href={productHref({ slug: item.slug, source: item.source })}
             className="relative block aspect-square bg-muted"
           >
             <ProductImage
@@ -63,21 +66,23 @@ export function WishlistView() {
                 <p className="text-xs text-muted-foreground">{item.brand}</p>
               ) : null}
               <Link
-                href={`/product/${item.slug}`}
+                href={productHref({ slug: item.slug, source: item.source })}
                 className="mt-0.5 line-clamp-2 text-sm font-semibold text-foreground"
               >
                 {item.name}
               </Link>
               {showPrice ? (
                 <p className="mt-1 text-sm font-bold tabular-nums">
-                  {formatUZS(
+                  {formatMoney(
                     resolveUnitPrice(
                       {
                         price: item.price,
                         wholesalePrice: item.wholesalePrice ?? item.price,
                       },
                       priceTier,
+                      usdToUzs,
                     ),
+                    priceTier,
                   )}
                 </p>
               ) : null}
@@ -96,6 +101,7 @@ export function WishlistView() {
                       id: item.productId,
                       slug: item.slug,
                       name: item.name,
+                      code: item.code || "WISHLIST",
                       description: item.name,
                       price: item.price,
                       wholesalePrice: item.wholesalePrice ?? item.price,
@@ -106,6 +112,10 @@ export function WishlistView() {
                       specs: [],
                       stock,
                       inStock: stock > 0,
+                      source: productSourceOf(item.source),
+                      partnerId: item.partnerId,
+                      partnerName: item.partnerName,
+                      partnerLogo: item.partnerLogo,
                     },
                     1,
                   );
@@ -120,7 +130,7 @@ export function WishlistView() {
                 size="icon"
                 className="size-10 shrink-0 rounded-full"
                 aria-label="Sevimlilardan olib tashlash"
-                onClick={() => removeItem(item.productId)}
+                onClick={() => removeItem(item.productId, item.source)}
               >
                 <Trash2 className="size-4" strokeWidth={1.75} />
               </Button>

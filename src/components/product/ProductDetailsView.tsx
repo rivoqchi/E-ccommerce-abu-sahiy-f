@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft, Check, Copy, Heart } from "lucide-react";
 import type { Product } from "@/types/product";
-import { formatUZS } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
+import { resolveCompareAtPrice } from "@/lib/pricing";
 import { useProductFieldVisible } from "@/components/product/ProductDisplayProvider";
 import { useWishlistStore } from "@/store/wishlist";
-import { useProductUnitPrice } from "@/hooks/use-price-tier";
+import { usePriceTier, useProductUnitPrice } from "@/hooks/use-price-tier";
+import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
 import { useProductCartQty } from "@/hooks/use-product-cart-qty";
 import { ProductImage } from "@/components/catalog/ProductImage";
 import { ProductSpecs } from "@/components/product/ProductSpecs";
@@ -142,6 +144,8 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   const [active, setActive] = useState(0);
   const current = product.images[active] ?? product.images[0];
   const unitPrice = useProductUnitPrice(product);
+  const priceTier = usePriceTier();
+  const usdToUzs = useUsdToUzs();
   const showCode = useProductFieldVisible("code");
   const showPrice = useProductFieldVisible("price");
   const showCompareAt = useProductFieldVisible("compareAtPrice");
@@ -262,12 +266,19 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                 <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                   {showPrice ? (
                     <p className="text-xl font-bold tracking-tight tabular-nums">
-                      {formatUZS(unitPrice)}
+                      {formatMoney(unitPrice, priceTier)}
                     </p>
                   ) : null}
                   {showCompareAt && product.compareAtPrice ? (
                     <p className="text-sm text-muted-foreground line-through tabular-nums">
-                      {formatUZS(product.compareAtPrice)}
+                      {formatMoney(
+                        resolveCompareAtPrice(
+                          product.compareAtPrice,
+                          usdToUzs,
+                          priceTier,
+                        ),
+                        priceTier,
+                      )}
                     </p>
                   ) : null}
                 </div>
@@ -401,12 +412,19 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                 <div className="flex items-baseline gap-3">
                   {showPrice ? (
                     <p className="text-3xl font-bold tracking-tight tabular-nums">
-                      {formatUZS(unitPrice)}
+                      {formatMoney(unitPrice, priceTier)}
                     </p>
                   ) : null}
                   {showCompareAt && product.compareAtPrice ? (
                     <p className="text-base text-muted-foreground line-through tabular-nums">
-                      {formatUZS(product.compareAtPrice)}
+                      {formatMoney(
+                        resolveCompareAtPrice(
+                          product.compareAtPrice,
+                          usdToUzs,
+                          priceTier,
+                        ),
+                        priceTier,
+                      )}
                     </p>
                   ) : null}
                 </div>

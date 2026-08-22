@@ -1,5 +1,6 @@
 import type { Product } from "@/types/product";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
+import { resolveUnitPrice } from "@/lib/pricing";
 
 export function organizationJsonLd() {
   return {
@@ -13,7 +14,8 @@ export function organizationJsonLd() {
   };
 }
 
-export function productJsonLd(product: Product) {
+export function productJsonLd(product: Product, usdToUzs = 0) {
+  const price = resolveUnitPrice(product, "retail", usdToUzs);
   return {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -32,8 +34,8 @@ export function productJsonLd(product: Product) {
     offers: {
       "@type": "Offer",
       url: `${SITE_URL}/product/${product.slug}`,
-      priceCurrency: "USD",
-      price: product.price,
+      priceCurrency: "UZS",
+      price: Number.isFinite(price) ? price : 0,
       availability: product.inStock
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",

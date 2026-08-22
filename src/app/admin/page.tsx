@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useAdminApi } from "@/lib/admin-api";
-import { formatUZS } from "@/lib/format";
+import { formatMoney, formatUZS } from "@/lib/format";
 
 type Stats = {
   usersCount: number;
@@ -33,6 +33,7 @@ type Stats = {
     _id: string;
     total: number;
     status: string;
+    currency?: string;
     createdAt?: string;
   }>;
 };
@@ -130,7 +131,7 @@ export default function AdminDashboardPage() {
                         <Badge variant="secondary">{o.status}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        {formatUZS(o.total)}
+                        {formatMoney(o.total, o.currency)}
                       </TableCell>
                     </TableRow>
                   ))}

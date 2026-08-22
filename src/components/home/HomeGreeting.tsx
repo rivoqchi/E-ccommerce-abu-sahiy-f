@@ -4,9 +4,10 @@ import Link from "next/link";
 import { Bell, ShoppingBag, User } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
 import { useCartStore } from "@/store/cart";
 
@@ -36,6 +37,7 @@ export function HomeGreeting() {
     <div className="flex items-center justify-between gap-3">
       <Link
         href={profileHref}
+        prefetch={false}
         className="flex min-w-0 items-center gap-3 rounded-2xl outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Avatar size="lg" className="size-12 ring-2 ring-background shadow-sm">
@@ -68,13 +70,14 @@ export function HomeGreeting() {
           <Bell className="size-[18px]" strokeWidth={1.75} />
         </Button>
         <Separator orientation="vertical" className="mx-0.5 h-5!" />
-        <Button
-          variant="ghost"
-          size="icon"
-          nativeButton={false}
-          render={<Link href="/cart" />}
-          className="relative rounded-full"
+        <Link
+          href="/cart"
+          prefetch={false}
           aria-label="Savat"
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "icon" }),
+            "relative rounded-full",
+          )}
         >
           <ShoppingBag className="size-[18px]" strokeWidth={1.75} />
           {count > 0 ? (
@@ -82,7 +85,7 @@ export function HomeGreeting() {
               {count}
             </span>
           ) : null}
-        </Button>
+        </Link>
       </div>
     </div>
   );

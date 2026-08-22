@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Product } from "@/types/product";
+import { cartLineKey, productSourceOf } from "@/types/product";
 import { useCartStore } from "@/store/cart";
 
 function clampQty(n: number, max: number) {
@@ -11,9 +12,13 @@ function clampQty(n: number, max: number) {
 
 export function useProductCartQty(product: Product | null) {
   const productId = product?.id;
+  const source = productSourceOf(product?.source);
+  const lineKey = productId ? cartLineKey(source, productId) : "";
   const cartQty = useCartStore((s) =>
-    productId
-      ? s.items.find((item) => item.productId === productId)?.quantity
+    lineKey
+      ? s.items.find(
+          (item) => cartLineKey(item.source, item.productId) === lineKey,
+        )?.quantity
       : undefined,
   );
   const addItem = useCartStore((s) => s.addItem);
@@ -33,7 +38,7 @@ export function useProductCartQty(product: Product | null) {
     const clamped = clampQty(next, maxQty);
     if (inCart) {
       if (clamped === cartQty) return;
-      updateQuantity(product.id, clamped);
+      updateQuantity(product.id, clamped, product.source);
       return;
     }
     setDraftQty(clamped);

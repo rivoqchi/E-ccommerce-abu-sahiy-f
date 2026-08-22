@@ -40,6 +40,7 @@ export function Footer() {
                   <li key={cat.id}>
                     <Link
                       href={`/catalog?category=${cat.slug}`}
+                      prefetch={false}
                       className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                     >
                       {cat.name}
@@ -49,6 +50,7 @@ export function Footer() {
               </ul>
               <Link
                 href="/catalog"
+                prefetch={false}
                 className="mt-3 inline-block text-sm font-medium text-foreground transition-colors hover:opacity-80"
               >
                 {categories.length > 4 ? "Barcha katalog" : "Katalog"}
@@ -59,6 +61,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/catalog"
+                  prefetch={false}
                   className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Katalog
@@ -73,7 +76,7 @@ export function Footer() {
           <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
             <li>
               <a href="tel:+998901234567" className="hover:text-foreground">
-                +998 90 123 45 67
+                +998 98 888 07 17
               </a>
             </li>
            

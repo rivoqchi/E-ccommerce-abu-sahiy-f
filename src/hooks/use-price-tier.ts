@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuthStore } from "@/store/auth";
+import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
 import { resolveUnitPrice, type PriceTier } from "@/lib/pricing";
 
 export function usePriceTier(): PriceTier {
@@ -13,5 +14,6 @@ export function useProductUnitPrice(product: {
   wholesalePrice?: number;
 }): number {
   const tier = usePriceTier();
-  return resolveUnitPrice(product, tier);
+  const usdToUzs = useUsdToUzs();
+  return resolveUnitPrice(product, tier, usdToUzs);
 }

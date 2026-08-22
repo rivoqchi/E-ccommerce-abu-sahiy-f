@@ -1,6 +1,37 @@
+export type ProductSource = "store" | "hamkor";
+
+export function productSourceOf(
+  value?: ProductSource | null,
+): ProductSource {
+  return value === "hamkor" ? "hamkor" : "store";
+}
+
+export function productHref(product: {
+  slug: string;
+  source?: ProductSource | null;
+}): string {
+  return productSourceOf(product.source) === "hamkor"
+    ? `/hamkor/product/${product.slug}`
+    : `/product/${product.slug}`;
+}
+
+export function cartLineKey(
+  source: ProductSource | undefined,
+  productId: string,
+): string {
+  return `${productSourceOf(source)}:${productId}`;
+}
+
 export interface ProductSpec {
   label: string;
   value: string;
+}
+
+export interface CatalogPartner {
+  id: string;
+  slug: string;
+  name: string;
+  image?: string;
 }
 
 export interface CatalogCategory {
@@ -10,6 +41,7 @@ export interface CatalogCategory {
   image?: string;
   /** Active products in this category */
   productCount?: number;
+  partnerId?: string;
 }
 
 export interface CatalogBrand {
@@ -25,7 +57,7 @@ export interface Product {
   /** Ichki mahsulot kodi */
   code?: string;
   description: string;
-  /** Oddiy (retail) narx — USD */
+  /** Oddiy (retail) narx — USD (legacy; vitrinada optom×kurs×1.10) */
   price: number;
   /** Optom (wholesale) narx — USD */
   wholesalePrice: number;
@@ -48,6 +80,10 @@ export interface Product {
     fullName: string;
     avatarUrl?: string;
   }>;
+  source?: ProductSource;
+  partnerId?: string;
+  partnerName?: string;
+  partnerLogo?: string;
 }
 
 export interface CartItem {
@@ -62,6 +98,10 @@ export interface CartItem {
   quantity: number;
   /** Ombordagi maksimal miqdor (qo'shishda saqlanadi) */
   stock: number;
+  source?: ProductSource;
+  partnerId?: string;
+  partnerName?: string;
+  partnerLogo?: string;
 }
 
 export interface WishlistItem {
@@ -73,6 +113,11 @@ export interface WishlistItem {
   image: string;
   brand: string;
   stock?: number;
+  source?: ProductSource;
+  code?: string;
+  partnerId?: string;
+  partnerName?: string;
+  partnerLogo?: string;
 }
 
 export const PRODUCT_IMAGE_PLACEHOLDER =

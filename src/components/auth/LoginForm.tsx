@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { LoginFormSkeleton } from "@/components/skeletons";
 import { ApiClientError } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
+import { safeReplace } from "@/lib/safe-navigate";
 import { cn } from "@/lib/utils";
 
 const BOT_USERNAME =
@@ -83,6 +84,7 @@ export function LoginForm() {
   const dest = safeNextPath(nextPath);
   const [tokenPending, setTokenPending] = useState(() => Boolean(webToken));
   const [pending, startTransition] = useTransition();
+  const redirected = useRef(false);
 
   // Open Web ?token= bo‘lsa Mini App silent auth UI ni bloklamasin
   const telegramConnecting =
@@ -93,8 +95,9 @@ export function LoginForm() {
       (telegramAuthStatus === "done" && !!accessToken));
 
   useEffect(() => {
-    if (hydrated && accessToken && !webToken && !tokenPending) {
-      router.replace(dest);
+    if (hydrated && accessToken && !webToken && !tokenPending && !redirected.current) {
+      redirected.current = true;
+      safeReplace(router, dest);
     }
   }, [hydrated, accessToken, router, dest, webToken, tokenPending]);
 
@@ -104,9 +107,15 @@ export function LoginForm() {
     setTokenPending(true);
     setError(null);
 
+    const go = () => {
+      if (redirected.current) return;
+      redirected.current = true;
+      safeReplace(router, dest);
+    };
+
     const timeout = window.setTimeout(() => {
       if (useAuthStore.getState().accessToken) {
-        router.replace(dest);
+        go();
         return;
       }
       setError(
@@ -119,11 +128,11 @@ export function LoginForm() {
       try {
         await loginWithBotWebToken(webToken);
         window.clearTimeout(timeout);
-        router.replace(dest);
+        go();
       } catch (err) {
         window.clearTimeout(timeout);
         if (useAuthStore.getState().accessToken) {
-          router.replace(dest);
+          go();
           return;
         }
         setError(tokenLoginErrorMessage(err));
@@ -142,7 +151,10 @@ export function LoginForm() {
     startTransition(async () => {
       try {
         await verifyBotOtp(code);
-        router.replace(dest);
+        if (!redirected.current) {
+          redirected.current = true;
+          safeReplace(router, dest);
+        }
       } catch (err) {
         setError(
           err instanceof ApiClientError

@@ -5,7 +5,7 @@ import { Loader2, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ApiClientError, apiFetch } from "@/lib/api";
-import { formatUZS } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,8 @@ type OrderItem = {
   slug?: string;
   quantity: number;
   unitPrice: number;
+  source?: "store" | "hamkor";
+  partnerName?: string;
 };
 
 type AccountOrder = {
@@ -21,6 +23,7 @@ type AccountOrder = {
   total: number;
   subtotal?: number;
   shippingFee?: number;
+  currency?: string;
   status: string;
   createdAt?: string;
   notes?: string;
@@ -173,7 +176,7 @@ export function AccountOrders() {
                 </p>
               </div>
               <p className="shrink-0 text-sm font-bold tracking-tight text-foreground">
-                {formatUZS(order.total)}
+                {formatMoney(order.total, order.currency)}
               </p>
             </button>
 
@@ -189,13 +192,18 @@ export function AccountOrders() {
                         <div className="min-w-0">
                           <p className="font-medium text-foreground">
                             {item.name}
+                            {item.source === "hamkor" ? (
+                              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                {item.partnerName || "Hamkor"}
+                              </span>
+                            ) : null}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {item.quantity} × {formatUZS(item.unitPrice)}
+                            {item.quantity} × {formatMoney(item.unitPrice, order.currency)}
                           </p>
                         </div>
                         <p className="shrink-0 font-medium text-foreground">
-                          {formatUZS(item.unitPrice * item.quantity)}
+                          {formatMoney(item.unitPrice * item.quantity, order.currency)}
                         </p>
                       </li>
                     ))}
@@ -229,7 +237,7 @@ export function AccountOrders() {
                 <div className="flex items-center justify-between border-t border-border/40 pt-3 text-sm">
                   <span className="text-muted-foreground">Jami</span>
                   <span className="font-bold text-foreground">
-                    {formatUZS(order.total)}
+                    {formatMoney(order.total, order.currency)}
                   </span>
                 </div>
               </CardContent>

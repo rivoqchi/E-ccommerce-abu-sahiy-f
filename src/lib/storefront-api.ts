@@ -3,7 +3,9 @@ import { CATALOG_PAGE_SIZE } from "@/lib/catalog";
 import type {
   CatalogBrand,
   CatalogCategory,
+  CatalogPartner,
   Product,
+  ProductSource,
   ProductSpec,
 } from "@/types/product";
 import type { Story, StoryItem, StoryVideo } from "@/types/story";
@@ -27,6 +29,7 @@ type ApiRef =
       _id: string;
       name?: string;
       slug?: string;
+      image?: string;
     }
   | null
   | undefined;
@@ -42,6 +45,7 @@ export type ApiProduct = {
   wholesalePrice?: number;
   stock?: number;
   categoryId?: ApiRef;
+  partnerId?: ApiRef;
   brandId?: ApiRef;
   images?: string[];
   specs?: ProductSpec[];
@@ -83,7 +87,10 @@ function normalizeImages(images?: string[]): string[] {
   return resolveProductImages(images);
 }
 
-export function mapApiProduct(raw: ApiProduct): Product {
+export function mapApiProduct(
+  raw: ApiProduct,
+  source: ProductSource = "store",
+): Product {
   const categorySlug = slugOf(raw.categoryId, "uncategorized");
   const categoryLabel = nameOf(raw.categoryId, "Kategoriya");
   const brandName =
@@ -91,6 +98,15 @@ export function mapApiProduct(raw: ApiProduct): Product {
       ? raw.brandId.name?.trim() || ""
       : "Brendsiz";
   const brandSlug = slugOf(raw.brandId) || undefined;
+  const partnerId = idOf(raw.partnerId) || undefined;
+  const partnerName =
+    raw.partnerId && typeof raw.partnerId === "object"
+      ? raw.partnerId.name?.trim() || undefined
+      : undefined;
+  const partnerLogo =
+    raw.partnerId && typeof raw.partnerId === "object"
+      ? raw.partnerId.image?.trim() || undefined
+      : undefined;
   const tags = raw.tags ?? [];
   const price = Number(raw.price);
   const wholesale = Number(raw.wholesalePrice);
@@ -110,7 +126,7 @@ export function mapApiProduct(raw: ApiProduct): Product {
       : {}),
     category: categorySlug,
     categoryLabel,
-    brand: brandName,
+    brand: source === "hamkor" ? partnerName || "Hamkor" : brandName,
     brandSlug,
     images: normalizeImages(raw.images),
     specs: raw.specs ?? [],
@@ -124,6 +140,10 @@ export function mapApiProduct(raw: ApiProduct): Product {
         fullName: b.fullName,
         avatarUrl: b.avatarUrl || undefined,
       })),
+    source,
+    partnerId,
+    partnerName,
+    partnerLogo,
   };
 }
 
@@ -148,7 +168,7 @@ async function publicFetch<T>(
       ...rest,
       ...(useNoStore ? { cache: "no-store" as RequestCache } : { cache }),
       // AbortSignal.timeout + Next.js fetch patch brauzerda "Failed to fetch" beradi
-      ...(isServer && process.env.NODE_ENV === "production"
+      ...(isServer
         ? { signal: AbortSignal.timeout(PUBLIC_FETCH_TIMEOUT_MS) }
         : {}),
       headers: {
@@ -235,6 +255,29 @@ export async function fetchBrands(): Promise<CatalogBrand[]> {
   }
 }
 
+export type ExchangeRate = {
+  usdToUzs: number;
+  date: string;
+  source: string;
+};
+
+export async function fetchExchangeRate(): Promise<ExchangeRate | null> {
+  try {
+    const data = await publicFetch<ExchangeRate>("/exchange-rate", {
+      next: { revalidate: 300 },
+    });
+    const usdToUzs = Number(data.usdToUzs);
+    if (!Number.isFinite(usdToUzs) || usdToUzs <= 0) return null;
+    return {
+      usdToUzs,
+      date: data.date?.trim() || "",
+      source: data.source || "cbu",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchProductDisplaySettings(): Promise<ProductDisplaySettings> {
   try {
     const data = await publicFetch<{
@@ -283,7 +326,7 @@ export async function fetchProducts(options?: {
 
     const items = (data.items ?? [])
       .filter(isStorefrontReadyProduct)
-      .map(mapApiProduct);
+      .map((raw) => mapApiProduct(raw));
     const total = data.total ?? items.length;
     return {
       items,
@@ -372,6 +415,150 @@ export async function fetchSellers(): Promise<StorefrontSeller[]> {
   } catch {
     return [];
   }
+}
+
+export async function fetchHamkorPartners(): Promise<CatalogPartner[]> {
+  try {
+    const rows = await publicFetch<
+      Array<{
+        _id: string;
+        name: string;
+        slug: string;
+        image?: string;
+      }>
+    >("/hamkor/partners");
+    return rows.map((p) => ({
+      id: String(p._id),
+      name: p.name,
+      slug: p.slug,
+      image: p.image || undefined,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchHamkorCategories(options?: {
+  partnerId?: string;
+}): Promise<CatalogCategory[]> {
+  try {
+    const rows = await publicFetch<
+      Array<{
+        _id: string;
+        name: string;
+        slug: string;
+        image?: string;
+        productCount?: number;
+        partnerId?: ApiRef;
+      }>
+    >(`/hamkor/categories${toQuery({ partnerId: options?.partnerId })}`);
+    return rows.map((c) => ({
+      id: String(c._id),
+      name: c.name,
+      slug: c.slug,
+      image: c.image || undefined,
+      productCount: Number(c.productCount ?? 0),
+      partnerId: idOf(c.partnerId) || undefined,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchHamkorProducts(options?: {
+  partnerId?: string;
+  categoryId?: string;
+  q?: string;
+  page?: number;
+  limit?: number;
+}): Promise<ProductsListResult> {
+  const limit = options?.limit ?? CATALOG_PAGE_SIZE;
+  const page = options?.page ?? 1;
+  try {
+    const data = await publicFetch<{
+      items: ApiProduct[];
+      nextCursor: string | null;
+      total?: number;
+      page?: number;
+      totalPages?: number;
+    }>(
+      `/hamkor/products${toQuery({
+        partnerId: options?.partnerId,
+        categoryId: options?.categoryId,
+        q: options?.q,
+        page,
+        limit,
+      })}`,
+      { cache: "no-store", next: { revalidate: 0 } },
+    );
+
+    const items = (data.items ?? [])
+      .filter(isStorefrontReadyProduct)
+      .map((raw) => mapApiProduct(raw, "hamkor"));
+    const total = data.total ?? items.length;
+    return {
+      items,
+      total,
+      page: data.page ?? page,
+      totalPages: data.totalPages ?? Math.max(1, Math.ceil(total / limit)),
+      nextCursor: data.nextCursor ?? null,
+    };
+  } catch (err) {
+    console.warn(
+      "[fetchHamkorProducts]",
+      err instanceof Error ? err.message : "so'rov xatosi",
+    );
+    return {
+      items: [],
+      total: 0,
+      page: 1,
+      totalPages: 1,
+      nextCursor: null,
+    };
+  }
+}
+
+export async function fetchHamkorProductBySlug(
+  slug: string,
+): Promise<Product | null> {
+  try {
+    let decoded = slug;
+    try {
+      for (let i = 0; i < 2; i++) {
+        const next = decodeURIComponent(decoded);
+        if (next === decoded) break;
+        decoded = next;
+      }
+    } catch {
+      decoded = slug;
+    }
+
+    const raw = await publicFetch<ApiProduct>(
+      `/hamkor/products/${encodeURIComponent(decoded)}`,
+      { next: { revalidate: 0 } },
+    );
+    if (!isStorefrontReadyProduct(raw)) return null;
+    return mapApiProduct(raw, "hamkor");
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchHamkorRelatedProducts(
+  product: Product,
+  limit = 4,
+): Promise<Product[]> {
+  const categories = await fetchHamkorCategories();
+  const category = categories.find((c) => c.slug === product.category);
+  if (!category) return [];
+
+  const result = await fetchHamkorProducts({
+    categoryId: category.id,
+    page: 1,
+    limit: limit + 4,
+  });
+
+  return result.items.filter((p) => p.id !== product.id).slice(0, limit);
 }
 
 export async function fetchRelatedProducts(

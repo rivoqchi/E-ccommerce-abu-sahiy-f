@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Boxes,
   ChevronDown,
   Clapperboard,
+  Handshake,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -20,11 +21,12 @@ import {
   X,
   BadgePercent,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { LogoutConfirm } from "@/components/auth/LogoutConfirm";
 import { CenterToastHost } from "@/components/ui/center-toast";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
+import { UsdRateBadge } from "@/components/fx/UsdRateBadge";
 
 const nav = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -37,6 +39,15 @@ const nav = [
       { href: "/admin/register/products", label: "Mahsulotlar", icon: Boxes },
     ],
   },
+  {
+    label: "Hamkor",
+    icon: Handshake,
+    children: [
+      { href: "/admin/hamkor/partners", label: "Hamkorlar", icon: Handshake },
+      { href: "/admin/hamkor/categories", label: "Kategoriyalar", icon: Tags },
+      { href: "/admin/hamkor/products", label: "Mahsulotlar", icon: Boxes },
+    ],
+  },
   { href: "/admin/stories", label: "Istoriyalar", icon: Clapperboard },
   { href: "/admin/users", label: "Foydalanuvchilar", icon: Users },
   { href: "/admin/sellers", label: "Sotuvchilar", icon: Store },
@@ -45,19 +56,27 @@ const nav = [
   { href: "/admin/settings", label: "Sozlamalar", icon: Settings },
 ] as const;
 
+function hardReplace(href: string) {
+  window.location.replace(href);
+}
+
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const hydrated = useAuthStore((s) => s.hydrated);
-  const refreshMe = useAuthStore((s) => s.refreshMe);
   const [open, setOpen] = useState(false);
   const [regOpen, setRegOpen] = useState(true);
+  const [hamkorOpen, setHamkorOpen] = useState(true);
   const [checking, setChecking] = useState(true);
   const [allowed, setAllowed] = useState(false);
+  const [routerReady, setRouterReady] = useState(false);
 
   useEffect(() => {
-    if (!hydrated) return;
+    setRouterReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || !routerReady) return;
 
     let cancelled = false;
     void (async () => {
@@ -66,25 +85,25 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         if (!token) {
           if (!cancelled) {
             setAllowed(false);
-            router.replace("/login?next=/admin");
+            hardReplace("/login?next=/admin");
           }
           return;
         }
 
-        const latest = await refreshMe();
+        const latest = await useAuthStore.getState().refreshMe();
         if (cancelled) return;
 
         if (latest?.role === "admin") {
           setAllowed(true);
         } else {
           setAllowed(false);
-          router.replace("/account");
+          hardReplace("/account");
         }
       } catch {
         if (!cancelled) {
           setAllowed(false);
           const stillHasToken = Boolean(useAuthStore.getState().accessToken);
-          router.replace(stillHasToken ? "/account" : "/login?next=/admin");
+          hardReplace(stillHasToken ? "/account" : "/login?next=/admin");
         }
       } finally {
         if (!cancelled) setChecking(false);
@@ -94,13 +113,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [hydrated, refreshMe, router]);
+  }, [hydrated, routerReady]);
 
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
-  if (!hydrated || checking || !allowed || !user) {
+  if (!hydrated || !routerReady || checking || !allowed || !user) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-background text-sm text-muted-foreground">
         Tekshirilmoqda…
@@ -122,7 +141,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <AdminNav
             pathname={pathname}
             regOpen={regOpen}
+            hamkorOpen={hamkorOpen}
             onToggleReg={() => setRegOpen((v) => !v)}
+            onToggleHamkor={() => setHamkorOpen((v) => !v)}
           />
         </nav>
         <div className="border-t border-sidebar-border p-3">
@@ -161,7 +182,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <AdminNav
                 pathname={pathname}
                 regOpen={regOpen}
+                hamkorOpen={hamkorOpen}
                 onToggleReg={() => setRegOpen((v) => !v)}
+                onToggleHamkor={() => setHamkorOpen((v) => !v)}
               />
             </nav>
           </aside>
@@ -187,15 +210,18 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               {user.phone || user.username || "Admin"}
             </p>
           </div>
-          <Button
-            size="sm"
-            className="h-9 gap-2 rounded-full bg-black px-3.5 text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200"
-            nativeButton={false}
-            render={<Link href="/account" />}
+          <UsdRateBadge className="hidden sm:inline" />
+          <Link
+            href="/account"
+            prefetch={false}
+            className={cn(
+              buttonVariants({ size: "sm" }),
+              "h-9 gap-2 rounded-full bg-black px-3.5 text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200",
+            )}
           >
             <User className="size-4" strokeWidth={1.75} />
             <span className="hidden sm:inline">Profil</span>
-          </Button>
+          </Link>
         </header>
         <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
       </div>
@@ -207,11 +233,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 function AdminNav({
   pathname,
   regOpen,
+  hamkorOpen,
   onToggleReg,
+  onToggleHamkor,
 }: {
   pathname: string;
   regOpen: boolean;
+  hamkorOpen: boolean;
   onToggleReg: () => void;
+  onToggleHamkor: () => void;
 }) {
   return (
     <>
@@ -220,11 +250,14 @@ function AdminNav({
           const childActive = item.children.some((c) =>
             pathname.startsWith(c.href),
           );
+          const isHamkor = item.label === "Hamkor";
+          const groupOpen = isHamkor ? hamkorOpen : regOpen;
+          const onToggle = isHamkor ? onToggleHamkor : onToggleReg;
           return (
             <div key={item.label}>
               <button
                 type="button"
-                onClick={onToggleReg}
+                onClick={onToggle}
                 className={cn(
                   "flex h-10 w-full items-center gap-2.5 rounded-xl px-3 text-sm font-medium transition",
                   childActive
@@ -237,11 +270,11 @@ function AdminNav({
                 <ChevronDown
                   className={cn(
                     "size-4 transition",
-                    regOpen || childActive ? "rotate-180" : "",
+                    groupOpen || childActive ? "rotate-180" : "",
                   )}
                 />
               </button>
-              {(regOpen || childActive) && (
+              {(groupOpen || childActive) && (
                 <div className="mt-1 ml-3 space-y-1.5 border-l border-sidebar-border pl-3">
                   {item.children.map((child) => {
                     const active = pathname.startsWith(child.href);
@@ -249,6 +282,7 @@ function AdminNav({
                       <Link
                         key={child.href}
                         href={child.href}
+                        prefetch={false}
                         className={cn(
                           "flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm transition",
                           active
@@ -277,6 +311,7 @@ function AdminNav({
           <Link
             key={linkItem.href}
             href={linkItem.href}
+            prefetch={false}
             className={cn(
               "flex h-10 items-center gap-2.5 rounded-xl px-3 text-sm font-medium transition",
               active

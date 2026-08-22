@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useState } from "react";
 import { Heart, ShoppingBag, Star } from "lucide-react";
 import type { Product } from "@/types/product";
-import { formatUZS } from "@/lib/format";
+import { productHref, productSourceOf } from "@/types/product";
+import { formatMoney } from "@/lib/format";
+import { resolveCompareAtPrice } from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import { ProductImage } from "@/components/catalog/ProductImage";
 import { ProductQuickView } from "@/components/product/ProductQuickView";
 import { useWishlistStore } from "@/store/wishlist";
-import { useProductUnitPrice } from "@/hooks/use-price-tier";
+import { usePriceTier, useProductUnitPrice } from "@/hooks/use-price-tier";
+import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
 import { useProductFieldVisible } from "@/components/product/ProductDisplayProvider";
 import { cn } from "@/lib/utils";
 
@@ -39,10 +42,17 @@ export function ProductCard({
   const [quickOpen, setQuickOpen] = useState(false);
   const toggleWishlist = useWishlistStore((s) => s.toggleItem);
   const liked = useWishlistStore((s) =>
-    s.items.some((item) => item.productId === product.id),
+    s.items.some(
+      (item) =>
+        item.productId === product.id &&
+        productSourceOf(item.source) === productSourceOf(product.source),
+    ),
   );
+  const href = productHref(product);
   const rating = productRating(product);
   const unitPrice = useProductUnitPrice(product);
+  const priceTier = usePriceTier();
+  const usdToUzs = useUsdToUzs();
   const showPrice = useProductFieldVisible("price");
   const showCompareAt = useProductFieldVisible("compareAtPrice");
   const showRating = useProductFieldVisible("rating");
@@ -58,7 +68,8 @@ export function ProductCard({
       <article className={cn("group flex flex-col", className)}>
         <div className="relative">
           <Link
-            href={`/product/${product.slug}`}
+            href={href}
+            prefetch={false}
             className={cn(
               "relative block overflow-hidden rounded-[28px] bg-muted",
               imageAspectClass,
@@ -134,19 +145,28 @@ export function ProductCard({
 
         <div className="mt-3 space-y-1 px-0.5">
           <h3 className="line-clamp-2 min-h-[2lh] text-[15px] font-medium leading-snug text-foreground">
-            <Link href={`/product/${product.slug}`}>{product.name}</Link>
+            <Link href={href} prefetch={false}>
+              {product.name}
+            </Link>
           </h3>
           {showPrice || showCompareAt || showRating ? (
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 {showPrice ? (
                   <p className="text-[15px] font-bold leading-snug tracking-tight text-foreground tabular-nums">
-                    {formatUZS(unitPrice)}
+                    {formatMoney(unitPrice, priceTier)}
                   </p>
                 ) : null}
                 {showCompareAt && product.compareAtPrice ? (
                   <p className="text-xs text-muted-foreground line-through tabular-nums">
-                    {formatUZS(product.compareAtPrice)}
+                    {formatMoney(
+                      resolveCompareAtPrice(
+                        product.compareAtPrice,
+                        usdToUzs,
+                        priceTier,
+                      ),
+                      priceTier,
+                    )}
                   </p>
                 ) : null}
               </div>
@@ -168,11 +188,13 @@ export function ProductCard({
         </div>
       </article>
 
-      <ProductQuickView
-        product={product}
-        open={quickOpen}
-        onOpenChange={setQuickOpen}
-      />
+      {quickOpen ? (
+        <ProductQuickView
+          product={product}
+          open={quickOpen}
+          onOpenChange={setQuickOpen}
+        />
+      ) : null}
     </>
   );
 }

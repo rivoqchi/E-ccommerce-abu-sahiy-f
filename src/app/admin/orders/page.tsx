@@ -27,7 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAdminApi } from "@/lib/admin-api";
-import { formatUZS } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type OrderItem = {
@@ -35,6 +35,8 @@ type OrderItem = {
   slug?: string;
   quantity: number;
   unitPrice: number;
+  source?: "store" | "hamkor";
+  partnerName?: string;
 };
 
 type ShippingAddress = {
@@ -52,6 +54,7 @@ type Order = {
   total: number;
   subtotal?: number;
   shippingFee?: number;
+  currency?: string;
   status: string;
   createdAt?: string;
   notes?: string;
@@ -176,7 +179,7 @@ export default function AdminOrdersPage() {
                       .map((i) => `${i.name} ×${i.quantity}`)
                       .join(", ") || "—"}
                   </TableCell>
-                  <TableCell>{formatUZS(o.total)}</TableCell>
+                  <TableCell>{formatMoney(o.total, o.currency)}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">
                       {STATUS_LABEL[o.status] ?? o.status}
@@ -320,13 +323,20 @@ export default function AdminOrdersPage() {
                         className="flex items-start justify-between gap-3 px-3 py-2.5"
                       >
                         <div>
-                          <p className="font-medium">{item.name}</p>
+                          <p className="font-medium">
+                            {item.name}
+                            {item.source === "hamkor" ? (
+                              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                {item.partnerName || "Hamkor"}
+                              </span>
+                            ) : null}
+                          </p>
                           <p className="text-muted-foreground">
-                            {formatUZS(item.unitPrice)} × {item.quantity}
+                            {formatMoney(item.unitPrice, selected.currency)} × {item.quantity}
                           </p>
                         </div>
                         <p className="shrink-0 font-medium">
-                          {formatUZS(item.unitPrice * item.quantity)}
+                          {formatMoney(item.unitPrice * item.quantity, selected.currency)}
                         </p>
                       </li>
                     ))}
@@ -351,16 +361,16 @@ export default function AdminOrdersPage() {
                   <div className="flex justify-between text-muted-foreground">
                     <span>Oraliq summa</span>
                     <span>
-                      {formatUZS(selected.subtotal ?? selected.total)}
+                      {formatMoney(selected.subtotal ?? selected.total, selected.currency)}
                     </span>
                   </div>
                   <div className="flex justify-between text-muted-foreground">
                     <span>Yetkazib berish</span>
-                    <span>{formatUZS(selected.shippingFee ?? 0)}</span>
+                    <span>{formatMoney(selected.shippingFee ?? 0, selected.currency)}</span>
                   </div>
                   <div className="flex justify-between text-base font-semibold">
                     <span>Jami</span>
-                    <span>{formatUZS(selected.total)}</span>
+                    <span>{formatMoney(selected.total, selected.currency)}</span>
                   </div>
                 </div>
 

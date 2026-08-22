@@ -24,7 +24,7 @@ export function CatalogPagination({
   totalPages,
   query,
 }: CatalogPaginationProps) {
-  if (totalPages <= 1) return null;
+  if (!Number.isFinite(totalPages) || totalPages <= 1) return null;
 
   const items = getPaginationItems(page, totalPages);
   const prevHref =

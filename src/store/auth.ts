@@ -243,14 +243,14 @@ export const useAuthStore = create<AuthState>()(
         if (error) {
           console.warn("[auth] rehydrate failed", error);
         }
-        // Prefer direct setState — action may be missing if rehydrate failed early
-        if (state) {
-          state.setHydrated(true);
-        } else {
-          queueMicrotask(() => {
+        // Defer so React 19 does not see a store update during first render
+        queueMicrotask(() => {
+          if (state) {
+            state.setHydrated(true);
+          } else {
             useAuthStore.setState({ hydrated: true });
-          });
-        }
+          }
+        });
       },
     },
   ),

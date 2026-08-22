@@ -4,8 +4,8 @@ import { ProductDetailsView } from "@/components/product/ProductDetailsView";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import {
   fetchExchangeRate,
-  fetchProductBySlug,
-  fetchRelatedProducts,
+  fetchHamkorProductBySlug,
+  fetchHamkorRelatedProducts,
 } from "@/lib/storefront-api";
 import {
   breadcrumbJsonLd,
@@ -16,20 +16,15 @@ import {
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
 
-interface ProductPageProps {
+interface HamkorProductPageProps {
   params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-  // Excel importdan keyin yangi sluglar ham ochilsin — oldindan static emas
-  return [];
 }
 
 export async function generateMetadata({
   params,
-}: ProductPageProps): Promise<Metadata> {
+}: HamkorProductPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = await fetchProductBySlug(slug);
+  const product = await fetchHamkorProductBySlug(slug);
   if (!product) {
     return { title: "Mahsulot topilmadi" };
   }
@@ -38,7 +33,7 @@ export async function generateMetadata({
     title: product.name,
     description: product.description || product.name,
     alternates: {
-      canonical: `/product/${product.slug}`,
+      canonical: `/hamkor/product/${product.slug}`,
     },
     openGraph: {
       title: product.name,
@@ -49,10 +44,12 @@ export async function generateMetadata({
   };
 }
 
-export default async function ProductPage({ params }: ProductPageProps) {
+export default async function HamkorProductPage({
+  params,
+}: HamkorProductPageProps) {
   const { slug } = await params;
   const [product, exchangeRate] = await Promise.all([
-    fetchProductBySlug(slug),
+    fetchHamkorProductBySlug(slug),
     fetchExchangeRate(),
   ]);
 
@@ -60,7 +57,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
-  const related = await fetchRelatedProducts(product);
+  const related = await fetchHamkorRelatedProducts(product);
 
   return (
     <>
@@ -75,12 +72,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
         dangerouslySetInnerHTML={jsonLdScript(
           breadcrumbJsonLd([
             { name: "Bosh sahifa", path: "/" },
-            { name: "Katalog", path: "/catalog" },
+            { name: "Hamkor", path: "/hamkor" },
             {
               name: product.categoryLabel,
-              path: `/catalog?category=${product.category}`,
+              path: `/hamkor?category=${product.category}`,
             },
-            { name: product.name, path: `/product/${product.slug}` },
+            { name: product.name, path: `/hamkor/product/${product.slug}` },
           ]),
         )}
       />

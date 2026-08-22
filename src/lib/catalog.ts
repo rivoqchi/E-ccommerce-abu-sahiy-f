@@ -10,10 +10,12 @@ export type CatalogSort = "featured" | "price-asc" | "price-desc" | "name";
 export interface CatalogQuery {
   category?: string;
   brand?: string;
+  partner?: string;
   sort?: CatalogSort;
   inStock?: boolean;
   page?: number;
   q?: string;
+  pathname?: string;
 }
 
 export function buildCatalogHref(params: CatalogQuery): string {
@@ -23,6 +25,9 @@ export function buildCatalogHref(params: CatalogQuery): string {
   }
   if (params.brand && params.brand !== "all") {
     search.set("brand", params.brand);
+  }
+  if (params.partner && params.partner !== "all") {
+    search.set("partner", params.partner);
   }
   if (params.q?.trim()) {
     search.set("q", params.q.trim());
@@ -37,7 +42,8 @@ export function buildCatalogHref(params: CatalogQuery): string {
     search.set("page", String(params.page));
   }
   const qs = search.toString();
-  return qs ? `/catalog?${qs}` : "/catalog";
+  const pathname = params.pathname || "/catalog";
+  return qs ? `${pathname}?${qs}` : pathname;
 }
 
 export function sortProducts(

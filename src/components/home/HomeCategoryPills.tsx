@@ -6,30 +6,37 @@ import type { CatalogCategory } from "@/types/product";
 interface HomeCategoryPillsProps {
   categories: CatalogCategory[];
   active?: string;
+  hrefFor?: (slug: string) => string;
+  title?: string;
 }
 
 export function HomeCategoryPills({
   categories,
   active = "all",
+  hrefFor,
+  title = "Kategoriyalar",
 }: HomeCategoryPillsProps) {
   if (!categories.length) return null;
 
   return (
     <section>
       <h2 className="text-xl font-semibold tracking-tight text-foreground">
-        Kategoriyalar
+        {title}
       </h2>
 
       <div className="mt-4 grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 sm:gap-x-4 sm:gap-y-6 md:grid-cols-5 lg:grid-cols-6">
         {categories.map((cat) => {
           const isActive = active === cat.slug;
-          const href = `/catalog?category=${cat.slug}`;
+          const href = hrefFor
+            ? hrefFor(cat.slug)
+            : `/catalog?category=${cat.slug}`;
           const count = cat.productCount ?? 0;
 
           return (
             <Link
               key={cat.id}
               href={href}
+              prefetch={false}
               aria-label={`${cat.name}, ${count} ta mahsulot`}
               className="group flex flex-col items-center gap-2"
             >

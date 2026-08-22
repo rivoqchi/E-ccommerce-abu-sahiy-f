@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useCartStore } from "@/store/cart";
-import { formatUZS } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { usePriceTier } from "@/hooks/use-price-tier";
+import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,7 +21,8 @@ export function CartSummary() {
   const hydrated = useCartStore((s) => s.hydrated);
   const totalPriceFn = useCartStore((s) => s.totalPrice);
   const priceTier = usePriceTier();
-  const totalPrice = totalPriceFn(priceTier);
+  const usdToUzs = useUsdToUzs();
+  const totalPrice = totalPriceFn(priceTier, usdToUzs);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   if (!hydrated) {
@@ -41,7 +43,7 @@ export function CartSummary() {
             Mahsulotlar ({totalItems})
           </span>
           <span className="font-medium tabular-nums">
-            {formatUZS(totalPrice)}
+            {formatMoney(totalPrice, priceTier)}
           </span>
         </div>
         <div className="flex justify-between">
@@ -52,7 +54,7 @@ export function CartSummary() {
         <div className="flex justify-between text-base">
           <span className="font-semibold">Jami</span>
           <span className="font-semibold tabular-nums">
-            {formatUZS(totalPrice)}
+            {formatMoney(totalPrice, priceTier)}
           </span>
         </div>
       </CardContent>

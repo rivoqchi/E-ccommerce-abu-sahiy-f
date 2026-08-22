@@ -6,7 +6,11 @@ import { ProductDisplayProvider } from "@/components/product/ProductDisplayProvi
 import { TelegramAuthProvider } from "@/components/telegram/TelegramAuthProvider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { themeInitScript } from "@/lib/theme-script";
-import { fetchProductDisplaySettings } from "@/lib/storefront-api";
+import {
+  fetchExchangeRate,
+  fetchProductDisplaySettings,
+} from "@/lib/storefront-api";
+import { ExchangeRateProvider } from "@/components/fx/ExchangeRateProvider";
 import {
   jsonLdScript,
   organizationJsonLd,
@@ -61,7 +65,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const displaySettings = await fetchProductDisplaySettings();
+  const [displaySettings, exchangeRate] = await Promise.all([
+    fetchProductDisplaySettings(),
+    fetchExchangeRate(),
+  ]);
 
   return (
     <html
@@ -95,7 +102,9 @@ export default async function RootLayout({
         >
           <TelegramAuthProvider>
             <ProductDisplayProvider settings={displaySettings}>
-              <AppShell>{children}</AppShell>
+              <ExchangeRateProvider initial={exchangeRate}>
+                <AppShell>{children}</AppShell>
+              </ExchangeRateProvider>
             </ProductDisplayProvider>
           </TelegramAuthProvider>
         </ThemeProvider>

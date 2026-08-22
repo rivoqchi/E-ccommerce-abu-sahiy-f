@@ -41,8 +41,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { showCenterToast } from "@/components/ui/center-toast";
-import { ProductExcelImport } from "@/components/admin/ProductExcelImport";
-import { ProductDisplaySettingsModal } from "@/components/admin/ProductDisplaySettingsModal";
 import { useAdminApi } from "@/lib/admin-api";
 import { formatUSD, formatUZS } from "@/lib/format";
 import { resolveUnitPrice, sourceUsd } from "@/lib/pricing";
@@ -53,8 +51,9 @@ import {
 } from "@/lib/product-upload";
 import { cn } from "@/lib/utils";
 
-type RefItem = { _id: string; name: string };
+type RefItem = { _id: string; name: string; partnerId?: string };
 type Spec = { label: string; value: string };
+type PartnerRef = string | { _id: string; name?: string };
 type Product = {
   _id: string;
   name: string;
@@ -63,13 +62,18 @@ type Product = {
   wholesalePrice?: number;
   stock: number;
   status: string;
+  partnerId?: PartnerRef;
   categoryId: string;
-  brandId?: string;
   images?: string[];
   specs?: Spec[];
   description?: string;
   createdAt?: string;
 };
+
+function refId(ref?: PartnerRef | string): string {
+  if (!ref) return "";
+  return typeof ref === "string" ? ref : ref._id;
+}
 
 function formatProductDate(value?: string) {
   if (!value) return "—";
@@ -79,7 +83,6 @@ function formatProductDate(value?: string) {
   return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-/** Yetishmaydigan maydonlar — qizil qator / Muammoli tab. */
 function getProductIssues(p: {
   name?: string;
   code?: string;
@@ -111,8 +114,8 @@ type SavePayload = {
   price: number;
   wholesalePrice: number;
   stock: number;
+  partnerId: string;
   categoryId: string;
-  brandId?: string;
   description: string;
   status: string;
   images: string[];
@@ -132,8 +135,8 @@ function productFromPayload(
     wholesalePrice: payload.wholesalePrice,
     stock: payload.stock,
     status: payload.status,
+    partnerId: payload.partnerId,
     categoryId: payload.categoryId,
-    brandId: payload.brandId,
     images: payload.images,
     specs: payload.specs,
     description: payload.description,
@@ -155,8 +158,8 @@ const emptyForm = {
   price: "",
   wholesalePrice: "",
   stock: "0",
+  partnerId: "",
   categoryId: "",
-  brandId: "",
   description: "",
   status: "active",
   images: [] as string[],
@@ -243,13 +246,13 @@ function SearchableCategory({
   );
 }
 
-export default function AdminProductsPage() {
+export default function AdminHamkorProductsPage() {
   const { adminFetch } = useAdminApi();
   const usdToUzs = useUsdToUzs();
   const fileRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<Product[]>([]);
   const [categories, setCategories] = useState<RefItem[]>([]);
-  const [brands, setBrands] = useState<RefItem[]>([]);
+  const [partners, setPartners] = useState<RefItem[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -265,12 +268,20 @@ export default function AdminProductsPage() {
   const silentLoadRef = useRef(false);
 
   const loadMeta = useCallback(async () => {
-    const [cats, brs] = await Promise.all([
-      adminFetch<RefItem[]>("/categories?all=true"),
-      adminFetch<RefItem[]>("/brands?all=true"),
+    const [cats, prs] = await Promise.all([
+      adminFetch<Array<RefItem & { partnerId?: PartnerRef }>>(
+        "/hamkor/categories?all=true",
+      ),
+      adminFetch<RefItem[]>("/hamkor/partners?all=true"),
     ]);
-    setCategories(cats);
-    setBrands(brs);
+    setCategories(
+      cats.map((c) => ({
+        _id: c._id,
+        name: c.name,
+        partnerId: refId(c.partnerId),
+      })),
+    );
+    setPartners(prs);
   }, [adminFetch]);
 
   const loadProducts = useCallback(
@@ -290,7 +301,7 @@ export default function AdminProductsPage() {
         if (q.trim()) params.set("q", q.trim());
         if (tab === "incomplete") params.set("incomplete", "true");
         const data = await adminFetch<AdminProductsPage>(
-          `/products/admin/all?${params.toString()}`,
+          `/hamkor/products/admin/all?${params.toString()}`,
         );
         setItems(data.items ?? []);
         setTotal(data.total ?? 0);
@@ -333,8 +344,8 @@ export default function AdminProductsPage() {
         Number(p.wholesalePrice) > 0 ? p.wholesalePrice : p.price,
       ),
       stock: String(p.stock),
+      partnerId: refId(p.partnerId),
       categoryId: String(p.categoryId),
-      brandId: p.brandId ? String(p.brandId) : "",
       description: p.description ?? "",
       status: p.status || "active",
       images: p.images ?? [],
@@ -370,11 +381,12 @@ export default function AdminProductsPage() {
     if (
       !form.name.trim() ||
       !form.code.trim() ||
+      !form.partnerId ||
       !form.categoryId ||
       Number.isNaN(wholesalePrice) ||
       wholesalePrice < 0
     ) {
-      setError("Nom, kod, kategoriya va optom narx majburiy");
+      setError("Nom, kod, hamkor, kategoriya va optom narx majburiy");
       return;
     }
     if (form.images.length === 0) {
@@ -389,15 +401,15 @@ export default function AdminProductsPage() {
           price: wholesalePrice,
           wholesalePrice,
           stock: Number.isNaN(stock) ? 0 : stock,
+          partnerId: form.partnerId,
           categoryId: form.categoryId,
-          brandId: form.brandId || undefined,
           description: form.description.trim() || form.name.trim(),
           status: form.status,
           images: form.images,
           specs: form.specs.filter((s) => s.label.trim() && s.value.trim()),
         };
         if (editingId) {
-          await adminFetch(`/products/${editingId}`, {
+          await adminFetch(`/hamkor/products/${editingId}`, {
             method: "PATCH",
             body: JSON.stringify(payload),
           });
@@ -416,10 +428,13 @@ export default function AdminProductsPage() {
           }
           showCenterToast("Mahsulot yangilandi");
         } else {
-          const created = await adminFetch<{ _id: string }>("/products", {
-            method: "POST",
-            body: JSON.stringify(payload),
-          });
+          const created = await adminFetch<{ _id: string }>(
+            "/hamkor/products",
+            {
+              method: "POST",
+              body: JSON.stringify(payload),
+            },
+          );
           const next = productFromPayload(String(created._id), payload);
           const incomplete = getProductIssues(next).length > 0;
           const showInList =
@@ -445,7 +460,7 @@ export default function AdminProductsPage() {
 
   async function remove(id: string) {
     try {
-      await adminFetch(`/products/${id}`, { method: "DELETE" });
+      await adminFetch(`/hamkor/products/${id}`, { method: "DELETE" });
       const remaining = items.filter((p) => p._id !== id);
       const n = Math.max(0, total - 1);
       const pages = pageCount(n);
@@ -476,41 +491,17 @@ export default function AdminProductsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Mahsulotlar</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Hamkor mahsulotlar
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Jami {total} ta · sahifada {PAGE_SIZE} tadan
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <ProductDisplaySettingsModal />
-          <ProductExcelImport
-            mode="add"
-            onDone={async () => {
-              await loadMeta();
-              silentLoadRef.current = true;
-              if (page === 1) await loadProducts(1, query, listTab, { silent: true });
-              else setPage(1);
-            }}
-          />
-          <ProductExcelImport
-            mode="replace"
-            onDone={async () => {
-              await loadMeta();
-              silentLoadRef.current = true;
-              setSearchInput("");
-              if (query !== "" || page !== 1) {
-                setQuery("");
-                setPage(1);
-              } else {
-                await loadProducts(1, "", listTab, { silent: true });
-              }
-            }}
-          />
-          <Button className="rounded-full" onClick={openCreate}>
-            <Plus className="size-4" />
-            Qoʻshish
-          </Button>
-        </div>
+        <Button className="rounded-full" onClick={openCreate}>
+          <Plus className="size-4" />
+          Qoʻshish
+        </Button>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -615,118 +606,117 @@ export default function AdminProductsPage() {
               ) : null}
               {items.map((p) => {
                 const issues = getProductIssues(p);
-                  const hasProblems = issues.length > 0;
-                  const hasImage = hasRealProductImage(p.images);
-                  const thumb = hasImage ? p.images?.[0] : undefined;
-                  return (
-                    <TableRow
-                      key={p._id}
-                      className={cn(
-                        hasProblems &&
-                          "bg-destructive/10 text-destructive hover:bg-destructive/15",
+                const hasProblems = issues.length > 0;
+                const hasImage = hasRealProductImage(p.images);
+                const thumb = hasImage ? p.images?.[0] : undefined;
+                return (
+                  <TableRow
+                    key={p._id}
+                    className={cn(
+                      hasProblems &&
+                        "bg-destructive/10 text-destructive hover:bg-destructive/15",
+                    )}
+                  >
+                    <TableCell className="pl-5">
+                      {thumb ? (
+                        <img
+                          src={thumb}
+                          alt={p.name}
+                          className="size-12 rounded-xl object-cover bg-muted"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex size-12 items-center justify-center rounded-xl border border-destructive/40 bg-destructive/10 text-xs text-destructive">
+                          —
+                        </div>
                       )}
-                    >
-                      <TableCell className="pl-5">
-                        {thumb ? (
-                          <img
-                            src={thumb}
-                            alt={p.name}
-                            className="size-12 rounded-xl object-cover bg-muted"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="flex size-12 items-center justify-center rounded-xl border border-destructive/40 bg-destructive/10 text-xs text-destructive">
-                            —
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="max-w-[220px] font-medium">
-                        <span className="line-clamp-2">{p.name || "—"}</span>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {p.code || "—"}
-                      </TableCell>
-                      <TableCell>
-                        {formatUZS(
-                          resolveUnitPrice(
-                            {
-                              price: p.price,
-                              wholesalePrice: p.wholesalePrice,
-                            },
-                            "retail",
-                            usdToUzs,
-                          ),
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {formatUSD(
-                          sourceUsd({
+                    </TableCell>
+                    <TableCell className="max-w-[220px] font-medium">
+                      <span className="line-clamp-2">{p.name || "—"}</span>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {p.code || "—"}
+                    </TableCell>
+                    <TableCell>
+                      {formatUZS(
+                        resolveUnitPrice(
+                          {
                             price: p.price,
                             wholesalePrice: p.wholesalePrice,
-                          }),
-                        )}
-                      </TableCell>
-                      <TableCell className="tabular-nums font-medium">
-                        {p.stock}
-                      </TableCell>
-                      <TableCell className="max-w-[140px] text-xs">
-                        {hasProblems ? (
-                          <span className="font-medium text-destructive">
-                            {issues.join(" · ")}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell
+                          },
+                          "retail",
+                          usdToUzs,
+                        ),
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {formatUSD(
+                        sourceUsd({
+                          price: p.price,
+                          wholesalePrice: p.wholesalePrice,
+                        }),
+                      )}
+                    </TableCell>
+                    <TableCell className="tabular-nums font-medium">
+                      {p.stock}
+                    </TableCell>
+                    <TableCell className="max-w-[140px] text-xs">
+                      {hasProblems ? (
+                        <span className="font-medium text-destructive">
+                          {issues.join(" · ")}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        "whitespace-nowrap text-sm",
+                        hasProblems
+                          ? "text-destructive/80"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {formatProductDate(p.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="secondary"
                         className={cn(
-                          "whitespace-nowrap text-sm",
-                          hasProblems
-                            ? "text-destructive/80"
-                            : "text-muted-foreground",
+                          hasProblems && "bg-destructive/15 text-destructive",
                         )}
                       >
-                        {formatProductDate(p.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            hasProblems &&
-                              "bg-destructive/15 text-destructive",
-                          )}
-                        >
-                          {p.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="pr-5 text-right space-x-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          className={cn(
-                            "rounded-full",
-                            hasProblems &&
-                              "text-destructive hover:text-destructive",
-                          )}
-                          onClick={() => openEdit(p)}
-                          aria-label="Tahrirlash"
-                          title="Tahrirlash"
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <ConfirmAction
-                          className="text-destructive"
-                          title="Mahsulotni oʻchirasizmi?"
-                          description={`“${p.name}” mahsuloti butunlay oʻchiriladi. Davom etasizmi?`}
-                          onConfirm={() => remove(p._id)}
-                        >
-                          <Trash2 className="size-4" />
-                        </ConfirmAction>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                        {p.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="pr-5 text-right space-x-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className={cn(
+                          "rounded-full",
+                          hasProblems &&
+                            "text-destructive hover:text-destructive",
+                        )}
+                        onClick={() => openEdit(p)}
+                        aria-label="Tahrirlash"
+                        title="Tahrirlash"
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                      <ConfirmAction
+                        className="text-destructive"
+                        title="Mahsulotni oʻchirasizmi?"
+                        description={`“${p.name}” mahsuloti butunlay oʻchiriladi. Davom etasizmi?`}
+                        onConfirm={() => remove(p._id)}
+                      >
+                        <Trash2 className="size-4" />
+                      </ConfirmAction>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               {!loadingList && !items.length ? (
                 <TableRow>
                   <TableCell
@@ -784,6 +774,7 @@ export default function AdminProductsPage() {
           if (!next) setError(null);
         }}
       >
+        {open ? (
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
@@ -799,7 +790,7 @@ export default function AdminProductsPage() {
               className="h-12"
             />
             <Input
-              placeholder="Kod (masalan: SM-001)"
+              placeholder="Kod (masalan: HK-001)"
               value={form.code}
               onChange={(e) => setForm({ ...form, code: e.target.value })}
               className="h-12 font-mono uppercase"
@@ -840,34 +831,44 @@ export default function AdminProductsPage() {
               />
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <SearchableCategory
-                categories={categories}
-                value={form.categoryId}
-                onChange={(id) => setForm({ ...form, categoryId: id })}
-              />
+            <Select
+              value={form.partnerId || null}
+              onValueChange={(v) =>
+                setForm((f) => {
+                  const next = v ?? "";
+                  if (f.partnerId === next) return f;
+                  return { ...f, partnerId: next, categoryId: "" };
+                })
+              }
+            >
+              <SelectTrigger className="h-12 w-full">
+                <SelectValue placeholder="Hamkor nomi" />
+              </SelectTrigger>
+              <SelectContent>
+                {partners.map((p) => (
+                  <SelectItem key={p._id} value={p._id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              <Select
-                value={form.brandId || null}
-                onValueChange={(v) => setForm({ ...form, brandId: v ?? "" })}
-              >
-                <SelectTrigger className="h-12 w-full">
-                  <SelectValue placeholder="Brend (ixtiyoriy)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {brands.map((b) => (
-                    <SelectItem key={b._id} value={b._id}>
-                      {b.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <SearchableCategory
+              categories={categories.filter(
+                (c) => !form.partnerId || c.partnerId === form.partnerId,
+              )}
+              value={form.categoryId}
+              onChange={(id) => setForm({ ...form, categoryId: id })}
+            />
 
             <Select
               value={form.status}
               onValueChange={(v) =>
-                setForm({ ...form, status: v || "active" })
+                setForm((f) => {
+                  const next = v || "active";
+                  if (f.status === next) return f;
+                  return { ...f, status: next };
+                })
               }
             >
               <SelectTrigger className="h-12 w-full">
@@ -954,8 +955,7 @@ export default function AdminProductsPage() {
                     Rasmlar <span className="text-destructive">*</span>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Majburiy · yuqori sifat (max {PRODUCT_IMAGE_SIZE}px,
-                    kichik rasm kattalashtirilmaydi)
+                    Majburiy · yuqori sifat (max {PRODUCT_IMAGE_SIZE}px)
                   </p>
                 </div>
                 <Button
@@ -986,7 +986,6 @@ export default function AdminProductsPage() {
                     key={url}
                     className="relative size-20 overflow-hidden rounded-2xl bg-secondary"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={url} alt="" className="size-full object-cover" />
                     <button
                       type="button"
@@ -1021,6 +1020,7 @@ export default function AdminProductsPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
+        ) : null}
       </Dialog>
     </div>
   );

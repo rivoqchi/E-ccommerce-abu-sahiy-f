@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { apiFetch, ApiClientError } from "@/lib/api";
-import { formatUZS } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { useAuthStore } from "@/store/auth";
 import { useCartStore } from "@/store/cart";
+import { safeReplace } from "@/lib/safe-navigate";
 import { usePriceTier } from "@/hooks/use-price-tier";
+import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,7 +34,8 @@ export function CheckoutForm() {
   const clearCart = useCartStore((s) => s.clearCart);
   const totalPriceFn = useCartStore((s) => s.totalPrice);
   const priceTier = usePriceTier();
-  const totalPrice = totalPriceFn(priceTier);
+  const usdToUzs = useUsdToUzs();
+  const totalPrice = totalPriceFn(priceTier, usdToUzs);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const [firstName, setFirstName] = useState("");
@@ -46,7 +49,7 @@ export function CheckoutForm() {
   useEffect(() => {
     if (!hydrated) return;
     if (items.length === 0 && !done) {
-      router.replace("/cart");
+      safeReplace(router, "/cart");
     }
   }, [hydrated, items.length, done, router]);
 
@@ -96,6 +99,7 @@ export function CheckoutForm() {
             items: items.map((item) => ({
               productId: item.productId,
               quantity: item.quantity,
+              source: item.source ?? "store",
             })),
           }),
         });
@@ -168,12 +172,12 @@ export function CheckoutForm() {
       <div className="mb-6 space-y-2 rounded-2xl bg-secondary/60 px-4 py-3 text-sm">
         <div className="flex justify-between">
           <span className="text-muted-foreground">Mahsulotlar ({totalItems})</span>
-          <span className="font-medium tabular-nums">{formatUZS(totalPrice)}</span>
+          <span className="font-medium tabular-nums">{formatMoney(totalPrice, priceTier)}</span>
         </div>
         <Separator />
         <div className="flex justify-between text-base">
           <span className="font-semibold">Jami</span>
-          <span className="font-semibold tabular-nums">{formatUZS(totalPrice)}</span>
+          <span className="font-semibold tabular-nums">{formatMoney(totalPrice, priceTier)}</span>
         </div>
       </div>
 
