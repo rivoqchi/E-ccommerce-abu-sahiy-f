@@ -413,20 +413,20 @@ export default function AdminStoriesPage() {
       </Card>
 
       <Dialog open={open} onOpenChange={handleDialogChange}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-lg" bodyClassName="overflow-hidden">
+          <DialogHeader className="shrink-0">
             <DialogTitle>
               {editingId ? "Istoriyani tahrirlash" : "Yangi istoriya"}
             </DialogTitle>
           </DialogHeader>
 
-          {error ? (
-            <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </p>
-          ) : null}
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain touch-pan-y pr-1">
+            {error ? (
+              <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {error}
+              </p>
+            ) : null}
 
-          <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Muallif nomi</label>
               <Input

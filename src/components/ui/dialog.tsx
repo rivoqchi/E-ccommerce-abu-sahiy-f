@@ -63,7 +63,7 @@ function DialogContent({
       >
         <div
           className={cn(
-            "flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-6 pt-5 pb-5",
+            "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-6 pt-5 pb-5",
             bodyClassName
           )}
         >

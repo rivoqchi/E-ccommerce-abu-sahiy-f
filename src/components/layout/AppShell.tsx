@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { ScreenshotGuard } from "@/components/security/ScreenshotGuard";
 import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -23,11 +24,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (isVideos) {
-    return <main className="flex-1">{children}</main>;
+    return (
+      <>
+        <ScreenshotGuard />
+        <main className="flex-1">{children}</main>
+      </>
+    );
   }
 
   return (
     <>
+      <ScreenshotGuard />
       <Header />
       <main
         className={cn(

@@ -26,8 +26,17 @@ function safeNextPath(next: string): string {
   return next.startsWith("/") ? next : "/account";
 }
 
+function blockedAccountMessage(message: string): string | null {
+  if (/disabled|bloklangan|bloklandi/i.test(message)) {
+    return "Hisobingiz bloklangan. Screenshot tufayli yoki administrator tomonidan o‘chirilgan.";
+  }
+  return null;
+}
+
 function tokenLoginErrorMessage(err: unknown): string {
-  if (err instanceof ApiClientError) return err.message;
+  if (err instanceof ApiClientError) {
+    return blockedAccountMessage(err.message) ?? err.message;
+  }
   if (err instanceof TypeError) {
     return "API ga ulanib bo‘lmadi. Internetni tekshiring yoki botdan yangi link oling.";
   }
@@ -158,7 +167,7 @@ export function LoginForm() {
       } catch (err) {
         setError(
           err instanceof ApiClientError
-            ? err.message
+            ? (blockedAccountMessage(err.message) ?? err.message)
             : "Kod notoʻgʻri. Qayta urinib koʻring.",
         );
         setOtp("");
