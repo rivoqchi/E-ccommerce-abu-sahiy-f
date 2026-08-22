@@ -7,12 +7,11 @@ import { cartLineKey, productSourceOf } from "@/types/product";
 import { playAddToCartSound } from "@/lib/sounds";
 import { resolveUnitPrice, type PriceTier } from "@/lib/pricing";
 import { isStorefrontReadyProduct } from "@/lib/product-image";
+import { UNLIMITED_QTY } from "@/lib/quantity";
 
-function resolveStock(product: Product): number {
-  if (typeof product.stock === "number" && Number.isFinite(product.stock)) {
-    return Math.max(0, Math.floor(product.stock));
-  }
-  return product.inStock ? Number.MAX_SAFE_INTEGER : 0;
+function clampQty(n: number, max = UNLIMITED_QTY) {
+  if (!Number.isFinite(n)) return 1;
+  return Math.min(max, Math.max(1, Math.floor(n)));
 }
 
 interface CartState {
@@ -49,19 +48,15 @@ export const useCartStore = create<CartState>()(
 
       addItem: (product, quantity = 1) => {
         if (!isStorefrontReadyProduct(product)) return;
-        const stock = resolveStock(product);
-        if (stock <= 0) return;
 
-        const addQty = Math.max(1, Math.floor(quantity));
+        const addQty = clampQty(quantity);
         const source = productSourceOf(product.source);
         const key = cartLineKey(source, product.id);
         const existing = get().items.find(
           (item) => cartLineKey(item.source, item.productId) === key,
         );
         const currentQty = existing?.quantity ?? 0;
-        if (currentQty >= stock) return;
-
-        const nextQty = Math.min(stock, currentQty + addQty);
+        const nextQty = clampQty(currentQty + addQty);
         if (nextQty <= currentQty) return;
 
         playAddToCartSound();
@@ -84,7 +79,7 @@ export const useCartStore = create<CartState>()(
                       quantity: nextQty,
                       price: product.price,
                       wholesalePrice,
-                      stock,
+                      stock: UNLIMITED_QTY,
                       source,
                       partnerId: product.partnerId,
                       partnerName: product.partnerName,
@@ -106,7 +101,7 @@ export const useCartStore = create<CartState>()(
                 wholesalePrice,
                 image: product.images[0],
                 quantity: nextQty,
-                stock,
+                stock: UNLIMITED_QTY,
                 source,
                 partnerId: product.partnerId,
                 partnerName: product.partnerName,
@@ -135,14 +130,9 @@ export const useCartStore = create<CartState>()(
         set((state) => ({
           items: state.items.map((item) => {
             if (cartLineKey(item.source, item.productId) !== key) return item;
-            const max =
-              typeof item.stock === "number" && Number.isFinite(item.stock)
-                ? Math.max(0, Math.floor(item.stock))
-                : Number.MAX_SAFE_INTEGER;
-            if (max <= 0) return item;
             return {
               ...item,
-              quantity: Math.min(max, Math.floor(quantity)),
+              quantity: clampQty(quantity),
             };
           }),
         }));
@@ -179,19 +169,15 @@ export const useCartStore = create<CartState>()(
         if (state) {
           // Migrate old cart rows without wholesalePrice / stock
           state.items = state.items.map((item) => {
-            const qty = Math.max(1, Math.floor(item.quantity) || 1);
-            const stock =
-              typeof item.stock === "number" && Number.isFinite(item.stock)
-                ? Math.max(0, Math.floor(item.stock))
-                : qty;
+            const qty = clampQty(item.quantity);
             return {
               ...item,
               wholesalePrice:
                 typeof item.wholesalePrice === "number"
                   ? item.wholesalePrice
                   : item.price,
-              stock,
-              quantity: Math.min(qty, Math.max(1, stock) || qty),
+              stock: UNLIMITED_QTY,
+              quantity: qty,
               source: productSourceOf(item.source),
             };
           });

@@ -14,6 +14,7 @@ import {
   type OrderSubstitute,
 } from "@/lib/order-fulfillment";
 import { cn } from "@/lib/utils";
+import { ProductThumb } from "@/components/catalog/ProductThumb";
 
 type DraftSub = OrderSubstitute & {
   productId: string;
@@ -34,6 +35,7 @@ type PickerProduct = {
   slug: string;
   stock?: number;
   code?: string;
+  images?: string[];
   source: "store" | "hamkor";
 };
 
@@ -206,7 +208,9 @@ export function OrderFulfillmentEditor({
               className="rounded-2xl bg-muted/50 p-3"
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-start gap-3">
+                  <ProductThumb src={item.image} alt={item.name} size="md" />
+                  <div className="min-w-0">
                   <p className="font-medium">
                     {item.name}
                     {item.source === "hamkor" ? (
@@ -219,6 +223,7 @@ export function OrderFulfillmentEditor({
                     Buyurtma: {item.quantity} ×{" "}
                     {formatMoney(item.unitPrice, currency)}
                   </p>
+                  </div>
                 </div>
                 <p
                   className={cn(
@@ -244,19 +249,16 @@ export function OrderFulfillmentEditor({
 
               {!readOnly ? (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
                     Berilgan son
                     <input
                       type="number"
                       min={0}
-                      max={item.quantity}
                       disabled={line.unavailable || disabled}
                       value={line.unavailable ? 0 : line.givenQuantity}
                       onChange={(e) => {
                         const n = Number.parseInt(e.target.value, 10);
-                        const next = Number.isFinite(n)
-                          ? Math.min(item.quantity, Math.max(0, n))
-                          : 0;
+                        const next = Number.isFinite(n) ? Math.max(0, n) : 0;
                         patchLine(idx, {
                           givenQuantity: next,
                           unavailable: next === 0,
@@ -307,7 +309,9 @@ export function OrderFulfillmentEditor({
                       key={`${sub.productId}-${sIdx}`}
                       className="flex items-center justify-between gap-2 text-sm"
                     >
-                      <div className="min-w-0">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <ProductThumb src={sub.image} alt={sub.name} size="sm" />
+                        <div className="min-w-0">
                         <p className="truncate font-medium">{sub.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {sub.quantity} ×{" "}
@@ -315,6 +319,7 @@ export function OrderFulfillmentEditor({
                             ? formatMoney(sub.unitPrice, currency)
                             : "narx saqlangach"}
                         </p>
+                        </div>
                       </div>
                       {!readOnly ? (
                         <div className="flex items-center gap-1">
@@ -392,7 +397,7 @@ export function OrderFulfillmentEditor({
                         <li key={`${p.source}-${p._id}`}>
                           <button
                             type="button"
-                            className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted"
+                            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted"
                             onClick={() => {
                               const remaining = line.unavailable
                                 ? item.quantity
@@ -407,6 +412,7 @@ export function OrderFulfillmentEditor({
                                     quantity: remaining,
                                     unitPrice: 0,
                                     source: p.source,
+                                    image: p.images?.[0],
                                   },
                                 ],
                                 pickerOpen: false,
@@ -415,6 +421,12 @@ export function OrderFulfillmentEditor({
                               setActivePicker(null);
                             }}
                           >
+                            <ProductThumb
+                              src={p.images?.[0]}
+                              alt={p.name}
+                              size="sm"
+                              zoom={false}
+                            />
                             <span className="min-w-0 truncate">{p.name}</span>
                             <span className="shrink-0 text-xs text-muted-foreground">
                               {p.source === "hamkor" ? "Hamkor" : "Doʻkon"}

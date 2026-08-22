@@ -170,14 +170,12 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
         size="lg"
         value={qty}
         max={maxQty}
-        disabled={!product.inStock}
         onChange={setQty}
       />
       <Button
         size="lg"
         className="h-12 min-w-0 flex-1 rounded-full px-5 text-sm font-semibold shadow-lg sm:flex-none sm:px-8"
         onClick={handleBuy}
-        disabled={!product.inStock || maxQty <= 0}
       >
         {inCart ? "Savatga qaytish" : "Savatga qo'shish"}
       </Button>

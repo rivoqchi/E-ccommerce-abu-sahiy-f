@@ -132,7 +132,7 @@ export function mapApiProduct(
     specs: raw.specs ?? [],
     featured: tags.includes("featured"),
     stock: Math.max(0, Number(raw.stock) || 0),
-    inStock: (raw.stock ?? 0) > 0,
+    inStock: true,
     buyerCount: Number(raw.buyerCount) || 0,
     recentBuyers: (raw.recentBuyers ?? [])
       .filter((b) => b?.fullName)

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiDownload, apiFetch } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 
 export function useAdminApi() {
@@ -14,5 +14,11 @@ export function useAdminApi() {
     [],
   );
 
-  return { adminFetch };
+  const adminDownload = useCallback(async (path: string, filename: string) => {
+    const token = useAuthStore.getState().accessToken;
+    if (!token) throw new Error("Not authenticated");
+    return apiDownload(path, { token, filename });
+  }, []);
+
+  return { adminFetch, adminDownload };
 }

@@ -127,19 +127,16 @@ export function ProductCard({
             <Button
               type="button"
               size="sm"
-              className="relative h-10 gap-1.5 rounded-full bg-black px-4 text-[13px] font-medium text-white shadow-none hover:bg-neutral-900 disabled:opacity-50"
-              disabled={!product.inStock || (product.stock || 0) <= 0}
+              className="relative h-10 gap-1.5 rounded-full bg-black px-4 text-[13px] font-medium text-white shadow-none hover:bg-neutral-900"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 setQuickOpen(true);
               }}
-              aria-label={
-                product.inStock ? "Mahsulotni ko'rish" : "Omborda yo'q"
-              }
+              aria-label="Mahsulotni ko'rish"
             >
               <ShoppingBag className="size-3.5" strokeWidth={1.75} />
-              {product.inStock ? "Shop" : "Tugagan"}
+              Shop
             </Button>
           </div>
         </div>

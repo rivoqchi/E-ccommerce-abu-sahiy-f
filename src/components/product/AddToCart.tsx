@@ -25,14 +25,12 @@ export function AddToCart({ product }: AddToCartProps) {
         size="md"
         value={qty}
         max={maxQty}
-        disabled={!product.inStock}
         onChange={setQty}
       />
 
       <Button
         size="lg"
         className="flex-1 sm:flex-none sm:min-w-48"
-        disabled={!product.inStock || maxQty <= 0}
         onClick={handleClick}
       >
         {inCart ? "Savatga qaytish" : "Savatga qo'shish"}

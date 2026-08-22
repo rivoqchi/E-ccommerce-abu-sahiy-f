@@ -8,6 +8,7 @@ export type OrderSubstitute = {
   unitPrice: number;
   source?: "store" | "hamkor" | string;
   partnerName?: string;
+  image?: string;
 };
 
 export type FulfillableItem = {
@@ -20,6 +21,7 @@ export type FulfillableItem = {
   givenQuantity?: number;
   fulfillmentStatus?: FulfillmentStatus | string;
   substitutes?: OrderSubstitute[];
+  image?: string;
 };
 
 export function isUnavailable(item: FulfillableItem) {

@@ -95,10 +95,7 @@ export function WishlistView() {
               <Button
                 type="button"
                 className="h-10 flex-1 gap-1.5 rounded-full"
-                disabled={(item.stock ?? 0) <= 0}
                 onClick={() => {
-                  const stock = Math.max(0, item.stock ?? 0);
-                  if (stock <= 0) return;
                   addToCart(
                     {
                       id: item.productId,
@@ -113,8 +110,8 @@ export function WishlistView() {
                       brand: item.brand,
                       images: [item.image],
                       specs: [],
-                      stock,
-                      inStock: stock > 0,
+                      stock: item.stock ?? 0,
+                      inStock: true,
                       source: productSourceOf(item.source),
                       partnerId: item.partnerId,
                       partnerName: item.partnerName,
@@ -125,7 +122,7 @@ export function WishlistView() {
                 }}
               >
                 <ShoppingBag className="size-3.5" strokeWidth={1.75} />
-                {(item.stock ?? 0) <= 0 ? "Tugagan" : "Savatga"}
+                Savatga
               </Button>
               <Button
                 type="button"

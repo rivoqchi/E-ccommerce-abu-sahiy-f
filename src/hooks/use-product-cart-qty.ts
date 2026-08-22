@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import type { Product } from "@/types/product";
 import { cartLineKey, productSourceOf } from "@/types/product";
 import { useCartStore } from "@/store/cart";
+import { UNLIMITED_QTY } from "@/lib/quantity";
 
-function clampQty(n: number, max: number) {
+function clampQty(n: number, max = UNLIMITED_QTY) {
   if (!Number.isFinite(n)) return 1;
   return Math.min(max, Math.max(1, Math.floor(n)));
 }
@@ -26,7 +27,7 @@ export function useProductCartQty(product: Product | null) {
 
   const [draftQty, setDraftQty] = useState(1);
   const inCart = cartQty != null;
-  const maxQty = Math.max(0, Math.floor(product?.stock || 0));
+  const maxQty = UNLIMITED_QTY;
   const qty = inCart ? cartQty : draftQty;
 
   useEffect(() => {
@@ -34,8 +35,8 @@ export function useProductCartQty(product: Product | null) {
   }, [productId]);
 
   const setQty = (next: number) => {
-    if (!product || maxQty <= 0) return;
-    const clamped = clampQty(next, maxQty);
+    if (!product) return;
+    const clamped = clampQty(next);
     if (inCart) {
       if (clamped === cartQty) return;
       updateQuantity(product.id, clamped, product.source);
@@ -45,9 +46,9 @@ export function useProductCartQty(product: Product | null) {
   };
 
   const addToCart = (): "added" | "in-cart" | "unavailable" => {
-    if (!product?.inStock || maxQty <= 0) return "unavailable";
+    if (!product) return "unavailable";
     if (inCart) return "in-cart";
-    addItem(product, clampQty(draftQty, maxQty));
+    addItem(product, clampQty(draftQty));
     return "added";
   };
 

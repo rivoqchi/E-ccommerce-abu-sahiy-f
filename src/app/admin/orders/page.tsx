@@ -1,14 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  downloadOrderExcel,
-  downloadOrdersExcel,
-} from "@/lib/order-export";
 import {
   Sheet,
   SheetContent,
@@ -35,6 +31,7 @@ import { useAdminApi } from "@/lib/admin-api";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { OrderFulfillmentEditor } from "@/components/admin/OrderFulfillmentEditor";
+import { ProductThumb } from "@/components/catalog/ProductThumb";
 import {
   givenQty,
   hasFulfillmentChange,
@@ -53,6 +50,7 @@ type OrderItem = {
   givenQuantity?: number;
   fulfillmentStatus?: "given" | "unavailable" | "substituted" | string;
   substitutes?: OrderSubstitute[];
+  image?: string;
 };
 
 type ShippingAddress = {
@@ -139,11 +137,12 @@ function splitName(fullName?: string) {
 }
 
 export default function AdminOrdersPage() {
-  const { adminFetch } = useAdminApi();
+  const { adminFetch, adminDownload } = useAdminApi();
   const [items, setItems] = useState<Order[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Order | null>(null);
   const [pending, startTransition] = useTransition();
+  const [exporting, setExporting] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setItems(await adminFetch<Order[]>("/orders"));
@@ -170,6 +169,31 @@ export default function AdminOrdersPage() {
     });
   }
 
+  async function exportOne(id: string) {
+    setExporting(id);
+    try {
+      await adminDownload(
+        `/orders/${id}/excel`,
+        `buyurtma-${id.slice(-8)}.xlsx`,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Excel yuklanmadi");
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  async function exportAll() {
+    setExporting("all");
+    try {
+      await adminDownload("/orders/export-excel", "buyurtmalar.xlsx");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Excel yuklanmadi");
+    } finally {
+      setExporting(null);
+    }
+  }
+
   const nameParts = splitName(selected?.shippingAddress?.fullName);
 
   return (
@@ -182,10 +206,14 @@ export default function AdminOrdersPage() {
           type="button"
           variant="outline"
           className="rounded-full"
-          disabled={!items.length}
-          onClick={() => downloadOrdersExcel(items)}
+          disabled={!items.length || Boolean(exporting)}
+          onClick={() => void exportAll()}
         >
-          <FileSpreadsheet className="size-4" />
+          {exporting === "all" ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <FileSpreadsheet className="size-4" />
+          )}
           Barchasi Excel
         </Button>
       </div>
@@ -227,8 +255,23 @@ export default function AdminOrdersPage() {
                       {o.shippingAddress?.phone ?? ""}
                     </div>
                   </TableCell>
-                  <TableCell className="max-w-[220px] truncate text-sm">
-                    {itemsSummary(o.items)}
+                  <TableCell className="max-w-[280px] text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="flex -space-x-2">
+                        {(o.items ?? []).slice(0, 3).map((item, i) => (
+                          <ProductThumb
+                            key={`${item.slug ?? item.name}-${i}`}
+                            src={item.image}
+                            alt={item.name}
+                            size="sm"
+                            className="ring-2 ring-background"
+                          />
+                        ))}
+                      </div>
+                      <span className="min-w-0 truncate">
+                        {itemsSummary(o.items)}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell>{formatMoney(o.total, o.currency)}</TableCell>
                   <TableCell>
@@ -253,9 +296,14 @@ export default function AdminOrdersPage() {
                         variant="outline"
                         size="sm"
                         className="rounded-full"
-                        onClick={() => downloadOrderExcel(o)}
+                        disabled={Boolean(exporting)}
+                        onClick={() => void exportOne(o._id)}
                       >
-                        <FileSpreadsheet className="size-4" />
+                        {exporting === o._id ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <FileSpreadsheet className="size-4" />
+                        )}
                         Excel
                       </Button>
                       <Button
@@ -343,9 +391,14 @@ export default function AdminOrdersPage() {
                     variant="outline"
                     size="sm"
                     className="rounded-full"
-                    onClick={() => downloadOrderExcel(selected)}
+                    disabled={Boolean(exporting)}
+                    onClick={() => void exportOne(selected._id)}
                   >
-                    <FileSpreadsheet className="size-4" />
+                    {exporting === selected._id ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <FileSpreadsheet className="size-4" />
+                    )}
                     Excel
                   </Button>
                 </div>

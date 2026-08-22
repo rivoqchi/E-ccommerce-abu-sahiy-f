@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ApiClientError, apiFetch } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
 import { useAuthStore } from "@/store/auth";
+import { ProductThumb } from "@/components/catalog/ProductThumb";
 import { cn } from "@/lib/utils";
 import { useStorefrontPricesVisible } from "@/components/product/ProductDisplayProvider";
 import { NegotiatePriceNote } from "@/components/product/NegotiatePriceNote";
@@ -27,6 +28,7 @@ type OrderItem = {
   givenQuantity?: number;
   fulfillmentStatus?: string;
   substitutes?: OrderSubstitute[];
+  image?: string;
 };
 
 type AccountOrder = {
@@ -213,7 +215,13 @@ export function AccountOrders() {
                           className="space-y-1.5 text-sm"
                         >
                           <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
+                            <div className="flex min-w-0 items-start gap-3">
+                              <ProductThumb
+                                src={item.image}
+                                alt={item.name}
+                                size="md"
+                              />
+                              <div className="min-w-0">
                               <p className="font-medium text-foreground">
                                 {item.name}
                                 {item.source === "hamkor" ? (
@@ -241,6 +249,7 @@ export function AccountOrders() {
                                   Berildi: {given} / {item.quantity}
                                 </p>
                               ) : null}
+                              </div>
                             </div>
                             <p
                               className={cn(
@@ -270,7 +279,13 @@ export function AccountOrders() {
                                   key={`${sub.slug ?? sub.name}-${sIdx}`}
                                   className="flex items-start justify-between gap-3"
                                 >
-                                  <div className="min-w-0">
+                                  <div className="flex min-w-0 items-start gap-2">
+                                    <ProductThumb
+                                      src={sub.image}
+                                      alt={sub.name}
+                                      size="sm"
+                                    />
+                                    <div className="min-w-0">
                                     <p className="font-medium text-foreground">
                                       {sub.name}
                                     </p>
@@ -287,6 +302,7 @@ export function AccountOrders() {
                                         </>
                                       ) : null}
                                     </p>
+                                    </div>
                                   </div>
                                   {showPrice ? (
                                     <p className="shrink-0 font-medium text-foreground">

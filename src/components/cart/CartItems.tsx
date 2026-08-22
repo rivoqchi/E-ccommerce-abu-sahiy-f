@@ -10,6 +10,7 @@ import { useStorefrontPricesVisible } from "@/components/product/ProductDisplayP
 import { NegotiatePriceNote } from "@/components/product/NegotiatePriceNote";
 import { Button } from "@/components/ui/button";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
+import { UNLIMITED_QTY } from "@/lib/quantity";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ProductImage } from "@/components/catalog/ProductImage";
@@ -68,11 +69,7 @@ function CartLine({
             <QuantityStepper
               size="sm"
               value={item.quantity}
-              max={
-                typeof item.stock === "number" && Number.isFinite(item.stock)
-                  ? item.stock
-                  : Number.MAX_SAFE_INTEGER
-              }
+              max={UNLIMITED_QTY}
               onChange={(next) =>
                 updateQuantity(item.productId, next, item.source)
               }

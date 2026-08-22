@@ -186,7 +186,6 @@ export function ProductQuickView({
               className="h-11 flex-1 justify-between"
               value={qty}
               max={maxQty}
-              disabled={!product.inStock}
               onChange={setQty}
             />
 
@@ -194,7 +193,6 @@ export function ProductQuickView({
               type="button"
               size="lg"
               className="h-11 flex-1 gap-2 rounded-full text-sm font-semibold"
-              disabled={!product.inStock || maxQty <= 0}
               onClick={handleAdd}
             >
               <ShoppingBag className="size-4" strokeWidth={1.75} />

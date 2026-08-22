@@ -116,3 +116,55 @@ export async function apiFetch<T>(
 
   return json.data;
 }
+
+export async function apiDownload(
+  path: string,
+  init: RequestInit & { token?: string; filename: string; skipAuthRefresh?: boolean },
+): Promise<void> {
+  const { token, headers, skipAuthRefresh, filename, ...rest } = init;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  const response = await fetch(`${getApiBaseUrl()}${normalizedPath}`, {
+    ...rest,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...headers,
+    },
+  });
+
+  if (
+    response.status === 401 &&
+    token &&
+    !skipAuthRefresh &&
+    !normalizedPath.startsWith("/auth/refresh")
+  ) {
+    const nextToken = await refreshAccessToken();
+    if (nextToken) {
+      return apiDownload(path, {
+        ...init,
+        token: nextToken,
+        skipAuthRefresh: true,
+      });
+    }
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!response.ok) {
+    let message = "Fayl yuklanmadi";
+    try {
+      const json = (await response.json()) as ApiError;
+      message = formatMessage(json.message ?? message);
+    } catch {
+      /* ignore */
+    }
+    throw new ApiClientError(response.status, message);
+  }
+
+  if (contentType.includes("application/json")) {
+    throw new ApiClientError(response.status, "Excel fayl kelmadi");
+  }
+
+  const { downloadBlob } = await import("@/lib/sold-export");
+  const blob = await response.blob();
+  downloadBlob(blob, filename);
+}
