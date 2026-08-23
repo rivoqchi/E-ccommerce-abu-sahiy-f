@@ -6,6 +6,29 @@ function isRouterNotReady(err: unknown): boolean {
   );
 }
 
+export function safePush(
+  router: { push: (href: string) => void },
+  href: string,
+) {
+  if (typeof window === "undefined") return;
+
+  const go = () => {
+    try {
+      router.push(href);
+    } catch (err) {
+      if (isRouterNotReady(err)) {
+        window.location.assign(href);
+        return;
+      }
+      throw err;
+    }
+  };
+
+  window.requestAnimationFrame(() => {
+    window.setTimeout(go, 0);
+  });
+}
+
 export function safeReplace(
   router: { replace: (href: string) => void },
   href: string,

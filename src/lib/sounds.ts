@@ -46,6 +46,40 @@ function tone(
   osc.stop(start + duration + 0.02);
 }
 
+export function playNewOrderSound(): void {
+  try {
+    const ctx = getCtx();
+    if (!ctx) return;
+
+    void ctx.resume();
+    const t = ctx.currentTime;
+
+    tone(ctx, {
+      frequency: 660,
+      start: t,
+      duration: 0.16,
+      gain: 0.08,
+      type: "sine",
+    });
+    tone(ctx, {
+      frequency: 880,
+      start: t + 0.14,
+      duration: 0.2,
+      gain: 0.08,
+      type: "sine",
+    });
+    tone(ctx, {
+      frequency: 1174,
+      start: t + 0.3,
+      duration: 0.32,
+      gain: 0.07,
+      type: "triangle",
+    });
+  } catch {
+    // Ignore autoplay / AudioContext errors
+  }
+}
+
 export function playAddToCartSound(): void {
   try {
     const ctx = getCtx();

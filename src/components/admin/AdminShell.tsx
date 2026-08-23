@@ -24,9 +24,18 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { LogoutConfirm } from "@/components/auth/LogoutConfirm";
 import { CenterToastHost } from "@/components/ui/center-toast";
+import {
+  AdminIncomingToast,
+  AdminNotifications,
+} from "@/components/admin/AdminNotifications";
+import { useAdminRealtime } from "@/hooks/use-admin-realtime";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
 import { UsdRateBadge } from "@/components/fx/UsdRateBadge";
+import {
+  unreadCount,
+  useAdminNotifications,
+} from "@/store/admin-notifications";
 
 const nav = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -70,6 +79,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true);
   const [allowed, setAllowed] = useState(false);
   const [routerReady, setRouterReady] = useState(false);
+  const unreadOrderCount = useAdminNotifications((s) =>
+    unreadCount(s.items, "new_order"),
+  );
 
   useEffect(() => {
     setRouterReady(true);
@@ -142,6 +154,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
           <AdminNav
             pathname={pathname}
+            unreadOrders={unreadOrderCount}
             regOpen={regOpen}
             hamkorOpen={hamkorOpen}
             onToggleReg={() => setRegOpen((v) => !v)}
@@ -183,6 +196,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
               <AdminNav
                 pathname={pathname}
+                unreadOrders={unreadOrderCount}
                 regOpen={regOpen}
                 hamkorOpen={hamkorOpen}
                 onToggleReg={() => setRegOpen((v) => !v)}
@@ -213,6 +227,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </p>
           </div>
           <UsdRateBadge className="hidden sm:inline" />
+          <AdminNotifications />
           <Link
             href="/account"
             prefetch={false}
@@ -227,19 +242,28 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </header>
         <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
       </div>
+      <AdminIncomingToast />
       <CenterToastHost />
+      <AdminRealtimeBridge />
     </div>
   );
 }
 
+function AdminRealtimeBridge() {
+  useAdminRealtime();
+  return null;
+}
+
 function AdminNav({
   pathname,
+  unreadOrders,
   regOpen,
   hamkorOpen,
   onToggleReg,
   onToggleHamkor,
 }: {
   pathname: string;
+  unreadOrders: number;
   regOpen: boolean;
   hamkorOpen: boolean;
   onToggleReg: () => void;
@@ -322,7 +346,12 @@ function AdminNav({
             )}
           >
             <Icon className="size-4 shrink-0" strokeWidth={1.75} />
-            {linkItem.label}
+            <span className="flex-1">{linkItem.label}</span>
+            {linkItem.href === "/admin/orders" && unreadOrders > 0 ? (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-semibold text-destructive-foreground">
+                {unreadOrders > 9 ? "9+" : unreadOrders}
+              </span>
+            ) : null}
           </Link>
         );
       })}

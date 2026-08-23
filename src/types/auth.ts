@@ -12,6 +12,11 @@ export type AuthUser = {
   /** Default retail; admin can switch to wholesale */
   priceTier: "retail" | "wholesale";
   isActive: boolean;
+  approvalStatus?: "pending" | "approved" | "blocked";
+  approvedByName?: string | null;
+  approvedAt?: string | null;
+  blockedByName?: string | null;
+  blockedAt?: string | null;
 };
 
 export type AuthTokens = {

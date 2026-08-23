@@ -1,7 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { Suspense, useCallback, useEffect, useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { FileSpreadsheet, Loader2 } from "lucide-react";
+import { ADMIN_NEW_ORDER_EVENT } from "@/lib/admin-alerts";
+import { useAdminNotifications } from "@/store/admin-notifications";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -137,7 +140,19 @@ function splitName(fullName?: string) {
 }
 
 export default function AdminOrdersPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-muted-foreground">Yuklanmoqda…</p>}>
+      <AdminOrdersView />
+    </Suspense>
+  );
+}
+
+function AdminOrdersView() {
   const { adminFetch, adminDownload } = useAdminApi();
+  const searchParams = useSearchParams();
+  const [focusId, setFocusId] = useState<string | null>(
+    () => searchParams.get("order"),
+  );
   const [items, setItems] = useState<Order[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Order | null>(null);
@@ -151,6 +166,50 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     void load().catch((e: Error) => setError(e.message));
   }, [load]);
+
+  useEffect(() => {
+    useAdminNotifications.getState().markTypeRead("new_order");
+  }, []);
+
+  useEffect(() => {
+    const onNew = (event: Event) => {
+      const orderId = (event as CustomEvent<{ orderId?: string }>).detail
+        ?.orderId;
+      void load().catch((e: Error) => setError(e.message));
+      if (orderId) {
+        setFocusId(orderId);
+        setOrderQuery(orderId);
+      }
+    };
+    window.addEventListener(ADMIN_NEW_ORDER_EVENT, onNew);
+    return () => window.removeEventListener(ADMIN_NEW_ORDER_EVENT, onNew);
+  }, [load]);
+
+  useEffect(() => {
+    if (!focusId || !/^[a-fA-F0-9]{24}$/.test(focusId)) return;
+    const fromList = items.find((o) => o._id === focusId);
+    if (fromList) {
+      if (selected?._id !== fromList._id) setSelected(fromList);
+      return;
+    }
+
+    let cancelled = false;
+    void adminFetch<Order>(`/orders/${focusId}`)
+      .then((order) => {
+        if (cancelled) return;
+        setSelected(order);
+        setItems((prev) =>
+          prev.some((row) => row._id === order._id) ? prev : [order, ...prev],
+        );
+      })
+      .catch((e: Error) => {
+        if (!cancelled) setError(e.message);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [focusId, items, selected?._id, adminFetch]);
 
   function updateStatus(id: string, status: string) {
     startTransition(async () => {
@@ -192,6 +251,19 @@ export default function AdminOrdersPage() {
     } finally {
       setExporting(null);
     }
+  }
+
+  function setOrderQuery(id: string | null) {
+    const next = new URL(window.location.href);
+    if (id) next.searchParams.set("order", id);
+    else next.searchParams.delete("order");
+    window.history.replaceState(null, "", `${next.pathname}${next.search}`);
+  }
+
+  function openOrder(order: Order) {
+    setFocusId(order._id);
+    setSelected(order);
+    setOrderQuery(order._id);
   }
 
   const nameParts = splitName(selected?.shippingAddress?.fullName);
@@ -241,8 +313,11 @@ export default function AdminOrdersPage() {
               {items.map((o) => (
                 <TableRow
                   key={o._id}
-                  className="cursor-pointer"
-                  onClick={() => setSelected(o)}
+                  className={cn(
+                    "cursor-pointer",
+                    selected?._id === o._id && "bg-muted/60",
+                  )}
+                  onClick={() => openOrder(o)}
                 >
                   <TableCell className="pl-5 font-mono text-xs">
                     {o._id.slice(-8)}
@@ -310,7 +385,7 @@ export default function AdminOrdersPage() {
                         variant="outline"
                         size="sm"
                         className="rounded-full"
-                        onClick={() => setSelected(o)}
+                        onClick={() => openOrder(o)}
                       >
                         Batafsil
                       </Button>
@@ -356,7 +431,11 @@ export default function AdminOrdersPage() {
       <Sheet
         open={Boolean(selected)}
         onOpenChange={(open) => {
-          if (!open) setSelected(null);
+          if (!open) {
+            setSelected(null);
+            setFocusId(null);
+            setOrderQuery(null);
+          }
         }}
       >
         <SheetContent

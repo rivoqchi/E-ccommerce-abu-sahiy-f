@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,8 @@ import {
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useAdminApi } from "@/lib/admin-api";
 
+type ApprovalStatus = "pending" | "approved" | "blocked";
+
 type UserRow = {
   id: string;
   fullName: string;
@@ -24,12 +26,21 @@ type UserRow = {
   role: string;
   priceTier: "retail" | "wholesale";
   isActive: boolean;
+  approvalStatus?: ApprovalStatus;
+  approvedByName?: string | null;
+  blockedByName?: string | null;
 };
+
+function resolveStatus(user: UserRow): ApprovalStatus {
+  if (user.approvalStatus) return user.approvalStatus;
+  return user.isActive === false ? "blocked" : "approved";
+}
 
 export default function AdminUsersPage() {
   const { adminFetch } = useAdminApi();
   const [items, setItems] = useState<UserRow[]>([]);
   const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<"all" | "pending">("all");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -44,12 +55,23 @@ export default function AdminUsersPage() {
     void load().catch((e: Error) => setError(e.message));
   }, [load]);
 
-  function toggleActive(user: UserRow) {
+  const visible = useMemo(() => {
+    if (filter !== "pending") return items;
+    return items.filter((u) => resolveStatus(u) === "pending");
+  }, [items, filter]);
+
+  const pendingCount = useMemo(
+    () => items.filter((u) => resolveStatus(u) === "pending").length,
+    [items],
+  );
+
+  function setApproval(user: UserRow, approvalStatus: ApprovalStatus) {
     startTransition(async () => {
       try {
+        setError(null);
         await adminFetch(`/users/${user.id}`, {
           method: "PATCH",
-          body: JSON.stringify({ isActive: !user.isActive }),
+          body: JSON.stringify({ approvalStatus }),
         });
         await load();
       } catch (e) {
@@ -93,12 +115,34 @@ export default function AdminUsersPage() {
         <h1 className="text-2xl font-bold tracking-tight">Foydalanuvchilar</h1>
       </div>
 
-      <Input
-        placeholder="Qidirish…"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        className="h-12 max-w-md"
-      />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Input
+          placeholder="Qidirish…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="h-12 max-w-md"
+        />
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant={filter === "all" ? "default" : "outline"}
+            size="sm"
+            className="rounded-full"
+            onClick={() => setFilter("all")}
+          >
+            Barchasi
+          </Button>
+          <Button
+            type="button"
+            variant={filter === "pending" ? "default" : "outline"}
+            size="sm"
+            className="rounded-full"
+            onClick={() => setFilter("pending")}
+          >
+            Kutilmoqda{pendingCount ? ` (${pendingCount})` : ""}
+          </Button>
+        </div>
+      </div>
 
       {error ? (
         <p className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -121,12 +165,23 @@ export default function AdminUsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((u) => {
+              {visible.map((u) => {
                 const isAdmin = u.role === "admin";
+                const status = resolveStatus(u);
                 return (
                   <TableRow key={u.id}>
-                    <TableCell className="pl-5 font-medium">
-                      {u.fullName}
+                    <TableCell className="pl-5">
+                      <div className="font-medium">{u.fullName}</div>
+                      {status === "approved" && u.approvedByName ? (
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                          {u.approvedByName} tasdiqlagan
+                        </div>
+                      ) : null}
+                      {status === "blocked" && u.blockedByName ? (
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                          {u.blockedByName} bloklagan
+                        </div>
+                      ) : null}
                     </TableCell>
                     <TableCell>{u.phone ?? "—"}</TableCell>
                     <TableCell>
@@ -147,7 +202,13 @@ export default function AdminUsersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {u.isActive ? "Aktiv" : "Bloklangan"}
+                      {status === "pending" ? (
+                        <Badge variant="outline">Kutilmoqda</Badge>
+                      ) : status === "blocked" ? (
+                        <Badge variant="destructive">Bloklangan</Badge>
+                      ) : (
+                        <Badge>Tasdiqlangan</Badge>
+                      )}
                     </TableCell>
                     <TableCell className="space-x-1 pr-5 text-right">
                       {isAdmin ? (
@@ -190,20 +251,51 @@ export default function AdminUsersPage() {
                           ? "Oddiyga"
                           : "Optomga"}
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full"
-                        disabled={pending}
-                        onClick={() => toggleActive(u)}
-                      >
-                        {u.isActive ? "Bloklash" : "Faollashtirish"}
-                      </Button>
+                      {status === "pending" ? (
+                        <>
+                          <Button
+                            size="sm"
+                            className="rounded-full"
+                            disabled={pending}
+                            onClick={() => setApproval(u, "approved")}
+                          >
+                            Tasdiqlash
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-full"
+                            disabled={pending}
+                            onClick={() => setApproval(u, "blocked")}
+                          >
+                            Bloklash
+                          </Button>
+                        </>
+                      ) : status === "blocked" ? (
+                        <Button
+                          size="sm"
+                          className="rounded-full"
+                          disabled={pending}
+                          onClick={() => setApproval(u, "approved")}
+                        >
+                          Tasdiqlash
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full"
+                          disabled={pending}
+                          onClick={() => setApproval(u, "blocked")}
+                        >
+                          Bloklash
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
               })}
-              {!items.length ? (
+              {!visible.length ? (
                 <TableRow>
                   <TableCell
                     colSpan={7}
