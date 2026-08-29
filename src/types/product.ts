@@ -84,6 +84,8 @@ export interface Product {
   partnerId?: string;
   partnerName?: string;
   partnerLogo?: string;
+  /** ISO date — 30 kun ichida "Yangi" badge */
+  createdAt?: string;
 }
 
 export interface CartItem {

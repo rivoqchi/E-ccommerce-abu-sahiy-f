@@ -57,6 +57,7 @@ export type ApiProduct = {
     fullName: string;
     avatarUrl?: string;
   }>;
+  createdAt?: string;
 };
 
 export type ProductsListResult = {
@@ -144,6 +145,7 @@ export function mapApiProduct(
     partnerId,
     partnerName,
     partnerLogo,
+    ...(raw.createdAt ? { createdAt: raw.createdAt } : {}),
   };
 }
 
