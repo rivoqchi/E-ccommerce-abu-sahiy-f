@@ -33,6 +33,7 @@ export function FeaturedProducts({
       const result = await fetchProducts({
         page: 1,
         limit: HOME_PRODUCTS_PAGE_SIZE,
+        newOnly: true,
       });
       if (cancelled || !result.items.length) return;
       setProducts(result.items);
@@ -52,6 +53,7 @@ export function FeaturedProducts({
       const result = await fetchProducts({
         page: nextPage,
         limit: HOME_PRODUCTS_PAGE_SIZE,
+        newOnly: true,
       });
       if (!result.items.length) return;
       setProducts((prev) => {
@@ -82,7 +84,8 @@ export function FeaturedProducts({
 
       {products.length === 0 ? (
         <p className="mt-6 text-sm text-muted-foreground">
-          Hozircha mahsulotlar yo&apos;q. Admin paneldan qo&apos;shing.
+          Bugun yangi mahsulotlar yo&apos;q. Ertaga qo&apos;shilganlar shu yerda
+          ko&apos;rinadi.
         </p>
       ) : (
         <>

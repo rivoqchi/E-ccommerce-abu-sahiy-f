@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const [productsResult, categories, sellers, stories, videos] =
     await Promise.all([
-      fetchProducts({ page: 1, limit: HOME_PRODUCTS_PAGE_SIZE }),
+      fetchProducts({ page: 1, limit: HOME_PRODUCTS_PAGE_SIZE, newOnly: true }),
       fetchCategories(),
       fetchSellers(),
       fetchStories(),

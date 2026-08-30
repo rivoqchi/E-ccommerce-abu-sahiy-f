@@ -2,7 +2,7 @@ import type { Product } from "@/types/product";
 
 export const CATALOG_PAGE_SIZE = 30;
 
-/** Home "Yangi mahsulotlar": 2 ustun × 4 qator */
+/** Home "Yangi mahsulotlar": bugun qo‘shilganlar, 2 ustun × 4 qator */
 export const HOME_PRODUCTS_PAGE_SIZE = 8;
 
 export type CatalogSort = "featured" | "price-asc" | "price-desc" | "name";
