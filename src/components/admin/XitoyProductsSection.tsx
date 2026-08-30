@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Bot, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +29,10 @@ import { resolveProductImage } from "@/lib/product-image";
 import { fileToProductImageDataUrl } from "@/lib/product-upload";
 import { useAuthStore } from "@/store/auth";
 import { AdminXitoyTableRowsSkeleton } from "@/components/skeletons/admin";
+import {
+  calculateXitoyCostPrice,
+  parseXitoyNumber,
+} from "@/lib/xitoy-pricing";
 
 const BOT_USERNAME =
   process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "").trim() ||
@@ -42,6 +46,7 @@ export type XitoyProduct = {
   cubicM3: number;
   weightKg: number;
   wholesalePrice: number;
+  costPriceYuan: number;
   yuanRate: number;
   customsFee: number;
   createdAt?: string;
@@ -53,12 +58,19 @@ type FormState = {
   chinaPriceYuan: string;
   cubicM3: string;
   weightKg: string;
-  wholesalePrice: string;
   yuanRate: string;
   customsFee: string;
 };
 
-type XitoyFormPayload = Omit<XitoyProduct, "_id" | "createdAt">;
+type XitoyFormPayload = {
+  imageUrl: string;
+  name: string;
+  chinaPriceYuan: number;
+  cubicM3: number;
+  weightKg: number;
+  yuanRate: number;
+  customsFee: number;
+};
 
 type ParseFormResult =
   | { error: string }
@@ -70,14 +82,28 @@ const emptyForm = (): FormState => ({
   chinaPriceYuan: "",
   cubicM3: "",
   weightKg: "",
-  wholesalePrice: "",
   yuanRate: "",
   customsFee: "",
 });
 
-function formatNum(value: number): string {
+function formatUsd(value: number): string {
   if (!Number.isFinite(value)) return "—";
-  return value.toLocaleString("uz-UZ", { maximumFractionDigits: 2 });
+  return `$${value.toLocaleString("uz-UZ", { maximumFractionDigits: 2 })}`;
+}
+
+function formatYuan(value: number): string {
+  if (!Number.isFinite(value)) return "—";
+  return `¥${value.toLocaleString("uz-UZ", { maximumFractionDigits: 2 })}`;
+}
+
+function getItemPricing(item: XitoyProduct) {
+  return calculateXitoyCostPrice({
+    chinaPriceYuan: item.chinaPriceYuan,
+    cubicM3: item.cubicM3,
+    weightKg: item.weightKg,
+    yuanRate: item.yuanRate,
+    customsFee: item.customsFee,
+  });
 }
 
 export function XitoyProductsSection() {
@@ -155,7 +181,6 @@ export function XitoyProductsSection() {
       chinaPriceYuan: String(item.chinaPriceYuan),
       cubicM3: String(item.cubicM3),
       weightKg: String(item.weightKg),
-      wholesalePrice: String(item.wholesalePrice),
       yuanRate: String(item.yuanRate),
       customsFee: String(item.customsFee),
     });
@@ -199,12 +224,11 @@ export function XitoyProductsSection() {
   }
 
   function parseFormPayload(): ParseFormResult {
-    const chinaPriceYuan = Number(form.chinaPriceYuan.replace(",", "."));
-    const cubicM3 = Number(form.cubicM3.replace(",", "."));
-    const weightKg = Number(form.weightKg.replace(",", "."));
-    const wholesalePrice = Number(form.wholesalePrice.replace(",", "."));
-    const yuanRate = Number(form.yuanRate.replace(",", "."));
-    const customsFee = Number(form.customsFee.replace(",", "."));
+    const chinaPriceYuan = parseXitoyNumber(form.chinaPriceYuan);
+    const cubicM3 = parseXitoyNumber(form.cubicM3);
+    const weightKg = parseXitoyNumber(form.weightKg);
+    const yuanRate = parseXitoyNumber(form.yuanRate);
+    const customsFee = parseXitoyNumber(form.customsFee);
 
     if (!form.name.trim()) {
       return { error: "Tovar nomi majburiy" as const };
@@ -213,15 +237,8 @@ export function XitoyProductsSection() {
       return { error: "Rasm yuklash majburiy" as const };
     }
 
-    const fields = [
-      chinaPriceYuan,
-      cubicM3,
-      weightKg,
-      wholesalePrice,
-      yuanRate,
-      customsFee,
-    ];
-    if (fields.some((v) => !Number.isFinite(v) || v < 0)) {
+    const fields = [chinaPriceYuan, cubicM3, weightKg, yuanRate, customsFee];
+    if (fields.some((v) => v == null)) {
       return { error: "Barcha raqamli maydonlar to'g'ri bo'lishi kerak" as const };
     }
 
@@ -229,12 +246,11 @@ export function XitoyProductsSection() {
       payload: {
         imageUrl: form.imageUrl.trim(),
         name: form.name.trim(),
-        chinaPriceYuan,
-        cubicM3,
-        weightKg,
-        wholesalePrice,
-        yuanRate,
-        customsFee,
+        chinaPriceYuan: chinaPriceYuan!,
+        cubicM3: cubicM3!,
+        weightKg: weightKg!,
+        yuanRate: yuanRate!,
+        customsFee: customsFee!,
       },
     };
   }
@@ -287,6 +303,32 @@ export function XitoyProductsSection() {
 
   const botUrl = `https://t.me/${BOT_USERNAME}?start=xitoy_add`;
 
+  const previewPricing = useMemo(() => {
+    const chinaPriceYuan = parseXitoyNumber(form.chinaPriceYuan);
+    const cubicM3 = parseXitoyNumber(form.cubicM3);
+    const weightKg = parseXitoyNumber(form.weightKg);
+    const yuanRate = parseXitoyNumber(form.yuanRate);
+    const customsFee = parseXitoyNumber(form.customsFee);
+
+    if (
+      chinaPriceYuan == null ||
+      cubicM3 == null ||
+      weightKg == null ||
+      yuanRate == null ||
+      customsFee == null
+    ) {
+      return null;
+    }
+
+    return calculateXitoyCostPrice({
+      chinaPriceYuan,
+      cubicM3,
+      weightKg,
+      yuanRate,
+      customsFee,
+    });
+  }, [form]);
+
   return (
     <Card className="rounded-3xl border-0 py-0 shadow-[var(--shadow-soft)] ring-0">
       <CardContent className="px-5 py-5">
@@ -318,7 +360,7 @@ export function XitoyProductsSection() {
         ) : null}
 
         <div className="overflow-x-auto">
-          <Table className="min-w-[960px]">
+          <Table className="min-w-[1200px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Rasm</TableHead>
@@ -326,9 +368,12 @@ export function XitoyProductsSection() {
                 <TableHead className="text-right">Xitoy (¥)</TableHead>
                 <TableHead className="text-right">Kubi</TableHead>
                 <TableHead className="text-right">kg</TableHead>
+                <TableHead className="text-right">Dollarda</TableHead>
+                <TableHead className="text-right">Logistika</TableHead>
+                <TableHead className="text-right">Rastamoshka</TableHead>
                 <TableHead className="text-right">Tan narxi</TableHead>
                 <TableHead className="text-right">Yuan kursi</TableHead>
-                <TableHead className="text-right">Rastamoshka</TableHead>
+                <TableHead className="text-right">Rast. stavka</TableHead>
                 <TableHead className="text-right">Amallar</TableHead>
               </TableRow>
             </TableHeader>
@@ -336,7 +381,9 @@ export function XitoyProductsSection() {
               {loading ? (
                 <AdminXitoyTableRowsSkeleton rows={5} />
               ) : items.length ? (
-                items.map((item) => (
+                items.map((item) => {
+                  const pricing = getItemPricing(item);
+                  return (
                   <TableRow key={item._id}>
                     <TableCell>
                       <div className="relative size-12 overflow-hidden rounded-xl bg-secondary">
@@ -354,22 +401,42 @@ export function XitoyProductsSection() {
                       {item.name}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatNum(item.chinaPriceYuan)}
+                      {formatYuan(item.chinaPriceYuan)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatNum(item.cubicM3)}
+                      {item.cubicM3.toLocaleString("uz-UZ", {
+                        maximumFractionDigits: 4,
+                      })}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatNum(item.weightKg)}
+                      {item.weightKg.toLocaleString("uz-UZ", {
+                        maximumFractionDigits: 3,
+                      })}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatNum(item.wholesalePrice)}
+                      {formatUsd(pricing.priceUsd)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatNum(item.yuanRate)}
+                      {formatUsd(pricing.logisticsUsd)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatNum(item.customsFee)}
+                      {formatUsd(pricing.customsUsd)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <div>{formatUsd(pricing.costPriceUsd)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {formatYuan(pricing.costPriceYuan)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {item.yuanRate.toLocaleString("uz-UZ", {
+                        maximumFractionDigits: 2,
+                      })}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {item.customsFee.toLocaleString("uz-UZ", {
+                        maximumFractionDigits: 2,
+                      })}
                     </TableCell>
                     <TableCell className="space-x-1 text-right">
                       <Button
@@ -391,11 +458,12 @@ export function XitoyProductsSection() {
                       </ConfirmAction>
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={9}
+                    colSpan={12}
                     className="py-10 text-center text-muted-foreground"
                   >
                     Hali mahsulot yo&apos;q
@@ -477,9 +545,8 @@ export function XitoyProductsSection() {
                   ["chinaPriceYuan", "Xitoy (yuan)"],
                   ["cubicM3", "Kubi (m³)"],
                   ["weightKg", "kg"],
-                  ["wholesalePrice", "Tan narxi"],
                   ["yuanRate", "Yuan kursi"],
-                  ["customsFee", "Rastamoshka to'lovi"],
+                  ["customsFee", "Rastamoshka stavkasi"],
                 ] as const
               ).map(([key, label]) => (
                 <div key={key} className="space-y-2">
@@ -497,6 +564,40 @@ export function XitoyProductsSection() {
                   />
                 </div>
               ))}
+            </div>
+
+            <div className="rounded-2xl bg-secondary/60 px-4 py-3 text-sm">
+              <p className="mb-2 font-medium">Tan narxi (avtomatik)</p>
+              {previewPricing ? (
+                <dl className="space-y-1.5 tabular-nums">
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Xitoy narxi ($)</dt>
+                    <dd>{formatUsd(previewPricing.priceUsd)}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Logistika ($)</dt>
+                    <dd>{formatUsd(previewPricing.logisticsUsd)}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted-foreground">Rastamoshka ($)</dt>
+                    <dd>{formatUsd(previewPricing.customsUsd)}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3 border-t border-border/60 pt-2 font-medium">
+                    <dt>Jami tan narxi</dt>
+                    <dd>
+                      {formatUsd(previewPricing.costPriceUsd)}{" "}
+                      <span className="text-muted-foreground">
+                        / {formatYuan(previewPricing.costPriceYuan)}
+                      </span>
+                    </dd>
+                  </div>
+                </dl>
+              ) : (
+                <p className="text-muted-foreground">
+                  Barcha maydonlarni to&apos;ldiring — tan narxi avtomatik
+                  hisoblanadi.
+                </p>
+              )}
             </div>
           </div>
 

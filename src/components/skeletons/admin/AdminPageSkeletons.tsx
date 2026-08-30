@@ -102,7 +102,7 @@ export function AdminXitoyPageSkeleton() {
         <AdminTableCardSkeleton
           columns={
             <TableRow>
-              {Array.from({ length: 9 }).map((_, i) => (
+              {Array.from({ length: 12 }).map((_, i) => (
                 <TableHead key={i}>
                   <Skeleton className="h-4 w-14" />
                 </TableHead>
@@ -120,6 +120,9 @@ export function AdminXitoyPageSkeleton() {
               <AdminCellSkeleton className="text-right" width="w-14" />
               <AdminCellSkeleton className="text-right" width="w-14" />
               <AdminCellSkeleton className="text-right" width="w-14" />
+              <AdminCellSkeleton className="text-right" width="w-16" />
+              <AdminCellSkeleton className="text-right" width="w-10" />
+              <AdminCellSkeleton className="text-right" width="w-10" />
               <AdminActionsCellSkeleton count={2} />
             </>
           )}
@@ -565,6 +568,9 @@ export function AdminXitoyTableRowsSkeleton({ rows = 5 }: { rows?: number }) {
           <AdminCellSkeleton className="text-right" width="w-14" />
           <AdminCellSkeleton className="text-right" width="w-14" />
           <AdminCellSkeleton className="text-right" width="w-14" />
+          <AdminCellSkeleton className="text-right" width="w-16" />
+          <AdminCellSkeleton className="text-right" width="w-10" />
+          <AdminCellSkeleton className="text-right" width="w-10" />
           <AdminActionsCellSkeleton count={2} />
         </TableRow>
       ))}

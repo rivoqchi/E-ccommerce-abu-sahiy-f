@@ -161,11 +161,6 @@ export function ProductUnitPicker({
         value={value.pieceQuantity}
         onChange={(pieceQuantity) => onChange({ ...value, pieceQuantity })}
       />
-      {!canUseBox ? (
-        <p className="sm:col-span-2 text-xs text-muted-foreground">
-          Karobka uchun admin panelda «Karobkada nechta dona» maydonini to&apos;ldiring.
-        </p>
-      ) : null}
     </div>
   );
 }
