@@ -157,7 +157,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   const showSpecs = useProductFieldVisible("specs");
   const showDescription = useProductFieldVisible("description");
   const showBuyerCount = useProductFieldVisible("buyerCount");
-  const isNew = isProductNew(product.createdAt, product.id);
+  const isNew = isProductNew(product.newHighlightUntil);
 
   const handleBuy = () => {
     if (addToCart() === "in-cart") router.push("/cart");

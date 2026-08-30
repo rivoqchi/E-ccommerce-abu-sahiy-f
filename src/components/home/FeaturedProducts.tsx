@@ -84,8 +84,8 @@ export function FeaturedProducts({
 
       {products.length === 0 ? (
         <p className="mt-6 text-sm text-muted-foreground">
-          Bugun yangi mahsulotlar yo&apos;q. Ertaga qo&apos;shilganlar shu yerda
-          ko&apos;rinadi.
+          Hozircha yangi deb belgilangan mahsulotlar yo&apos;q. Admin panelda
+          mahsulot qo&apos;shishda «30 kun yangi» switchini yoqing.
         </p>
       ) : (
         <>

@@ -58,6 +58,7 @@ export type ApiProduct = {
     avatarUrl?: string;
   }>;
   createdAt?: string;
+  newHighlightUntil?: string;
 };
 
 export type ProductsListResult = {
@@ -146,6 +147,9 @@ export function mapApiProduct(
     partnerName,
     partnerLogo,
     ...(raw.createdAt ? { createdAt: raw.createdAt } : {}),
+    ...(raw.newHighlightUntil
+      ? { newHighlightUntil: raw.newHighlightUntil }
+      : {}),
   };
 }
 

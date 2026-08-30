@@ -62,7 +62,7 @@ export function ProductQuickView({
 
   const current = product.images[active] ?? product.images[0];
   const soldCount = product.buyerCount ?? 0;
-  const isNew = isProductNew(product.createdAt, product.id);
+  const isNew = isProductNew(product.newHighlightUntil);
 
   const handleAdd = () => {
     if (addToCart() === "in-cart") {

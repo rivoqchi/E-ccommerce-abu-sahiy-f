@@ -50,6 +50,13 @@ import {
   fileToProductImageDataUrl,
 } from "@/lib/product-upload";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
+  formatNewHighlightUntil,
+  isNewHighlightActive,
+  NEW_HIGHLIGHT_DAYS,
+} from "@/lib/product-new-highlight";
 
 type RefItem = { _id: string; name: string; partnerId?: string };
 type Spec = { label: string; value: string };
@@ -68,6 +75,7 @@ type Product = {
   specs?: Spec[];
   description?: string;
   createdAt?: string;
+  newHighlightUntil?: string;
 };
 
 function refId(ref?: PartnerRef | string): string {
@@ -120,6 +128,7 @@ type SavePayload = {
   status: string;
   images: string[];
   specs: Spec[];
+  highlightAsNew?: boolean;
 };
 
 function productFromPayload(
@@ -141,6 +150,7 @@ function productFromPayload(
     specs: payload.specs,
     description: payload.description,
     createdAt: prev?.createdAt ?? new Date().toISOString(),
+    newHighlightUntil: prev?.newHighlightUntil,
   };
 }
 
@@ -162,6 +172,7 @@ const emptyForm = {
   categoryId: "",
   description: "",
   status: "active",
+  highlightAsNew: false,
   images: [] as string[],
   specs: [{ label: "", value: "" }] as Spec[],
 };
@@ -348,6 +359,7 @@ export default function AdminHamkorProductsPage() {
       categoryId: String(p.categoryId),
       description: p.description ?? "",
       status: p.status || "active",
+      highlightAsNew: isNewHighlightActive(p.newHighlightUntil),
       images: p.images ?? [],
       specs: p.specs?.length ? p.specs : [{ label: "", value: "" }],
     });
@@ -407,6 +419,7 @@ export default function AdminHamkorProductsPage() {
           status: form.status,
           images: form.images,
           specs: form.specs.filter((s) => s.label.trim() && s.value.trim()),
+          highlightAsNew: form.highlightAsNew,
         };
         if (editingId) {
           await adminFetch(`/hamkor/products/${editingId}`, {
@@ -880,6 +893,36 @@ export default function AdminHamkorProductsPage() {
                 <SelectItem value="archived">Archived</SelectItem>
               </SelectContent>
             </Select>
+
+            <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/30 p-4">
+              <Checkbox
+                id="highlight-as-new-hamkor"
+                checked={form.highlightAsNew}
+                onCheckedChange={(checked) =>
+                  setForm({ ...form, highlightAsNew: checked === true })
+                }
+              />
+              <div className="space-y-1">
+                <Label htmlFor="highlight-as-new-hamkor" className="cursor-pointer">
+                  {NEW_HIGHLIGHT_DAYS} kun «Yangi mahsulotlar»da ko‘rsatish
+                </Label>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Yoqilsa, bosh sahifadagi «Yangi mahsulotlar» bo‘limida{" "}
+                  {NEW_HIGHLIGHT_DAYS} kun turadi. O‘chirilsa, u yerdan tushadi.
+                </p>
+                {editingId && formatNewHighlightUntil(
+                  items.find((p) => p._id === editingId)?.newHighlightUntil,
+                ) ? (
+                  <p className="text-xs text-muted-foreground">
+                    Joriy muddat:{" "}
+                    {formatNewHighlightUntil(
+                      items.find((p) => p._id === editingId)?.newHighlightUntil,
+                    )}{" "}
+                    gacha
+                  </p>
+                ) : null}
+              </div>
+            </div>
 
             <Textarea
               placeholder="Tavsif (ixtiyoriy)"

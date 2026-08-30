@@ -59,7 +59,7 @@ export function ProductCard({
   const showCompareAtField = useProductFieldVisible("compareAtPrice");
   const showCompareAt = showPrice && showCompareAtField;
   const showRating = useProductFieldVisible("rating");
-  const isNew = isProductNew(product.createdAt, product.id);
+  const isNew = isProductNew(product.newHighlightUntil);
 
   const scoopFill = {
     width: R,
