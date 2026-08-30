@@ -30,8 +30,15 @@ import { fileToProductImageDataUrl } from "@/lib/product-upload";
 import { useAuthStore } from "@/store/auth";
 import { AdminXitoyTableRowsSkeleton } from "@/components/skeletons/admin";
 import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@/components/ui/toggle-group";
+import {
   calculateXitoyCostPrice,
+  chinaPriceFieldLabel,
+  formatYuanRateLabel,
   parseXitoyNumber,
+  type YuanRateUnit,
 } from "@/lib/xitoy-pricing";
 
 const BOT_USERNAME =
@@ -48,6 +55,7 @@ export type XitoyProduct = {
   wholesalePrice: number;
   costPriceYuan: number;
   yuanRate: number;
+  yuanRateUnit?: YuanRateUnit;
   customsFee: number;
   createdAt?: string;
 };
@@ -59,6 +67,7 @@ type FormState = {
   cubicM3: string;
   weightKg: string;
   yuanRate: string;
+  yuanRateUnit: YuanRateUnit;
   customsFee: string;
 };
 
@@ -69,6 +78,7 @@ type XitoyFormPayload = {
   cubicM3: number;
   weightKg: number;
   yuanRate: number;
+  yuanRateUnit: YuanRateUnit;
   customsFee: number;
 };
 
@@ -83,6 +93,7 @@ const emptyForm = (): FormState => ({
   cubicM3: "",
   weightKg: "",
   yuanRate: "",
+  yuanRateUnit: "yuan",
   customsFee: "",
 });
 
@@ -102,6 +113,7 @@ function getItemPricing(item: XitoyProduct) {
     cubicM3: item.cubicM3,
     weightKg: item.weightKg,
     yuanRate: item.yuanRate,
+    yuanRateUnit: item.yuanRateUnit ?? "yuan",
     customsFee: item.customsFee,
   });
 }
@@ -182,6 +194,7 @@ export function XitoyProductsSection() {
       cubicM3: String(item.cubicM3),
       weightKg: String(item.weightKg),
       yuanRate: String(item.yuanRate),
+      yuanRateUnit: item.yuanRateUnit ?? "yuan",
       customsFee: String(item.customsFee),
     });
     setError(null);
@@ -237,9 +250,13 @@ export function XitoyProductsSection() {
       return { error: "Rasm yuklash majburiy" as const };
     }
 
-    const fields = [chinaPriceYuan, cubicM3, weightKg, yuanRate, customsFee];
-    if (fields.some((v) => v == null)) {
+    const baseFields = [chinaPriceYuan, cubicM3, weightKg, customsFee];
+    if (baseFields.some((v) => v == null)) {
       return { error: "Barcha raqamli maydonlar to'g'ri bo'lishi kerak" as const };
+    }
+
+    if (form.yuanRateUnit === "yuan" && yuanRate == null) {
+      return { error: "Yuan kursi majburiy" as const };
     }
 
     return {
@@ -249,7 +266,8 @@ export function XitoyProductsSection() {
         chinaPriceYuan: chinaPriceYuan!,
         cubicM3: cubicM3!,
         weightKg: weightKg!,
-        yuanRate: yuanRate!,
+        yuanRate: form.yuanRateUnit === "yuan" ? yuanRate! : 0,
+        yuanRateUnit: form.yuanRateUnit,
         customsFee: customsFee!,
       },
     };
@@ -310,13 +328,11 @@ export function XitoyProductsSection() {
     const yuanRate = parseXitoyNumber(form.yuanRate);
     const customsFee = parseXitoyNumber(form.customsFee);
 
-    if (
-      chinaPriceYuan == null ||
-      cubicM3 == null ||
-      weightKg == null ||
-      yuanRate == null ||
-      customsFee == null
-    ) {
+    if (chinaPriceYuan == null || cubicM3 == null || weightKg == null || customsFee == null) {
+      return null;
+    }
+
+    if (form.yuanRateUnit === "yuan" && yuanRate == null) {
       return null;
     }
 
@@ -324,7 +340,8 @@ export function XitoyProductsSection() {
       chinaPriceYuan,
       cubicM3,
       weightKg,
-      yuanRate,
+      yuanRate: yuanRate ?? 0,
+      yuanRateUnit: form.yuanRateUnit,
       customsFee,
     });
   }, [form]);
@@ -365,7 +382,7 @@ export function XitoyProductsSection() {
               <TableRow>
                 <TableHead>Rasm</TableHead>
                 <TableHead>Tovar nomi</TableHead>
-                <TableHead className="text-right">Xitoy (¥)</TableHead>
+                <TableHead className="text-right">Xitoy narxi</TableHead>
                 <TableHead className="text-right">Kubi</TableHead>
                 <TableHead className="text-right">kg</TableHead>
                 <TableHead className="text-right">Dollarda</TableHead>
@@ -401,7 +418,9 @@ export function XitoyProductsSection() {
                       {item.name}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatYuan(item.chinaPriceYuan)}
+                      {(item.yuanRateUnit ?? "yuan") === "usd"
+                        ? formatUsd(item.chinaPriceYuan)
+                        : formatYuan(item.chinaPriceYuan)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {item.cubicM3.toLocaleString("uz-UZ", {
@@ -414,7 +433,9 @@ export function XitoyProductsSection() {
                       })}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatUsd(pricing.priceUsd)}
+                      {(item.yuanRateUnit ?? "yuan") === "usd"
+                        ? "—"
+                        : formatUsd(pricing.priceUsd)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatUsd(pricing.logisticsUsd)}
@@ -424,14 +445,27 @@ export function XitoyProductsSection() {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       <div>{formatUsd(pricing.costPriceUsd)}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatYuan(pricing.costPriceYuan)}
-                      </div>
+                      {pricing.costPriceYuan != null ? (
+                        <div className="text-xs text-muted-foreground">
+                          {formatYuan(pricing.costPriceYuan)}
+                        </div>
+                      ) : null}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {item.yuanRate.toLocaleString("uz-UZ", {
-                        maximumFractionDigits: 2,
-                      })}
+                      {(item.yuanRateUnit ?? "yuan") === "yuan" ? (
+                        <>
+                          <div>
+                            {item.yuanRate.toLocaleString("uz-UZ", {
+                              maximumFractionDigits: 4,
+                            })}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatYuanRateLabel(item.yuanRate, "yuan")}
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">$ rejim</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {item.customsFee.toLocaleString("uz-UZ", {
@@ -539,13 +573,52 @@ export function XitoyProductsSection() {
               />
             </div>
 
+            <div className="space-y-3 rounded-2xl border border-border/60 px-4 py-3">
+              <p className="text-sm font-medium">Hisob-kitob valyutasi</p>
+              <ToggleGroup
+                value={[form.yuanRateUnit]}
+                onValueChange={(values) => {
+                  const next = values[values.length - 1] as YuanRateUnit | undefined;
+                  if (!next) return;
+                  setForm((f) => ({ ...f, yuanRateUnit: next }));
+                }}
+                className="w-full"
+                variant="outline"
+                spacing={0}
+              >
+                <ToggleGroupItem value="yuan" className="flex-1 rounded-l-lg">
+                  Yuanda (¥ → $)
+                </ToggleGroupItem>
+                <ToggleGroupItem value="usd" className="flex-1 rounded-r-lg">
+                  Dollarda ($ da)
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <p className="text-xs text-muted-foreground">
+                {form.yuanRateUnit === "yuan"
+                  ? "Xitoy narxi yuanda kiritiladi, kurs orqali dollarga o‘giriladi."
+                  : "Xitoy narxi dollarda kiritiladi, hammasi $ da hisoblanadi."}
+              </p>
+            </div>
+
             <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <label className="text-sm font-medium" htmlFor="xitoy-chinaPriceYuan">
+                  {chinaPriceFieldLabel(form.yuanRateUnit)}
+                </label>
+                <Input
+                  id="xitoy-chinaPriceYuan"
+                  inputMode="decimal"
+                  value={form.chinaPriceYuan}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, chinaPriceYuan: e.target.value }))
+                  }
+                  placeholder="0"
+                />
+              </div>
               {(
                 [
-                  ["chinaPriceYuan", "Xitoy (yuan)"],
                   ["cubicM3", "Kubi (m³)"],
                   ["weightKg", "kg"],
-                  ["yuanRate", "Yuan kursi"],
                   ["customsFee", "Rastamoshka stavkasi"],
                 ] as const
               ).map(([key, label]) => (
@@ -566,14 +639,38 @@ export function XitoyProductsSection() {
               ))}
             </div>
 
+            {form.yuanRateUnit === "yuan" ? (
+              <div className="space-y-2 rounded-2xl border border-border/60 px-4 py-3">
+                <label className="text-sm font-medium" htmlFor="xitoy-yuanRate">
+                  Yuan kursi — 1 $ necha ¥? (masalan: 6,7)
+                </label>
+                <Input
+                  id="xitoy-yuanRate"
+                  inputMode="decimal"
+                  value={form.yuanRate}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, yuanRate: e.target.value }))
+                  }
+                  placeholder="0"
+                />
+              </div>
+            ) : null}
+
             <div className="rounded-2xl bg-secondary/60 px-4 py-3 text-sm">
               <p className="mb-2 font-medium">Tan narxi (avtomatik)</p>
               {previewPricing ? (
                 <dl className="space-y-1.5 tabular-nums">
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-muted-foreground">Xitoy narxi ($)</dt>
-                    <dd>{formatUsd(previewPricing.priceUsd)}</dd>
-                  </div>
+                  {form.yuanRateUnit === "yuan" ? (
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-muted-foreground">Xitoy narxi ($)</dt>
+                      <dd>{formatUsd(previewPricing.priceUsd)}</dd>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-muted-foreground">Xitoy narxi ($)</dt>
+                      <dd>{formatUsd(previewPricing.priceUsd)}</dd>
+                    </div>
+                  )}
                   <div className="flex justify-between gap-3">
                     <dt className="text-muted-foreground">Logistika ($)</dt>
                     <dd>{formatUsd(previewPricing.logisticsUsd)}</dd>
@@ -585,10 +682,13 @@ export function XitoyProductsSection() {
                   <div className="flex justify-between gap-3 border-t border-border/60 pt-2 font-medium">
                     <dt>Jami tan narxi</dt>
                     <dd>
-                      {formatUsd(previewPricing.costPriceUsd)}{" "}
-                      <span className="text-muted-foreground">
-                        / {formatYuan(previewPricing.costPriceYuan)}
-                      </span>
+                      {formatUsd(previewPricing.costPriceUsd)}
+                      {previewPricing.costPriceYuan != null ? (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          / {formatYuan(previewPricing.costPriceYuan)}
+                        </span>
+                      ) : null}
                     </dd>
                   </div>
                 </dl>
