@@ -58,6 +58,12 @@ type FormState = {
   customsFee: string;
 };
 
+type XitoyFormPayload = Omit<XitoyProduct, "_id" | "createdAt">;
+
+type ParseFormResult =
+  | { error: string }
+  | { payload: XitoyFormPayload };
+
 const emptyForm = (): FormState => ({
   imageUrl: "",
   name: "",
@@ -101,11 +107,7 @@ export function XitoyProductsSection() {
     if (!token) return;
 
     let cancelled = false;
-    let socket: {
-      on: (event: string, fn: () => void) => void;
-      emit: (event: string, payload?: unknown) => void;
-      disconnect: () => void;
-    } | null = null;
+    let socket: import("socket.io-client").Socket | null = null;
 
     void (async () => {
       try {
@@ -114,7 +116,7 @@ export function XitoyProductsSection() {
         socket = io(`${WS_URL}/realtime`, {
           transports: ["websocket", "polling"],
           withCredentials: true,
-        }) as typeof socket;
+        });
 
         socket.on("connect", () => {
           socket?.emit("join", { token });
@@ -196,7 +198,7 @@ export function XitoyProductsSection() {
     });
   }
 
-  function parseFormPayload() {
+  function parseFormPayload(): ParseFormResult {
     const chinaPriceYuan = Number(form.chinaPriceYuan.replace(",", "."));
     const cubicM3 = Number(form.cubicM3.replace(",", "."));
     const weightKg = Number(form.weightKg.replace(",", "."));

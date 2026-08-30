@@ -1,5 +1,11 @@
 import type { NextConfig } from "next";
 
+type ImageRemotePattern = {
+  protocol?: "http" | "https";
+  hostname: string;
+  port?: string;
+};
+
 function backendOrigin(): string {
   const raw =
     process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/api\/v1\/?$/, "") ||
@@ -7,10 +13,8 @@ function backendOrigin(): string {
   return raw.replace(/\/$/, "").replace(/:\/\/localhost(?=[:/]|$)/, "://127.0.0.1");
 }
 
-function r2RemotePatterns(): NonNullable<
-  NextConfig["images"]
->["remotePatterns"] {
-  const patterns: NonNullable<NextConfig["images"]>["remotePatterns"] = [
+function r2RemotePatterns(): ImageRemotePattern[] {
+  const patterns: ImageRemotePattern[] = [
     {
       protocol: "https",
       hostname: "**.r2.dev",
