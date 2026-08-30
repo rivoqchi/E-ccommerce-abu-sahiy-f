@@ -206,13 +206,12 @@ export function downloadOrderExcel(order: OrderExport) {
     </Row>`}
     ${emptyRow()}
     ${kvRow("Oraliq summa", finiteNumber(order.subtotal ?? order.total), true)}
-    ${kvRow("Yetkazib berish", finiteNumber(order.shippingFee), true)}
     ${
       order.originalTotal != null && order.originalTotal !== order.total
         ? kvRow("Buyurtma jami", finiteNumber(order.originalTotal), true)
         : ""
     }
-    ${kvRow("Yakuniy hisob", finiteNumber(order.total), true)}
+    ${kvRow("Yakuniy hisob", finiteNumber(order.subtotal ?? order.total), true)}
   `;
 
   const blob = new Blob(["\ufeff", xmlWorkbook(`Buyurtma ${shortId}`, table)], {
