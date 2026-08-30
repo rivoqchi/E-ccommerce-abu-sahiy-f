@@ -101,7 +101,8 @@ export function CheckoutForm() {
             notes: notes.trim() || undefined,
             items: items.map((item) => ({
               productId: item.productId,
-              quantity: item.quantity,
+              boxQuantity: item.boxQuantity,
+              pieceQuantity: item.pieceQuantity,
               source: item.source ?? "store",
             })),
           }),

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useAdminApi } from "@/lib/admin-api";
+import { AdminUsersPageSkeleton } from "@/components/skeletons/admin";
 
 type ApprovalStatus = "pending" | "approved" | "blocked";
 
@@ -42,6 +43,7 @@ export default function AdminUsersPage() {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "pending">("all");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [pending, startTransition] = useTransition();
 
   const load = useCallback(async () => {
@@ -52,7 +54,9 @@ export default function AdminUsersPage() {
   }, [adminFetch, q]);
 
   useEffect(() => {
-    void load().catch((e: Error) => setError(e.message));
+    void load()
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false));
   }, [load]);
 
   const visible = useMemo(() => {
@@ -107,6 +111,10 @@ export default function AdminUsersPage() {
       setError(e instanceof Error ? e.message : "Xato");
       throw e;
     }
+  }
+
+  if (loading) {
+    return <AdminUsersPageSkeleton />;
   }
 
   return (

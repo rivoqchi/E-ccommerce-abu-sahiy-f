@@ -84,6 +84,10 @@ export interface Product {
   partnerId?: string;
   partnerName?: string;
   partnerLogo?: string;
+  /** Karobka/dona — jami dona `quantity` da */
+  boxQuantity?: number;
+  pieceQuantity?: number;
+  piecesPerBox?: number;
   /** ISO date — admin switch yoqilganda 30 kun «Yangi» badge */
   newHighlightUntil?: string;
   createdAt?: string;
@@ -99,6 +103,9 @@ export interface CartItem {
   wholesalePrice: number;
   image: string;
   quantity: number;
+  boxQuantity: number;
+  pieceQuantity: number;
+  piecesPerBox?: number;
   /** Ombordagi maksimal miqdor (qo'shishda saqlanadi) */
   stock: number;
   source?: ProductSource;

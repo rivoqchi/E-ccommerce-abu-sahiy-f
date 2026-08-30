@@ -24,6 +24,7 @@ import {
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useAdminApi } from "@/lib/admin-api";
 import { cn } from "@/lib/utils";
+import { AdminStoriesPageSkeleton } from "@/components/skeletons/admin";
 
 type ApiStoryItem = {
   _id?: string;
@@ -93,6 +94,7 @@ export default function AdminStoriesPage() {
   const [activeDraftKey, setActiveDraftKey] = useState<string | null>(null);
   const [uploadTarget, setUploadTarget] = useState<"main" | "low">("main");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [pending, startTransition] = useTransition();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
@@ -101,7 +103,9 @@ export default function AdminStoriesPage() {
   }, [adminFetch]);
 
   useEffect(() => {
-    void load().catch((e: Error) => setError(e.message));
+    void load()
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false));
   }, [load]);
 
   async function uploadMedia(file: File) {
@@ -278,6 +282,10 @@ export default function AdminStoriesPage() {
       );
       setError(e instanceof Error ? e.message : "Holat yangilanmadi");
     }
+  }
+
+  if (loading) {
+    return <AdminStoriesPageSkeleton />;
   }
 
   return (

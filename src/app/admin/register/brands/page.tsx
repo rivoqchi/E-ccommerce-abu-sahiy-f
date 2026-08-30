@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useAdminApi } from "@/lib/admin-api";
+import { AdminBrandsPageSkeleton } from "@/components/skeletons/admin";
 
 type Brand = { _id: string; name: string; slug: string; isActive: boolean };
 
@@ -34,6 +35,7 @@ export default function AdminBrandsPage() {
   const [name, setName] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [pending, startTransition] = useTransition();
 
   const load = useCallback(async () => {
@@ -42,7 +44,9 @@ export default function AdminBrandsPage() {
   }, [adminFetch]);
 
   useEffect(() => {
-    void load().catch((e: Error) => setError(e.message));
+    void load()
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false));
   }, [load]);
 
   function resetForm() {
@@ -127,6 +131,10 @@ export default function AdminBrandsPage() {
       );
       setError(e instanceof Error ? e.message : "Holat yangilanmadi");
     }
+  }
+
+  if (loading) {
+    return <AdminBrandsPageSkeleton />;
   }
 
   return (

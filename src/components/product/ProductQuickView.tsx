@@ -13,7 +13,7 @@ import {
   SheetContent,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { QuantityStepper } from "@/components/ui/quantity-stepper";
+import { ProductUnitPicker, hasUnitSelection } from "@/components/product/ProductUnitPicker";
 import { useProductCartQty } from "@/hooks/use-product-cart-qty";
 import { useProductFieldVisible } from "@/components/product/ProductDisplayProvider";
 import { cn } from "@/lib/utils";
@@ -38,7 +38,7 @@ export function ProductQuickView({
   onOpenChange,
 }: ProductQuickViewProps) {
   const router = useRouter();
-  const { qty, setQty, inCart, maxQty, addToCart } =
+  const { units, setUnits, inCart, addToCart, piecesPerBox } =
     useProductCartQty(product);
   const [active, setActive] = useState(0);
   const [dragY, setDragY] = useState(0);
@@ -184,19 +184,17 @@ export function ProductQuickView({
             ) : null}
           </div>
 
-          <div className="mt-4 flex items-center gap-3">
-            <QuantityStepper
-              size="md"
-              className="h-11 flex-1 justify-between"
-              value={qty}
-              max={maxQty}
-              onChange={setQty}
+          <div className="mt-4 space-y-3">
+            <ProductUnitPicker
+              piecesPerBox={piecesPerBox}
+              value={units}
+              onChange={setUnits}
             />
-
             <Button
               type="button"
               size="lg"
-              className="h-11 flex-1 gap-2 rounded-full text-sm font-semibold"
+              className="h-11 w-full gap-2 rounded-full text-sm font-semibold"
+              disabled={!inCart && !hasUnitSelection(units)}
               onClick={handleAdd}
             >
               <ShoppingBag className="size-4" strokeWidth={1.75} />

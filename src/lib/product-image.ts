@@ -20,11 +20,19 @@ export function isStorefrontReadyProduct(p: {
   return hasRealProductImage(p.images);
 }
 
+function isLocalBackendUploadHost(hostname: string, port: string): boolean {
+  return (
+    (hostname === "localhost" || hostname === "127.0.0.1") &&
+    (port === "4000" || port === "")
+  );
+}
+
 /** Keep usable image URLs; replace broken/demo hosts with placeholder. */
 export function resolveProductImage(src?: string | null): string {
   if (!src?.trim()) return PRODUCT_IMAGE_PLACEHOLDER;
   const value = src.trim();
   if (value.startsWith("data:image/")) return value;
+  if (value.startsWith("/uploads/")) return value;
   try {
     const url = new URL(value);
     if (url.protocol !== "http:" && url.protocol !== "https:") {
@@ -36,6 +44,13 @@ export function resolveProductImage(src?: string | null): string {
       url.hostname.endsWith(".example.com")
     ) {
       return PRODUCT_IMAGE_PLACEHOLDER;
+    }
+    // Lokal backend uploads → Next.js /uploads rewrite (same-origin)
+    if (
+      url.pathname.startsWith("/uploads/") &&
+      isLocalBackendUploadHost(url.hostname, url.port)
+    ) {
+      return url.pathname;
     }
     return value;
   } catch {

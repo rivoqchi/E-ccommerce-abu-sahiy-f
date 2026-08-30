@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FileSpreadsheet, Loader2, RefreshCw, Upload } from "lucide-react";
+import { FileSpreadsheet, RefreshCw, Upload } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -177,9 +178,9 @@ export function ProductExcelImport({
             </div>
 
             {running ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" />
-                <span className="truncate">{statusLine}</span>
+              <div className="space-y-2" aria-busy="true">
+                <Skeleton className="h-4 w-full max-w-xs" />
+                <Skeleton className="h-3 w-48" />
               </div>
             ) : null}
 
@@ -255,7 +256,7 @@ export function ProductExcelImport({
                 onClick={() => void startImport()}
               >
                 {running ? (
-                  <Loader2 className="size-4 animate-spin" />
+                  <Upload className="size-4 opacity-50" />
                 ) : (
                   <Upload className="size-4" />
                 )}

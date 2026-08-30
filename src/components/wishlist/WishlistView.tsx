@@ -117,7 +117,7 @@ export function WishlistView() {
                       partnerName: item.partnerName,
                       partnerLogo: item.partnerLogo,
                     },
-                    1,
+                    { pieceQuantity: 1 },
                   );
                 }}
               >

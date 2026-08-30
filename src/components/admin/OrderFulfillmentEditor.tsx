@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAdminApi } from "@/lib/admin-api";
 import { formatMoney } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import {
   billedLineTotal,
   givenQty,
@@ -13,8 +14,9 @@ import {
   type FulfillableItem,
   type OrderSubstitute,
 } from "@/lib/order-fulfillment";
-import { cn } from "@/lib/utils";
+import { formatUnitsUz } from "@/lib/product-units";
 import { ProductThumb } from "@/components/catalog/ProductThumb";
+import { AdminPickerResultsSkeleton } from "@/components/skeletons/admin";
 
 type DraftSub = OrderSubstitute & {
   productId: string;
@@ -220,8 +222,14 @@ export function OrderFulfillmentEditor({
                     ) : null}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Buyurtma: {item.quantity} ×{" "}
-                    {formatMoney(item.unitPrice, currency)}
+                    Buyurtma:{" "}
+                    {item.boxQuantity != null || item.pieceQuantity != null
+                      ? `${formatUnitsUz(
+                          item.boxQuantity ?? 0,
+                          item.pieceQuantity ?? 0,
+                        )} (jami ${item.quantity} dona)`
+                      : `${item.quantity} dona`}{" "}
+                    × {formatMoney(item.unitPrice, currency)}
                   </p>
                   </div>
                 </div>
@@ -243,14 +251,14 @@ export function OrderFulfillmentEditor({
                 </Badge>
               ) : given < item.quantity ? (
                 <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
-                  Berildi: {given} / {item.quantity}
+                  Berildi: {given} dona / {item.quantity} dona
                 </p>
               ) : null}
 
               {!readOnly ? (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                     <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                    Berilgan son
+                    Berilgan (dona)
                     <input
                       type="number"
                       min={0}
@@ -386,10 +394,7 @@ export function OrderFulfillmentEditor({
                     />
                   </div>
                   {pickerLoading && activePicker === idx ? (
-                    <p className="flex items-center gap-2 px-2 py-2 text-xs text-muted-foreground">
-                      <Loader2 className="size-3.5 animate-spin" />
-                      Qidirilmoqda…
-                    </p>
+                    <AdminPickerResultsSkeleton />
                   ) : null}
                   {activePicker === idx && pickerHits.length ? (
                     <ul className="mt-1 max-h-40 overflow-y-auto">
@@ -472,14 +477,7 @@ export function OrderFulfillmentEditor({
           disabled={disabled || saving}
           onClick={() => void save()}
         >
-          {saving ? (
-            <>
-              <Loader2 className="size-4 animate-spin" />
-              Saqlanmoqda…
-            </>
-          ) : (
-            "Hisobni saqlash"
-          )}
+          {saving ? "Saqlanmoqda…" : "Hisobni saqlash"}
         </Button>
       ) : null}
     </section>

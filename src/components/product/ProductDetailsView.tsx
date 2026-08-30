@@ -24,7 +24,10 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { QuantityStepper } from "@/components/ui/quantity-stepper";
+import {
+  ProductUnitPicker,
+  hasUnitSelection,
+} from "@/components/product/ProductUnitPicker";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -139,7 +142,8 @@ function PurchaseSocialProof({
 
 export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   const router = useRouter();
-  const { qty, setQty, inCart, maxQty, addToCart } = useProductCartQty(product);
+  const { units, setUnits, inCart, addToCart, piecesPerBox } =
+    useProductCartQty(product);
   const toggleWishlist = useWishlistStore((s) => s.toggleItem);
   const liked = useWishlistStore((s) =>
     s.items.some((item) => item.productId === product.id),
@@ -168,16 +172,16 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   };
 
   const renderBuyActions = () => (
-    <div className="flex w-full items-center gap-2.5">
-      <QuantityStepper
-        size="lg"
-        value={qty}
-        max={maxQty}
-        onChange={setQty}
+    <div className="flex w-full flex-col gap-3">
+      <ProductUnitPicker
+        piecesPerBox={piecesPerBox}
+        value={units}
+        onChange={setUnits}
       />
       <Button
         size="lg"
-        className="h-12 min-w-0 flex-1 rounded-full px-5 text-sm font-semibold shadow-lg sm:flex-none sm:px-8"
+        className="h-12 w-full rounded-full px-5 text-sm font-semibold shadow-lg"
+        disabled={!inCart && !hasUnitSelection(units)}
         onClick={handleBuy}
       >
         {inCart ? "Savatga qaytish" : "Savatga qo'shish"}

@@ -36,6 +36,7 @@ import {
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { useAdminApi } from "@/lib/admin-api";
 import { fileToAvatarDataUrl } from "@/lib/avatar";
+import { AdminSellersPageSkeleton } from "@/components/skeletons/admin";
 
 type Seller = {
   _id: string;
@@ -75,6 +76,7 @@ export default function AdminSellersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [pending, startTransition] = useTransition();
   const [uploading, setUploading] = useState(false);
 
@@ -83,7 +85,9 @@ export default function AdminSellersPage() {
   }, [adminFetch]);
 
   useEffect(() => {
-    void load().catch((e: Error) => setError(e.message));
+    void load()
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false));
   }, [load]);
 
   function resetForm() {
@@ -176,6 +180,10 @@ export default function AdminSellersPage() {
       setError(e instanceof Error ? e.message : "Xato");
       throw e;
     }
+  }
+
+  if (loading) {
+    return <AdminSellersPageSkeleton />;
   }
 
   return (

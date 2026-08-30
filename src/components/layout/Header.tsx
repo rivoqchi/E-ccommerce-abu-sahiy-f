@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Handshake, Heart, Home, Search, ShoppingBag, User } from "lucide-react";
+import { Bell, Heart, Home, Search, ShoppingBag, User } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,6 @@ const NAV_BRAND = "Sami";
 const desktopBaseLinks = [
   { href: "/", label: "Bosh sahifa" },
   { href: "/catalog", label: "Katalog" },
-  { href: "/hamkor", label: "Hamkor" },
   { href: "/wishlist", label: "Sevimlilar" },
   { href: "/cart", label: "Savat" },
 ] as const;
@@ -230,12 +229,6 @@ const mobileItems = [
     icon: Search,
     match: (path: string) =>
       path.startsWith("/catalog") || path.startsWith("/product"),
-  },
-  {
-    href: "/hamkor",
-    label: "Hamkor",
-    icon: Handshake,
-    match: (path: string) => path.startsWith("/hamkor"),
   },
   {
     href: "/wishlist",

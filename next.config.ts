@@ -7,12 +7,57 @@ function backendOrigin(): string {
   return raw.replace(/\/$/, "").replace(/:\/\/localhost(?=[:/]|$)/, "://127.0.0.1");
 }
 
+function r2RemotePatterns(): NonNullable<
+  NextConfig["images"]
+>["remotePatterns"] {
+  const patterns: NonNullable<NextConfig["images"]>["remotePatterns"] = [
+    {
+      protocol: "https",
+      hostname: "**.r2.dev",
+    },
+    {
+      protocol: "https",
+      hostname: "**.cloudflareusercontent.com",
+    },
+  ];
+
+  const explicit = process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.trim();
+  if (explicit) {
+    try {
+      const url = new URL(explicit);
+      patterns.push({
+        protocol: url.protocol.replace(":", "") as "http" | "https",
+        hostname: url.hostname,
+        ...(url.port ? { port: url.port } : {}),
+      });
+    } catch {
+      // ignore invalid URL
+    }
+  }
+
+  return patterns;
+}
+
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/hamkor",
+        destination: "/catalog",
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
+    const backend = backendOrigin();
     return [
       {
         source: "/api/v1/:path*",
-        destination: `${backendOrigin()}/api/v1/:path*`,
+        destination: `${backend}/api/v1/:path*`,
+      },
+      {
+        source: "/uploads/:path*",
+        destination: `${backend}/uploads/:path*`,
       },
     ];
   },
@@ -26,10 +71,7 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "**.telegram.org",
       },
-      {
-        protocol: "https",
-        hostname: "pub-f3b38e5cace645bdae0dc2dca5984181.r2.dev",
-      },
+      ...r2RemotePatterns(),
       {
         protocol: "http",
         hostname: "localhost",

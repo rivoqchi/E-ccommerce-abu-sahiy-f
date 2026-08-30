@@ -13,6 +13,7 @@ import {
   Menu,
   Package,
   Settings,
+  Ship,
   ShoppingBag,
   Store,
   Tags,
@@ -36,9 +37,11 @@ import {
   unreadCount,
   useAdminNotifications,
 } from "@/store/admin-notifications";
+import { AdminShellSkeleton } from "@/components/skeletons/admin";
 
 const nav = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/admin/xitoy", label: "Xitoy mahsulotlari", icon: Ship },
   {
     label: "Roʻyxatga olish",
     icon: Package,
@@ -134,11 +137,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   if (!hydrated || !routerReady || checking || !allowed || !user) {
-    return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-background text-sm text-muted-foreground">
-        Tekshirilmoqda…
-      </div>
-    );
+    return <AdminShellSkeleton />;
   }
 
   return (

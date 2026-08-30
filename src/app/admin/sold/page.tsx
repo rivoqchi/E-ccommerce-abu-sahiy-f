@@ -15,6 +15,7 @@ import {
 import { useAdminApi } from "@/lib/admin-api";
 import { formatUZS } from "@/lib/format";
 import { downloadSoldExcel, downloadSoldWord } from "@/lib/sold-export";
+import { AdminSoldPageSkeleton } from "@/components/skeletons/admin";
 
 type SoldRow = {
   _id: string;
@@ -28,12 +29,18 @@ export default function AdminSoldPage() {
   const { adminFetch } = useAdminApi();
   const [items, setItems] = useState<SoldRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     void adminFetch<SoldRow[]>("/admin/sold-products")
       .then(setItems)
-      .catch((e: Error) => setError(e.message));
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false));
   }, [adminFetch]);
+
+  if (loading) {
+    return <AdminSoldPageSkeleton />;
+  }
 
   return (
     <div className="space-y-6">

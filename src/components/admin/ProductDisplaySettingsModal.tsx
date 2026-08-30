@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { EyeOff, Loader2 } from "lucide-react";
+import { EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +21,7 @@ import {
   sanitizeHiddenSpecLabels,
   type ProductDisplayField,
 } from "@/lib/product-display";
+import { AdminDisplaySettingsSkeleton } from "@/components/skeletons/admin";
 
 function VisibilitySwitch({
   label,
@@ -171,9 +172,7 @@ export function ProductDisplaySettingsModal() {
           </DialogHeader>
 
           {loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="size-5 animate-spin text-muted-foreground" />
-            </div>
+            <AdminDisplaySettingsSkeleton />
           ) : (
             <div className="min-h-0 flex-1 space-y-5 overflow-y-auto">
               <section>
@@ -255,8 +254,7 @@ export function ProductDisplaySettingsModal() {
               disabled={pending || loading}
               onClick={save}
             >
-              {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-              Saqlash
+              {pending ? "Saqlanmoqda…" : "Saqlash"}
             </Button>
           </DialogFooter>
         </DialogContent>

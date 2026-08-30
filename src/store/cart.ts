@@ -8,21 +8,72 @@ import { playAddToCartSound } from "@/lib/sounds";
 import { resolveUnitPrice, type PriceTier } from "@/lib/pricing";
 import { isStorefrontReadyProduct } from "@/lib/product-image";
 import { UNLIMITED_QTY } from "@/lib/quantity";
+import { totalPieces } from "@/lib/product-units";
 
-function clampQty(n: number, max = UNLIMITED_QTY) {
-  if (!Number.isFinite(n)) return 1;
-  return Math.min(max, Math.max(1, Math.floor(n)));
+function clampUnit(n: number) {
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(UNLIMITED_QTY, Math.max(0, Math.floor(n)));
+}
+
+export type CartUnitInput = {
+  boxQuantity?: number;
+  pieceQuantity?: number;
+  /** Legacy single-unit add */
+  quantity?: number;
+};
+
+function normalizeUnits(
+  input: CartUnitInput,
+  piecesPerBox?: number,
+): { boxQuantity: number; pieceQuantity: number; quantity: number } {
+  let boxQuantity = clampUnit(input.boxQuantity ?? 0);
+  let pieceQuantity = clampUnit(input.pieceQuantity ?? 0);
+  if (
+    input.quantity != null &&
+    input.boxQuantity == null &&
+    input.pieceQuantity == null
+  ) {
+    pieceQuantity = clampUnit(input.quantity);
+    boxQuantity = 0;
+  }
+  const quantity = totalPieces(boxQuantity, pieceQuantity, piecesPerBox);
+  return { boxQuantity, pieceQuantity, quantity };
+}
+
+function migrateCartItem(item: CartItem): CartItem {
+  const boxQuantity = clampUnit(item.boxQuantity ?? 0);
+  const pieceQuantity =
+    item.pieceQuantity != null
+      ? clampUnit(item.pieceQuantity)
+      : clampUnit(item.quantity);
+  const quantity = totalPieces(
+    boxQuantity,
+    pieceQuantity,
+    item.piecesPerBox,
+  );
+  return {
+    ...item,
+    boxQuantity,
+    pieceQuantity,
+    quantity: quantity > 0 ? quantity : clampUnit(item.quantity) || 1,
+    wholesalePrice:
+      typeof item.wholesalePrice === "number"
+        ? item.wholesalePrice
+        : item.price,
+    stock: UNLIMITED_QTY,
+    source: productSourceOf(item.source),
+  };
 }
 
 interface CartState {
   items: CartItem[];
   hydrated: boolean;
   setHydrated: (value: boolean) => void;
-  addItem: (product: Product, quantity?: number) => void;
+  addItem: (product: Product, units?: CartUnitInput) => void;
   removeItem: (productId: string, source?: ProductSource) => void;
-  updateQuantity: (
+  updateUnits: (
     productId: string,
-    quantity: number,
+    units: { boxQuantity: number; pieceQuantity: number },
     source?: ProductSource,
   ) => void;
   clearCart: () => void;
@@ -46,18 +97,14 @@ export const useCartStore = create<CartState>()(
         set({ hydrated: value });
       },
 
-      addItem: (product, quantity = 1) => {
+      addItem: (product, units = { boxQuantity: 0, pieceQuantity: 0 }) => {
         if (!isStorefrontReadyProduct(product)) return;
 
-        const addQty = clampQty(quantity);
         const source = productSourceOf(product.source);
         const key = cartLineKey(source, product.id);
-        const existing = get().items.find(
-          (item) => cartLineKey(item.source, item.productId) === key,
-        );
-        const currentQty = existing?.quantity ?? 0;
-        const nextQty = clampQty(currentQty + addQty);
-        if (nextQty <= currentQty) return;
+        const ppb = product.piecesPerBox;
+        const incoming = normalizeUnits(units, ppb);
+        if (incoming.quantity < 1) return;
 
         playAddToCartSound();
         const wholesalePrice =
@@ -71,16 +118,25 @@ export const useCartStore = create<CartState>()(
           );
 
           if (found) {
+            const merged = normalizeUnits(
+              {
+                boxQuantity: found.boxQuantity + incoming.boxQuantity,
+                pieceQuantity: found.pieceQuantity + incoming.pieceQuantity,
+              },
+              ppb ?? found.piecesPerBox,
+            );
+            if (merged.quantity < 1) return state;
             return {
               items: state.items.map((item) =>
                 cartLineKey(item.source, item.productId) === key
                   ? {
                       ...item,
-                      quantity: nextQty,
+                      ...merged,
                       price: product.price,
                       wholesalePrice,
                       stock: UNLIMITED_QTY,
                       source,
+                      piecesPerBox: ppb ?? item.piecesPerBox,
                       partnerId: product.partnerId,
                       partnerName: product.partnerName,
                       partnerLogo: product.partnerLogo,
@@ -100,9 +156,10 @@ export const useCartStore = create<CartState>()(
                 price: product.price,
                 wholesalePrice,
                 image: product.images[0],
-                quantity: nextQty,
+                ...incoming,
                 stock: UNLIMITED_QTY,
                 source,
+                piecesPerBox: ppb,
                 partnerId: product.partnerId,
                 partnerName: product.partnerName,
                 partnerLogo: product.partnerLogo,
@@ -121,21 +178,29 @@ export const useCartStore = create<CartState>()(
         }));
       },
 
-      updateQuantity: (productId, quantity, source) => {
-        if (quantity <= 0) {
-          get().removeItem(productId, source);
-          return;
-        }
+      updateUnits: (productId, units, source) => {
         const key = cartLineKey(source, productId);
-        set((state) => ({
-          items: state.items.map((item) => {
-            if (cartLineKey(item.source, item.productId) !== key) return item;
+        set((state) => {
+          const item = state.items.find(
+            (i) => cartLineKey(i.source, i.productId) === key,
+          );
+          if (!item) return state;
+          const next = normalizeUnits(units, item.piecesPerBox);
+          if (next.quantity <= 0) {
             return {
-              ...item,
-              quantity: clampQty(quantity),
+              items: state.items.filter(
+                (i) => cartLineKey(i.source, i.productId) !== key,
+              ),
             };
-          }),
-        }));
+          }
+          return {
+            items: state.items.map((i) =>
+              cartLineKey(i.source, i.productId) === key
+                ? { ...i, ...next }
+                : i,
+            ),
+          };
+        });
       },
 
       clearCart: () => set({ items: [] }),
@@ -167,20 +232,7 @@ export const useCartStore = create<CartState>()(
           console.warn("[cart] rehydrate failed", error);
         }
         if (state) {
-          // Migrate old cart rows without wholesalePrice / stock
-          state.items = state.items.map((item) => {
-            const qty = clampQty(item.quantity);
-            return {
-              ...item,
-              wholesalePrice:
-                typeof item.wholesalePrice === "number"
-                  ? item.wholesalePrice
-                  : item.price,
-              stock: UNLIMITED_QTY,
-              quantity: qty,
-              source: productSourceOf(item.source),
-            };
-          });
+          state.items = state.items.map(migrateCartItem);
           state.setHydrated(true);
         } else {
           queueMicrotask(() => {

@@ -4,53 +4,65 @@ import { useEffect, useState } from "react";
 import type { Product } from "@/types/product";
 import { cartLineKey, productSourceOf } from "@/types/product";
 import { useCartStore } from "@/store/cart";
-import { UNLIMITED_QTY } from "@/lib/quantity";
+import {
+  hasUnitSelection,
+  type ProductUnitValues,
+} from "@/components/product/ProductUnitPicker";
 
-function clampQty(n: number, max = UNLIMITED_QTY) {
-  if (!Number.isFinite(n)) return 1;
-  return Math.min(max, Math.max(1, Math.floor(n)));
-}
+const emptyUnits = (): ProductUnitValues => ({
+  boxQuantity: 0,
+  pieceQuantity: 0,
+});
 
 export function useProductCartQty(product: Product | null) {
   const productId = product?.id;
   const source = productSourceOf(product?.source);
   const lineKey = productId ? cartLineKey(source, productId) : "";
-  const cartQty = useCartStore((s) =>
+  const cartLine = useCartStore((s) =>
     lineKey
       ? s.items.find(
           (item) => cartLineKey(item.source, item.productId) === lineKey,
-        )?.quantity
+        )
       : undefined,
   );
   const addItem = useCartStore((s) => s.addItem);
-  const updateQuantity = useCartStore((s) => s.updateQuantity);
+  const updateUnits = useCartStore((s) => s.updateUnits);
 
-  const [draftQty, setDraftQty] = useState(1);
-  const inCart = cartQty != null;
-  const maxQty = UNLIMITED_QTY;
-  const qty = inCart ? cartQty : draftQty;
+  const [draftUnits, setDraftUnits] = useState<ProductUnitValues>(emptyUnits);
+  const inCart = cartLine != null;
+  const units: ProductUnitValues = inCart
+    ? {
+        boxQuantity: cartLine.boxQuantity,
+        pieceQuantity: cartLine.pieceQuantity,
+      }
+    : draftUnits;
 
   useEffect(() => {
-    setDraftQty(1);
+    setDraftUnits(emptyUnits());
   }, [productId]);
 
-  const setQty = (next: number) => {
+  const setUnits = (next: ProductUnitValues) => {
     if (!product) return;
-    const clamped = clampQty(next);
     if (inCart) {
-      if (clamped === cartQty) return;
-      updateQuantity(product.id, clamped, product.source);
+      updateUnits(product.id, next, product.source);
       return;
     }
-    setDraftQty(clamped);
+    setDraftUnits(next);
   };
 
   const addToCart = (): "added" | "in-cart" | "unavailable" => {
     if (!product) return "unavailable";
     if (inCart) return "in-cart";
-    addItem(product, clampQty(draftQty));
+    if (!hasUnitSelection(draftUnits)) return "unavailable";
+    addItem(product, draftUnits);
     return "added";
   };
 
-  return { qty, setQty, inCart, maxQty, addToCart };
+  return {
+    units,
+    setUnits,
+    inCart,
+    addToCart,
+    piecesPerBox: product?.piecesPerBox,
+  };
 }

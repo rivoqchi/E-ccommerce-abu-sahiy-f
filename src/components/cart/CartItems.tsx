@@ -9,8 +9,8 @@ import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
 import { useStorefrontPricesVisible } from "@/components/product/ProductDisplayProvider";
 import { NegotiatePriceNote } from "@/components/product/NegotiatePriceNote";
 import { Button } from "@/components/ui/button";
-import { QuantityStepper } from "@/components/ui/quantity-stepper";
-import { UNLIMITED_QTY } from "@/lib/quantity";
+import { ProductUnitPicker } from "@/components/product/ProductUnitPicker";
+import { formatUnitsUz } from "@/lib/product-units";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ProductImage } from "@/components/catalog/ProductImage";
@@ -25,7 +25,7 @@ function CartLine({
   item: CartItem;
   showSeparator: boolean;
 }) {
-  const updateQuantity = useCartStore((s) => s.updateQuantity);
+  const updateUnits = useCartStore((s) => s.updateUnits);
   const removeItem = useCartStore((s) => s.removeItem);
   const linePrice = useCartStore((s) => s.linePrice);
   const priceTier = usePriceTier();
@@ -58,20 +58,27 @@ function CartLine({
             </Link>
             {showPrice ? (
               <p className="mt-1 text-sm text-muted-foreground">
-                {formatMoney(unit, priceTier)}
+                {formatMoney(unit, priceTier)} / dona
               </p>
             ) : (
               <NegotiatePriceNote className="mt-1" />
             )}
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {formatUnitsUz(item.boxQuantity, item.pieceQuantity)} (jami{" "}
+              {item.quantity} dona)
+            </p>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            <QuantityStepper
-              size="sm"
-              value={item.quantity}
-              max={UNLIMITED_QTY}
+          <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <ProductUnitPicker
+              className="w-full min-w-[14rem] sm:w-auto"
+              piecesPerBox={item.piecesPerBox}
+              value={{
+                boxQuantity: item.boxQuantity,
+                pieceQuantity: item.pieceQuantity,
+              }}
               onChange={(next) =>
-                updateQuantity(item.productId, next, item.source)
+                updateUnits(item.productId, next, item.source)
               }
             />
 

@@ -42,8 +42,16 @@ import { Badge } from "@/components/ui/badge";
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { showCenterToast } from "@/components/ui/center-toast";
 import { ProductExcelImport } from "@/components/admin/ProductExcelImport";
+import {
+  buildStockAdjustPayload,
+  stockAdjustValidationError,
+  emptyStockForm,
+  ProductStockFields,
+  type ProductStockFormState,
+} from "@/components/admin/ProductStockFields";
 import { ProductDisplaySettingsModal } from "@/components/admin/ProductDisplaySettingsModal";
 import { useAdminApi } from "@/lib/admin-api";
+import { formatStockDisplay } from "@/lib/product-units";
 import { formatUSD, formatUZS } from "@/lib/format";
 import { resolveUnitPrice, sourceUsd } from "@/lib/pricing";
 import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
@@ -59,6 +67,7 @@ import {
   isNewHighlightActive,
   NEW_HIGHLIGHT_DAYS,
 } from "@/lib/product-new-highlight";
+import { AdminProductTableRowsSkeleton } from "@/components/skeletons/admin";
 
 type RefItem = { _id: string; name: string };
 type Spec = { label: string; value: string };
@@ -77,6 +86,7 @@ type Product = {
   description?: string;
   createdAt?: string;
   newHighlightUntil?: string;
+  piecesPerBox?: number;
 };
 
 function formatProductDate(value?: string) {
@@ -126,6 +136,8 @@ type SavePayload = {
   images: string[];
   specs: Spec[];
   highlightAsNew?: boolean;
+  piecesPerBox?: number;
+  stockAdjust?: { boxAmount?: number; pieceAmount?: number };
 };
 
 function productFromPayload(
@@ -148,6 +160,7 @@ function productFromPayload(
     description: payload.description,
     createdAt: prev?.createdAt ?? new Date().toISOString(),
     newHighlightUntil: prev?.newHighlightUntil,
+    piecesPerBox: payload.piecesPerBox ?? prev?.piecesPerBox,
   };
 }
 
@@ -173,6 +186,8 @@ const emptyForm = {
   images: [] as string[],
   specs: [{ label: "", value: "" }] as Spec[],
 };
+
+const emptyStockFields = { ...emptyStockForm };
 
 function SearchableCategory({
   categories,
@@ -271,6 +286,8 @@ export default function AdminProductsPage() {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [stockFields, setStockFields] =
+    useState<ProductStockFormState>(emptyStockFields);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const silentLoadRef = useRef(false);
@@ -329,6 +346,7 @@ export default function AdminProductsPage() {
   function openCreate() {
     setEditingId(null);
     setForm(emptyForm);
+    setStockFields({ ...emptyStockForm });
     setError(null);
     setOpen(true);
   }
@@ -336,6 +354,12 @@ export default function AdminProductsPage() {
   function openEdit(p: Product) {
     setEditingId(p._id);
     setError(null);
+    setStockFields({
+      piecesPerBox: p.piecesPerBox ? String(p.piecesPerBox) : "",
+      stock: String(p.stock),
+      stockAdjustBoxes: "",
+      stockAdjustPieces: "",
+    });
     setForm({
       name: p.name,
       code: p.code ?? "",
@@ -378,7 +402,7 @@ export default function AdminProductsPage() {
   function save() {
     setError(null);
     const wholesalePrice = Number(form.wholesalePrice);
-    const stock = Number(form.stock);
+    const stock = Number(stockFields.stock);
     if (
       !form.name.trim() ||
       !form.code.trim() ||
@@ -395,12 +419,22 @@ export default function AdminProductsPage() {
     }
     startTransition(async () => {
       try {
+        const ppb = Number(stockFields.piecesPerBox);
+        const hasPpb = Number.isFinite(ppb) && ppb >= 1;
+        const adjustError = stockAdjustValidationError(stockFields, hasPpb);
+        if (adjustError) {
+          setError(adjustError);
+          return;
+        }
+        const stockAdjust = buildStockAdjustPayload(stockFields, hasPpb);
         const payload: SavePayload = {
           name: form.name.trim(),
           code: form.code.trim(),
           price: wholesalePrice,
           wholesalePrice,
-          stock: Number.isNaN(stock) ? 0 : stock,
+          stock: editingId
+            ? Number(items.find((p) => p._id === editingId)?.stock ?? 0)
+            : Number.isNaN(stock) ? 0 : stock,
           categoryId: form.categoryId,
           brandId: form.brandId || undefined,
           description: form.description.trim() || form.name.trim(),
@@ -408,6 +442,8 @@ export default function AdminProductsPage() {
           images: form.images,
           specs: form.specs.filter((s) => s.label.trim() && s.value.trim()),
           highlightAsNew: form.highlightAsNew,
+          ...(Number.isFinite(ppb) && ppb >= 1 ? { piecesPerBox: ppb } : {}),
+          ...(stockAdjust ? { stockAdjust } : {}),
         };
         if (editingId) {
           await adminFetch(`/products/${editingId}`, {
@@ -428,6 +464,8 @@ export default function AdminProductsPage() {
             );
           }
           showCenterToast("Mahsulot yangilandi");
+          silentLoadRef.current = true;
+          await loadProducts(page, query, listTab, { silent: true });
         } else {
           const created = await adminFetch<{ _id: string }>("/products", {
             method: "POST",
@@ -620,11 +658,7 @@ export default function AdminProductsPage() {
             </TableHeader>
             <TableBody>
               {loadingList && items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} className="py-10 text-center">
-                    <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
-                  </TableCell>
-                </TableRow>
+                <AdminProductTableRowsSkeleton rows={8} />
               ) : null}
               {items.map((p) => {
                 const issues = getProductIssues(p);
@@ -680,7 +714,14 @@ export default function AdminProductsPage() {
                         )}
                       </TableCell>
                       <TableCell className="tabular-nums font-medium">
-                        {p.stock}
+                        <span className="block">
+                          {formatStockDisplay(p.stock, p.piecesPerBox)}
+                        </span>
+                        {p.piecesPerBox ? (
+                          <span className="text-xs font-normal text-muted-foreground">
+                            jami {p.stock} dona
+                          </span>
+                        ) : null}
                       </TableCell>
                       <TableCell className="max-w-[140px] text-xs">
                         {hasProblems ? (
@@ -844,14 +885,13 @@ export default function AdminProductsPage() {
                   ),
                 )}
               </div>
-              <Input
-                placeholder="Ombor"
-                inputMode="numeric"
-                value={form.stock}
-                onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                className="h-12"
-              />
             </div>
+
+            <ProductStockFields
+              isEditing={Boolean(editingId)}
+              value={stockFields}
+              onChange={setStockFields}
+            />
 
             <div className="grid gap-3 sm:grid-cols-2">
               <SearchableCategory

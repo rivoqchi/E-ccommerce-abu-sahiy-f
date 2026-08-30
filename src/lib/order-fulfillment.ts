@@ -15,6 +15,9 @@ export type FulfillableItem = {
   name: string;
   slug?: string;
   quantity: number;
+  boxQuantity?: number;
+  pieceQuantity?: number;
+  piecesPerBox?: number;
   unitPrice: number;
   source?: "store" | "hamkor" | string;
   partnerName?: string;

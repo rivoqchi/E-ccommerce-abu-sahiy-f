@@ -78,11 +78,7 @@ export default async function HamkorProductPage({
         dangerouslySetInnerHTML={jsonLdScript(
           breadcrumbJsonLd([
             { name: "Bosh sahifa", path: "/" },
-            { name: "Hamkor", path: "/hamkor" },
-            {
-              name: product.categoryLabel,
-              path: `/hamkor?category=${product.category}`,
-            },
+            { name: "Katalog", path: "/catalog" },
             { name: product.name, path: `/hamkor/product/${product.slug}` },
           ]),
         )}

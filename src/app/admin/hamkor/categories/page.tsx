@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AdminHamkorCategoriesPageSkeleton } from "@/components/skeletons/admin";
 
 type Partner = { _id: string; name: string };
 type PartnerRef = string | { _id: string; name?: string };
@@ -65,6 +66,7 @@ export default function AdminHamkorCategoriesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [pending, startTransition] = useTransition();
   const [uploading, setUploading] = useState(false);
 
@@ -78,7 +80,9 @@ export default function AdminHamkorCategoriesPage() {
   }, [adminFetch]);
 
   useEffect(() => {
-    void load().catch((e: Error) => setError(e.message));
+    void load()
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false));
   }, [load]);
 
   function openCreate() {
@@ -157,6 +161,10 @@ export default function AdminHamkorCategoriesPage() {
       setError(e instanceof Error ? e.message : "Xato");
       throw e;
     }
+  }
+
+  if (loading) {
+    return <AdminHamkorCategoriesPageSkeleton />;
   }
 
   return (

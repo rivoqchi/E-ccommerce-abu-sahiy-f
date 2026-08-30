@@ -12,3 +12,4 @@ export { WishlistPageSkeleton } from "./WishlistPageSkeleton";
 export { AccountPageSkeleton } from "./AccountPageSkeleton";
 export { LoginPageSkeleton, LoginFormSkeleton } from "./LoginPageSkeleton";
 export { WelcomePageSkeleton } from "./WelcomePageSkeleton";
+export * from "./admin";

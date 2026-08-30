@@ -59,6 +59,7 @@ export type ApiProduct = {
   }>;
   createdAt?: string;
   newHighlightUntil?: string;
+  piecesPerBox?: number;
 };
 
 export type ProductsListResult = {
@@ -149,6 +150,9 @@ export function mapApiProduct(
     ...(raw.createdAt ? { createdAt: raw.createdAt } : {}),
     ...(raw.newHighlightUntil
       ? { newHighlightUntil: raw.newHighlightUntil }
+      : {}),
+    ...(raw.piecesPerBox != null && Number(raw.piecesPerBox) >= 1
+      ? { piecesPerBox: Number(raw.piecesPerBox) }
       : {}),
   };
 }

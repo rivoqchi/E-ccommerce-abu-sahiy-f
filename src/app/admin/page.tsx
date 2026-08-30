@@ -20,6 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useAdminApi } from "@/lib/admin-api";
 import { formatMoney, formatUZS } from "@/lib/format";
+import { AdminDashboardSkeleton } from "@/components/skeletons/admin";
 
 type Stats = {
   usersCount: number;
@@ -42,11 +43,13 @@ export default function AdminDashboardPage() {
   const { adminFetch } = useAdminApi();
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     void adminFetch<Stats>("/admin/stats")
       .then(setStats)
-      .catch((e: Error) => setError(e.message));
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false));
   }, [adminFetch]);
 
   const cards = [
@@ -55,6 +58,10 @@ export default function AdminDashboardPage() {
     { label: "Mahsulotlar", value: stats?.productsCount, icon: Boxes },
     { label: "Sotuvchilar", value: stats?.sellersCount, icon: Store },
   ];
+
+  if (loading) {
+    return <AdminDashboardSkeleton />;
+  }
 
   return (
     <div className="space-y-6">

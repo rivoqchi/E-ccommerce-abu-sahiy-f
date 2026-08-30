@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { FileSpreadsheet, Loader2 } from "lucide-react";
+import { FileSpreadsheet } from "lucide-react";
 import { ADMIN_NEW_ORDER_EVENT } from "@/lib/admin-alerts";
 import { useAdminNotifications } from "@/store/admin-notifications";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,7 @@ import {
   itemFulfillmentLabel,
   type OrderSubstitute,
 } from "@/lib/order-fulfillment";
+import { AdminOrdersPageSkeleton } from "@/components/skeletons/admin";
 
 type OrderItem = {
   name: string;
@@ -141,7 +142,7 @@ function splitName(fullName?: string) {
 
 export default function AdminOrdersPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-muted-foreground">Yuklanmoqda…</p>}>
+    <Suspense fallback={<AdminOrdersPageSkeleton />}>
       <AdminOrdersView />
     </Suspense>
   );
@@ -155,6 +156,7 @@ function AdminOrdersView() {
   );
   const [items, setItems] = useState<Order[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Order | null>(null);
   const [pending, startTransition] = useTransition();
   const [exporting, setExporting] = useState<string | null>(null);
@@ -164,7 +166,9 @@ function AdminOrdersView() {
   }, [adminFetch]);
 
   useEffect(() => {
-    void load().catch((e: Error) => setError(e.message));
+    void load()
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false));
   }, [load]);
 
   useEffect(() => {
@@ -268,6 +272,10 @@ function AdminOrdersView() {
 
   const nameParts = splitName(selected?.shippingAddress?.fullName);
 
+  if (loading) {
+    return <AdminOrdersPageSkeleton />;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -281,11 +289,7 @@ function AdminOrdersView() {
           disabled={!items.length || Boolean(exporting)}
           onClick={() => void exportAll()}
         >
-          {exporting === "all" ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <FileSpreadsheet className="size-4" />
-          )}
+          <FileSpreadsheet className="size-4" />
           Barchasi Excel
         </Button>
       </div>
@@ -374,11 +378,7 @@ function AdminOrdersView() {
                         disabled={Boolean(exporting)}
                         onClick={() => void exportOne(o._id)}
                       >
-                        {exporting === o._id ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <FileSpreadsheet className="size-4" />
-                        )}
+                        <FileSpreadsheet className="size-4" />
                         Excel
                       </Button>
                       <Button
@@ -473,11 +473,7 @@ function AdminOrdersView() {
                     disabled={Boolean(exporting)}
                     onClick={() => void exportOne(selected._id)}
                   >
-                    {exporting === selected._id ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <FileSpreadsheet className="size-4" />
-                    )}
+                    <FileSpreadsheet className="size-4" />
                     Excel
                   </Button>
                 </div>
