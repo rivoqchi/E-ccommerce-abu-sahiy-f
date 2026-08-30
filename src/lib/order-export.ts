@@ -98,6 +98,13 @@ function currencyLabel(currency?: string) {
   return currency === "USD" || currency === "wholesale" ? "USD" : "UZS";
 }
 
+function excelLineStatus(item: OrderExportItem) {
+  const label = itemFulfillmentLabel(item);
+  if (!label) return "";
+  if (label.startsWith("Berildi ")) return label.slice("Berildi ".length);
+  return label;
+}
+
 function finiteNumber(value: number | undefined, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -149,43 +156,28 @@ export function downloadOrderExcel(order: OrderExport) {
     <Row>
       <Cell><Data ss:Type="String">Mahsulot</Data></Cell>
       <Cell><Data ss:Type="String">Buyurtma</Data></Cell>
-      <Cell><Data ss:Type="String">Berildi</Data></Cell>
       <Cell><Data ss:Type="String">Status</Data></Cell>
-      <Cell><Data ss:Type="String">Birlik narx</Data></Cell>
-      <Cell><Data ss:Type="String">Hisob</Data></Cell>
       <Cell><Data ss:Type="String">Manba</Data></Cell>
     </Row>`;
 
   const itemRows = items
     .map((item) => {
-      const unavailable = isUnavailable(item);
-      const given = givenQty(item);
-      const unit = finiteNumber(item.unitPrice);
-      const billed = unavailable ? 0 : given * unit;
-      const status =
-        itemFulfillmentLabel(item) ?? (unavailable ? "Qolmagan" : "Berildi");
+      const status = excelLineStatus(item);
       const main = `
     <Row>
       <Cell><Data ss:Type="String">${escapeXml(item.name)}</Data></Cell>
       <Cell><Data ss:Type="Number">${finiteNumber(item.quantity)}</Data></Cell>
-      <Cell><Data ss:Type="Number">${given}</Data></Cell>
       <Cell><Data ss:Type="String">${escapeXml(status)}</Data></Cell>
-      <Cell><Data ss:Type="Number">${unit}</Data></Cell>
-      <Cell><Data ss:Type="Number">${billed}</Data></Cell>
       <Cell><Data ss:Type="String">${escapeXml(sourceLabel(item))}</Data></Cell>
     </Row>`;
       const subs = (item.substitutes ?? [])
         .map((sub: OrderSubstitute) => {
           const qty = finiteNumber(sub.quantity);
-          const subUnit = finiteNumber(sub.unitPrice);
           return `
     <Row>
       <Cell><Data ss:Type="String">${escapeXml(`→ Almashtirilgan: ${sub.name}`)}</Data></Cell>
-      <Cell><Data ss:Type="Number">0</Data></Cell>
       <Cell><Data ss:Type="Number">${qty}</Data></Cell>
       <Cell><Data ss:Type="String">Almashtirilgan</Data></Cell>
-      <Cell><Data ss:Type="Number">${subUnit}</Data></Cell>
-      <Cell><Data ss:Type="Number">${qty * subUnit}</Data></Cell>
       <Cell><Data ss:Type="String">${escapeXml(sourceLabel(sub))}</Data></Cell>
     </Row>`;
         })
@@ -236,8 +228,6 @@ export function downloadOrdersExcel(orders: OrderExport[]) {
       <Cell><Data ss:Type="String">ID</Data></Cell>
       <Cell><Data ss:Type="String">Sana</Data></Cell>
       <Cell><Data ss:Type="String">Mijoz</Data></Cell>
-      <Cell><Data ss:Type="String">Telefon</Data></Cell>
-      <Cell><Data ss:Type="String">Manzil</Data></Cell>
       <Cell><Data ss:Type="String">Mahsulotlar</Data></Cell>
       <Cell><Data ss:Type="String">Status</Data></Cell>
       <Cell><Data ss:Type="String">Valyuta</Data></Cell>
@@ -259,7 +249,7 @@ export function downloadOrdersExcel(orders: OrderExport[]) {
             : given !== i.quantity
               ? `${i.name} ×${given}/${finiteNumber(i.quantity)}`
               : `${i.name} ×${finiteNumber(i.quantity)}`;
-          return [core, label && label !== "Berildi" ? label : "", subs]
+          return [core, label && !label.startsWith("Berildi") ? label : "", subs]
             .filter(Boolean)
             .join(" ");
         })
@@ -269,8 +259,6 @@ export function downloadOrdersExcel(orders: OrderExport[]) {
       <Cell><Data ss:Type="String">${escapeXml(order._id)}</Data></Cell>
       <Cell><Data ss:Type="String">${escapeXml(formatDate(order.createdAt))}</Data></Cell>
       <Cell><Data ss:Type="String">${escapeXml(order.shippingAddress?.fullName ?? "—")}</Data></Cell>
-      <Cell><Data ss:Type="String">${escapeXml(order.shippingAddress?.phone ?? "")}</Data></Cell>
-      <Cell><Data ss:Type="String">${escapeXml(formatAddress(order.shippingAddress))}</Data></Cell>
       <Cell><Data ss:Type="String">${escapeXml(products || "—")}</Data></Cell>
       <Cell><Data ss:Type="String">${escapeXml(statusLabel(order.status))}</Data></Cell>
       <Cell><Data ss:Type="String">${escapeXml(currencyLabel(order.currency))}</Data></Cell>

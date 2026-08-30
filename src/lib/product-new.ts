@@ -1,34 +1,42 @@
 /** Mahsulot qo'shilgandan keyin shuncha kun "Yangi" deb ko'rsatiladi */
 export const NEW_PRODUCT_DAYS = 30;
 
-/**
- * "Yangi" badge faqat shu vaqtdan KEYIN qo'shilgan mahsulotlarga.
- * Bazadagi eski tavarlar (shu sanadan oldin) hech qachon "Yangi" bo'lmaydi.
- * O'zgartirish: .env.local → NEXT_PUBLIC_NEW_PRODUCT_SINCE=2026-08-29T12:29:00.000Z
- */
-const NEW_PRODUCT_SINCE = (
-  process.env.NEXT_PUBLIC_NEW_PRODUCT_SINCE?.trim() ||
-  "2026-08-29T12:29:00.000Z"
-);
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function parseDate(value: string): Date | null {
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+/** MongoDB ObjectId ning birinchi 4 bayti — yaratilgan vaqt */
+function dateFromObjectId(id?: string): Date | null {
+  if (!id || !/^[a-f0-9]{24}$/i.test(id)) return null;
+  const seconds = Number.parseInt(id.slice(0, 8), 16);
+  if (!Number.isFinite(seconds)) return null;
+  const d = new Date(seconds * 1000);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function resolveCreatedAt(createdAt?: string, productId?: string): Date | null {
+  if (createdAt) {
+    const fromIso = parseDate(createdAt);
+    if (fromIso) return fromIso;
+  }
+  return dateFromObjectId(productId);
+}
+
+/**
+ * Qo'shilganidan keyin 30 kun "Yangi".
+ * 30 kun o'tgach belgi o'zi yo'qoladi — qo'lda o'chirish shart emas.
+ */
 export function isProductNew(
   createdAt?: string,
+  productId?: string,
   days = NEW_PRODUCT_DAYS,
 ): boolean {
-  if (!createdAt) return false;
-
-  const created = parseDate(createdAt);
-  const since = parseDate(NEW_PRODUCT_SINCE);
-  if (!created || !since) return false;
-
-  // Eski bazadagi mahsulotlar — badge yo'q
-  if (created.getTime() < since.getTime()) return false;
+  const created = resolveCreatedAt(createdAt, productId);
+  if (!created) return false;
 
   const ageMs = Date.now() - created.getTime();
-  return ageMs >= 0 && ageMs <= days * 24 * 60 * 60 * 1000;
+  return ageMs >= 0 && ageMs <= days * DAY_MS;
 }

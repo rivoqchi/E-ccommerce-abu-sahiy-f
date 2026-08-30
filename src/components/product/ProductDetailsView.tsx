@@ -14,7 +14,9 @@ import { usePriceTier, useProductUnitPrice } from "@/hooks/use-price-tier";
 import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
 import { useProductCartQty } from "@/hooks/use-product-cart-qty";
 import { ProductImage } from "@/components/catalog/ProductImage";
+import { NewProductBadge } from "@/components/catalog/NewProductBadge";
 import { ProductSpecs } from "@/components/product/ProductSpecs";
+import { isProductNew } from "@/lib/product-new";
 import {
   Avatar,
   AvatarFallback,
@@ -155,6 +157,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   const showSpecs = useProductFieldVisible("specs");
   const showDescription = useProductFieldVisible("description");
   const showBuyerCount = useProductFieldVisible("buyerCount");
+  const isNew = isProductNew(product.createdAt, product.id);
 
   const handleBuy = () => {
     if (addToCart() === "in-cart") router.push("/cart");
@@ -224,6 +227,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
             sizes="90vw"
             className="animate-fade-in"
           />
+          {isNew ? <NewProductBadge /> : null}
         </div>
 
         {product.images.length > 1 ? (
@@ -350,6 +354,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
                 sizes="(max-width: 1024px) 50vw, 40vw"
                 className="animate-fade-in"
               />
+              {isNew ? <NewProductBadge /> : null}
               <Button
                 variant="secondary"
                 size="icon"

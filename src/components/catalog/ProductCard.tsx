@@ -15,6 +15,7 @@ import { usePriceTier, useProductUnitPrice } from "@/hooks/use-price-tier";
 import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
 import { useProductFieldVisible } from "@/components/product/ProductDisplayProvider";
 import { isProductNew } from "@/lib/product-new";
+import { NewProductBadge } from "@/components/catalog/NewProductBadge";
 import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
@@ -58,7 +59,7 @@ export function ProductCard({
   const showCompareAtField = useProductFieldVisible("compareAtPrice");
   const showCompareAt = showPrice && showCompareAtField;
   const showRating = useProductFieldVisible("rating");
-  const isNew = isProductNew(product.createdAt);
+  const isNew = isProductNew(product.createdAt, product.id);
 
   const scoopFill = {
     width: R,
@@ -89,11 +90,7 @@ export function ProductCard({
             />
           </Link>
 
-          {isNew ? (
-            <span className="absolute top-3.5 left-3.5 z-20 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white shadow-[0_2px_8px_rgba(16,185,129,0.35)]">
-              Yangi
-            </span>
-          ) : null}
+          {isNew ? <NewProductBadge /> : null}
 
           <Button
             type="button"

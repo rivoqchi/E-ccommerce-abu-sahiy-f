@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { ShoppingBag } from "lucide-react";
 import type { Product } from "@/types/product";
 import { ProductImage } from "@/components/catalog/ProductImage";
+import { NewProductBadge } from "@/components/catalog/NewProductBadge";
+import { isProductNew } from "@/lib/product-new";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -60,6 +62,7 @@ export function ProductQuickView({
 
   const current = product.images[active] ?? product.images[0];
   const soldCount = product.buyerCount ?? 0;
+  const isNew = isProductNew(product.createdAt, product.id);
 
   const handleAdd = () => {
     if (addToCart() === "in-cart") {
@@ -149,6 +152,7 @@ export function ProductQuickView({
                 alt={product.name}
                 fill
               />
+              {isNew ? <NewProductBadge /> : null}
             </div>
 
             {showBuyerCount ? (
