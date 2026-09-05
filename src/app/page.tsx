@@ -37,13 +37,13 @@ export default async function HomePage() {
         </div>
 
         <HomeStories stories={stories} hasVideos={videos.length > 0} />
-        <HomeSellers sellers={sellers} />
         <HomeCategoryPills categories={categories} />
         <FeaturedProducts
           initialProducts={productsResult.items}
           total={productsResult.total}
           initialPage={productsResult.page}
         />
+        <HomeSellers sellers={sellers} />
       </div>
     </div>
   );
