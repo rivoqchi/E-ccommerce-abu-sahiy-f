@@ -65,17 +65,19 @@ function UnitQuantityStepper({
     setDraft(String(next));
   };
 
+  const display = focused ? draft : String(value);
+
   return (
     <div data-qty-stepper className={cn("min-w-0 space-y-1", className)}>
       <p className="truncate text-[11px] font-medium leading-none text-muted-foreground sm:text-xs">
         {label}
       </p>
-      <div className="flex h-11 min-w-0 items-center gap-0.5 rounded-full border border-input bg-background px-1 sm:px-2">
+      <div className="grid h-11 min-w-0 grid-cols-[1.75rem_minmax(2.75ch,1fr)_1.75rem] items-center rounded-full border border-input bg-background px-0.5 sm:grid-cols-[2rem_minmax(2.75ch,1fr)_auto_2rem] sm:px-1">
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="size-8 shrink-0 rounded-full"
+          className="size-7 shrink-0 justify-self-center rounded-full sm:size-8"
           disabled={disabled || value <= 0}
           aria-label={`${label} kamaytirish`}
           onPointerDown={(e) => onStepPointerDown(e, -1)}
@@ -83,8 +85,7 @@ function UnitQuantityStepper({
         >
           <Minus className="size-4" />
         </Button>
-        <div className="flex min-w-0 flex-1 items-center justify-center gap-0.5 overflow-hidden">
-          <input
+        <input
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
@@ -92,7 +93,7 @@ function UnitQuantityStepper({
             autoComplete="off"
             aria-label={`${label} miqdori`}
             disabled={disabled}
-            value={focused ? draft : String(value)}
+            value={display}
             onChange={(e) => {
               const digits = digitsOnly(e.target.value);
               if (digits === "") {
@@ -131,19 +132,20 @@ function UnitQuantityStepper({
               if (e.key === "Enter") e.currentTarget.blur();
             }}
             className={cn(
-              "min-w-0 flex-1 bg-transparent p-0 text-center text-base font-semibold tabular-nums text-foreground outline-none",
+              "h-full w-full min-w-0 bg-transparent p-0 text-center font-semibold tabular-nums text-foreground outline-none",
+              "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+              display.length >= 4 ? "text-sm" : "text-base",
               "disabled:cursor-not-allowed disabled:opacity-40",
             )}
           />
-          <span className="shrink-0 text-[11px] font-semibold text-muted-foreground sm:text-sm">
-            {suffix}
-          </span>
-        </div>
+        <span className="hidden pr-0.5 text-[10px] font-semibold text-muted-foreground sm:inline sm:text-xs">
+          {suffix}
+        </span>
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="size-8 shrink-0 rounded-full"
+          className="size-7 shrink-0 justify-self-center rounded-full sm:size-8"
           disabled={disabled || value >= UNLIMITED_QTY}
           aria-label={`${label} ko'paytirish`}
           onPointerDown={(e) => onStepPointerDown(e, 1)}

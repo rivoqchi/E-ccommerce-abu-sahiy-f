@@ -110,6 +110,7 @@ export function ProductQuickView({
       <SheetContent
         side="bottom"
         showCloseButton
+        initialFocus={false}
         style={{
           ...(keyboardOpen
             ? {
