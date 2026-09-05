@@ -79,7 +79,7 @@ export function QuantityStepper({
   return (
     <div
       className={cn(
-        "inline-flex items-center",
+        "inline-flex min-w-0 items-center",
         styles.wrap,
         className,
       )}
@@ -138,11 +138,10 @@ export function QuantityStepper({
           if (e.key === "Enter") e.currentTarget.blur();
         }}
         className={cn(
-          "bg-transparent p-0 text-center tabular-nums text-foreground outline-none",
+          "min-w-8 flex-1 bg-transparent p-0 text-center text-base tabular-nums text-foreground outline-none",
           "disabled:opacity-40",
           styles.input,
         )}
-        style={{ width: `${Math.max(1, (focused ? draft : String(value)).length)}ch` }}
       />
       <button
         type="button"

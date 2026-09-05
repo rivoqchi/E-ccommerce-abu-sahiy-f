@@ -69,9 +69,9 @@ function CartLine({
             </p>
           </div>
 
-          <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
             <ProductUnitPicker
-              className="w-full min-w-[14rem] sm:w-auto"
+              className="w-full min-w-0 sm:min-w-[14rem] sm:w-auto"
               piecesPerBox={item.piecesPerBox}
               value={{
                 boxQuantity: item.boxQuantity,
@@ -82,21 +82,23 @@ function CartLine({
               }
             />
 
-            {showPrice ? (
-              <p className="min-w-20 text-right text-sm font-semibold tabular-nums">
-                {formatMoney(unit * item.quantity, priceTier)}
-              </p>
-            ) : null}
+            <div className="flex items-center justify-end gap-2">
+              {showPrice ? (
+                <p className="min-w-20 text-right text-sm font-semibold tabular-nums">
+                  {formatMoney(unit * item.quantity, priceTier)}
+                </p>
+              ) : null}
 
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="size-8 rounded-full text-muted-foreground hover:text-destructive"
-              aria-label="O'chirish"
-              onClick={() => removeItem(item.productId, item.source)}
-            >
-              <Trash2 className="size-4" strokeWidth={1.75} />
-            </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="size-8 rounded-full text-muted-foreground hover:text-destructive"
+                aria-label="O'chirish"
+                onClick={() => removeItem(item.productId, item.source)}
+              >
+                <Trash2 className="size-4" strokeWidth={1.75} />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

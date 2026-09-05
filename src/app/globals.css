@@ -170,6 +170,8 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -269,5 +271,12 @@ body {
   }
   [data-slot="input"] {
     padding: 0 !important;
+  }
+}
+
+/* iPhone Safari zooms inputs under 16px — keep quantity digits on-screen */
+@media (max-width: 767px) {
+  input[inputmode="numeric"] {
+    font-size: 16px;
   }
 }

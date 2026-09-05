@@ -47,9 +47,11 @@ function UnitQuantityStepper({
   };
 
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <div className="flex h-11 items-center justify-between gap-1 rounded-full border border-input bg-background px-2">
+    <div className={cn("min-w-0 space-y-1", className)}>
+      <p className="truncate text-[11px] font-medium leading-none text-muted-foreground sm:text-xs">
+        {label}
+      </p>
+      <div className="flex h-11 min-w-0 items-center gap-0.5 rounded-full border border-input bg-background px-1 sm:px-2">
         <Button
           type="button"
           variant="ghost"
@@ -61,7 +63,7 @@ function UnitQuantityStepper({
         >
           <Minus className="size-4" />
         </Button>
-        <div className="flex min-w-0 flex-1 items-center justify-center gap-0.5">
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-0.5 overflow-hidden">
           <input
             type="text"
             inputMode="numeric"
@@ -99,14 +101,11 @@ function UnitQuantityStepper({
               if (e.key === "Enter") e.currentTarget.blur();
             }}
             className={cn(
-              "w-full min-w-8 max-w-24 bg-transparent p-0 text-center text-sm font-semibold tabular-nums text-foreground outline-none",
+              "min-w-0 flex-1 bg-transparent p-0 text-center text-base font-semibold tabular-nums text-foreground outline-none",
               "disabled:cursor-not-allowed disabled:opacity-40",
             )}
-            style={{
-              width: `${Math.max(2, (focused ? draft : String(value)).length)}ch`,
-            }}
           />
-          <span className="shrink-0 text-sm font-semibold text-muted-foreground">
+          <span className="shrink-0 text-[11px] font-semibold text-muted-foreground sm:text-sm">
             {suffix}
           </span>
         </div>
@@ -147,7 +146,7 @@ export function ProductUnitPicker({
   const canUseBox = Boolean(piecesPerBox && piecesPerBox >= 1);
 
   return (
-    <div className={cn("grid gap-3 sm:grid-cols-2", className)}>
+    <div className={cn("grid grid-cols-2 gap-2 sm:gap-3", className)}>
       <UnitQuantityStepper
         label="Karobka"
         suffix="kor"

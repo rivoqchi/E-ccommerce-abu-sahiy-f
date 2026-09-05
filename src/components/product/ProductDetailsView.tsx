@@ -172,7 +172,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   };
 
   const renderBuyActions = () => (
-    <div className="flex w-full flex-col gap-3">
+    <div className="flex w-full min-w-0 flex-col gap-2 sm:gap-3">
       <ProductUnitPicker
         piecesPerBox={piecesPerBox}
         value={units}
@@ -190,7 +190,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   );
 
   return (
-    <div className="relative mx-auto w-full max-w-6xl pb-28 md:pb-10">
+    <div className="relative mx-auto w-full max-w-6xl pb-[13.5rem] md:pb-10">
       {/* Mobile Sense layout */}
       <div className="md:hidden">
         <header className="sticky top-0 z-30 flex items-center justify-between bg-background/90 px-[5%] py-3 backdrop-blur-md">
@@ -322,11 +322,15 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
 
         <div
           className={cn(
-            "pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center",
+            "pointer-events-none fixed inset-x-0 bottom-0 z-40",
             "pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))]",
           )}
         >
-          <div className="pointer-events-auto w-[90%] max-w-lg">{renderBuyActions()}</div>
+          <div className="pointer-events-auto mx-auto w-full max-w-lg px-[5%]">
+            <div className="rounded-[1.35rem] bg-background/95 p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.12)] ring-1 ring-border/80 backdrop-blur-md">
+              {renderBuyActions()}
+            </div>
+          </div>
         </div>
       </div>
 
