@@ -13,6 +13,7 @@ import { useWishlistStore } from "@/store/wishlist";
 import { usePriceTier, useProductUnitPrice } from "@/hooks/use-price-tier";
 import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
 import { useProductCartQty } from "@/hooks/use-product-cart-qty";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { ProductImage } from "@/components/catalog/ProductImage";
 import { NewProductBadge } from "@/components/catalog/NewProductBadge";
 import { ProductSpecs } from "@/components/product/ProductSpecs";
@@ -161,6 +162,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   const showSpecs = useProductFieldVisible("specs");
   const showDescription = useProductFieldVisible("description");
   const showBuyerCount = useProductFieldVisible("buyerCount");
+  const keyboardInset = useKeyboardInset();
   const isNew = isProductNew(product.newHighlightUntil);
 
   const handleBuy = () => {
@@ -322,9 +324,16 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
 
         <div
           className={cn(
-            "pointer-events-none fixed inset-x-0 bottom-0 z-40",
-            "pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))]",
+            "pointer-events-none fixed inset-x-0 z-40",
+            keyboardInset > 0
+              ? "bottom-0 pb-2"
+              : "bottom-0 pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))]",
           )}
+          style={
+            keyboardInset > 0
+              ? { bottom: keyboardInset, paddingBottom: 12 }
+              : undefined
+          }
         >
           <div className="pointer-events-auto mx-auto w-full max-w-lg px-[5%]">
             <div className="rounded-[1.35rem] bg-background/95 p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.12)] ring-1 ring-border/80 backdrop-blur-md">

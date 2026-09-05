@@ -34,6 +34,9 @@ export type TelegramWebApp = {
   };
   version?: string;
   platform?: string;
+  viewportHeight?: number;
+  viewportStableHeight?: number;
+  isExpanded?: boolean;
   ready: () => void;
   expand: () => void;
   close?: () => void;

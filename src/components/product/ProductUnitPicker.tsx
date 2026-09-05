@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent, type PointerEvent } from "react";
 import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -39,6 +39,25 @@ function UnitQuantityStepper({
     if (!focused) setDraft(String(value));
   }, [value, focused]);
 
+  const bump = (delta: number) => {
+    const next = clampUnit(value + delta);
+    if (next === value) return;
+    if (disabled) return;
+    onChange(next);
+    setDraft(String(next));
+  };
+
+  const onStepPointerDown = (e: PointerEvent, delta: number) => {
+    e.preventDefault();
+    if (e.button !== 0) return;
+    bump(delta);
+  };
+
+  const onStepClick = (e: MouseEvent, delta: number) => {
+    if (e.detail !== 0) return;
+    bump(delta);
+  };
+
   const commit = (raw: string) => {
     const digits = digitsOnly(raw);
     const next = digits === "" ? 0 : clampUnit(Number.parseInt(digits, 10));
@@ -47,7 +66,7 @@ function UnitQuantityStepper({
   };
 
   return (
-    <div className={cn("min-w-0 space-y-1", className)}>
+    <div data-qty-stepper className={cn("min-w-0 space-y-1", className)}>
       <p className="truncate text-[11px] font-medium leading-none text-muted-foreground sm:text-xs">
         {label}
       </p>
@@ -59,7 +78,8 @@ function UnitQuantityStepper({
           className="size-8 shrink-0 rounded-full"
           disabled={disabled || value <= 0}
           aria-label={`${label} kamaytirish`}
-          onClick={() => onChange(clampUnit(value - 1))}
+          onPointerDown={(e) => onStepPointerDown(e, -1)}
+          onClick={(e) => onStepClick(e, -1)}
         >
           <Minus className="size-4" />
         </Button>
@@ -92,6 +112,16 @@ function UnitQuantityStepper({
               setFocused(true);
               setDraft(String(value));
               e.target.select();
+              const row = e.currentTarget.closest("[data-qty-stepper]");
+              const reveal = () =>
+                row?.scrollIntoView({
+                  block: "end",
+                  inline: "nearest",
+                  behavior: "smooth",
+                });
+              requestAnimationFrame(reveal);
+              window.setTimeout(reveal, 280);
+              window.setTimeout(reveal, 520);
             }}
             onBlur={() => {
               setFocused(false);
@@ -116,7 +146,8 @@ function UnitQuantityStepper({
           className="size-8 shrink-0 rounded-full"
           disabled={disabled || value >= UNLIMITED_QTY}
           aria-label={`${label} ko'paytirish`}
-          onClick={() => onChange(clampUnit(value + 1))}
+          onPointerDown={(e) => onStepPointerDown(e, 1)}
+          onClick={(e) => onStepClick(e, 1)}
         >
           <Plus className="size-4" />
         </Button>

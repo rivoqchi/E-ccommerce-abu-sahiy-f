@@ -92,7 +92,17 @@ export function QuantityStepper({
           styles.btn,
         )}
         disabled={inactive || value <= min}
-        onClick={() => {
+        onPointerDown={(e) => {
+          e.preventDefault();
+          if (e.button !== 0) return;
+          if (inactive || value <= min) return;
+          const next = clampQty(value - 1, min, cap);
+          onChange(next);
+          setDraft(String(next));
+        }}
+        onClick={(e) => {
+          if (e.detail !== 0) return;
+          if (inactive || value <= min) return;
           const next = clampQty(value - 1, min, cap);
           onChange(next);
           setDraft(String(next));
@@ -129,6 +139,16 @@ export function QuantityStepper({
           setFocused(true);
           setDraft(String(value));
           e.target.select();
+          const row = e.currentTarget.parentElement;
+          const reveal = () =>
+            row?.scrollIntoView({
+              block: "end",
+              inline: "nearest",
+              behavior: "smooth",
+            });
+          requestAnimationFrame(reveal);
+          window.setTimeout(reveal, 280);
+          window.setTimeout(reveal, 520);
         }}
         onBlur={() => {
           setFocused(false);
@@ -151,7 +171,17 @@ export function QuantityStepper({
           styles.btn,
         )}
         disabled={inactive || value >= cap}
-        onClick={() => {
+        onPointerDown={(e) => {
+          e.preventDefault();
+          if (e.button !== 0) return;
+          if (inactive || value >= cap) return;
+          const next = clampQty(value + 1, min, cap);
+          onChange(next);
+          setDraft(String(next));
+        }}
+        onClick={(e) => {
+          if (e.detail !== 0) return;
+          if (inactive || value >= cap) return;
           const next = clampQty(value + 1, min, cap);
           onChange(next);
           setDraft(String(next));
