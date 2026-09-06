@@ -8,7 +8,7 @@ export function ProductPageSkeleton() {
       aria-busy="true"
       aria-live="polite"
     >
-      <div className="relative mx-auto w-full max-w-6xl pb-28 md:pb-10" aria-hidden>
+      <div className="relative mx-auto w-full max-w-6xl pb-8 md:pb-10" aria-hidden>
         {/* Mobile */}
         <div className="md:hidden">
           <div className="sticky top-0 z-30 flex items-center justify-between bg-background/90 px-[5%] py-3">
@@ -22,12 +22,11 @@ export function ProductPageSkeleton() {
             <Skeleton className="h-7 w-[80%]" />
             <Skeleton className="h-6 w-28" />
             <Skeleton className="h-20 w-full rounded-2xl" />
-          </div>
-          <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))]">
-            <div className="flex w-[90%] max-w-lg items-center gap-3">
-              <Skeleton className="size-14 shrink-0 rounded-2xl" />
-              <Skeleton className="h-14 flex-1 rounded-full" />
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <Skeleton className="h-11 w-full rounded-full" />
+              <Skeleton className="h-11 w-full rounded-full" />
             </div>
+            <Skeleton className="h-12 w-full rounded-full" />
           </div>
         </div>
 
@@ -57,9 +56,9 @@ export function ProductPageSkeleton() {
         </div>
       </div>
 
-      <section className="mt-6 hidden md:mt-16 md:block" aria-hidden>
-        <Skeleton className="h-8 w-52" />
-        <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mt-6 md:mt-16" aria-hidden>
+        <Skeleton className="mx-[5%] h-5 w-44 md:mx-0 md:h-8 md:w-52" />
+        <ul className="mt-4 grid grid-cols-2 gap-3 px-[5%] sm:gap-5 md:mt-6 md:px-0 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <li key={i}>
               <ProductCardSkeleton />

@@ -51,7 +51,6 @@ import {
 } from "@/components/admin/ProductStockFields";
 import { ProductDisplaySettingsModal } from "@/components/admin/ProductDisplaySettingsModal";
 import { useAdminApi } from "@/lib/admin-api";
-import { formatStockDisplay } from "@/lib/product-units";
 import { formatUSD, formatUZS } from "@/lib/format";
 import { resolveUnitPrice, sourceUsd } from "@/lib/pricing";
 import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
@@ -649,7 +648,7 @@ export default function AdminProductsPage() {
                 <TableHead>Kod</TableHead>
                 <TableHead>Oddiy</TableHead>
                 <TableHead>Optom ($)</TableHead>
-                <TableHead>Soni</TableHead>
+                <TableHead>Karobkada</TableHead>
                 <TableHead>Muammo</TableHead>
                 <TableHead>Sana</TableHead>
                 <TableHead>Status</TableHead>
@@ -714,14 +713,9 @@ export default function AdminProductsPage() {
                         )}
                       </TableCell>
                       <TableCell className="tabular-nums font-medium">
-                        <span className="block">
-                          {formatStockDisplay(p.stock, p.piecesPerBox)}
-                        </span>
-                        {p.piecesPerBox ? (
-                          <span className="text-xs font-normal text-muted-foreground">
-                            jami {p.stock} dona
-                          </span>
-                        ) : null}
+                        {p.piecesPerBox && p.piecesPerBox >= 1
+                          ? `${p.piecesPerBox} dona`
+                          : "—"}
                       </TableCell>
                       <TableCell className="max-w-[140px] text-xs">
                         {hasProblems ? (

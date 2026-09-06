@@ -50,6 +50,20 @@ export function useProductCartQty(product: Product | null) {
     setDraftUnits(next);
   };
 
+  /** Savatga darhol yozadi (card inline count uchun). */
+  const commitUnits = (next: ProductUnitValues) => {
+    if (!product) return;
+    if (inCart) {
+      updateUnits(product.id, next, product.source);
+      return;
+    }
+    if (hasUnitSelection(next)) {
+      addItem(product, next);
+      return;
+    }
+    setDraftUnits(next);
+  };
+
   const addToCart = (): "added" | "in-cart" | "unavailable" => {
     if (!product) return "unavailable";
     if (inCart) return "in-cart";
@@ -61,6 +75,7 @@ export function useProductCartQty(product: Product | null) {
   return {
     units,
     setUnits,
+    commitUnits,
     inCart,
     addToCart,
     piecesPerBox: product?.piecesPerBox,

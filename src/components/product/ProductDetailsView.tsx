@@ -13,7 +13,6 @@ import { useWishlistStore } from "@/store/wishlist";
 import { usePriceTier, useProductUnitPrice } from "@/hooks/use-price-tier";
 import { useUsdToUzs } from "@/components/fx/ExchangeRateProvider";
 import { useProductCartQty } from "@/hooks/use-product-cart-qty";
-import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { ProductImage } from "@/components/catalog/ProductImage";
 import { NewProductBadge } from "@/components/catalog/NewProductBadge";
 import { ProductSpecs } from "@/components/product/ProductSpecs";
@@ -162,7 +161,6 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   const showSpecs = useProductFieldVisible("specs");
   const showDescription = useProductFieldVisible("description");
   const showBuyerCount = useProductFieldVisible("buyerCount");
-  const keyboardInset = useKeyboardInset();
   const isNew = isProductNew(product.newHighlightUntil);
 
   const handleBuy = () => {
@@ -174,7 +172,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   };
 
   const renderBuyActions = () => (
-    <div className="flex w-full min-w-0 flex-col gap-2 sm:gap-3">
+    <div className="flex w-full min-w-0 flex-col gap-3">
       <ProductUnitPicker
         piecesPerBox={piecesPerBox}
         value={units}
@@ -182,7 +180,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
       />
       <Button
         size="lg"
-        className="h-12 w-full rounded-full px-5 text-sm font-semibold shadow-lg"
+        className="h-12 w-full rounded-full px-5 text-sm font-semibold"
         disabled={!inCart && !hasUnitSelection(units)}
         onClick={handleBuy}
       >
@@ -192,7 +190,7 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
   );
 
   return (
-    <div className="relative mx-auto w-full max-w-6xl pb-[13.5rem] md:pb-10">
+    <div className="relative mx-auto w-full max-w-6xl md:pb-10">
       {/* Mobile Sense layout */}
       <div className="md:hidden">
         <header className="sticky top-0 z-30 flex items-center justify-between bg-background/90 px-[5%] py-3 backdrop-blur-md">
@@ -309,8 +307,12 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
           <Separator className="my-5" />
 
           {showSpecs && product.specs?.length ? (
-            <ProductSpecs specs={product.specs} />
+            <div className="mb-5">
+              <ProductSpecs specs={product.specs} />
+            </div>
           ) : null}
+
+          {renderBuyActions()}
         </div>
 
         {showDescription && product.description ? (
@@ -321,26 +323,6 @@ export function ProductDetailsView({ product }: ProductDetailsViewProps) {
             </p>
           </section>
         ) : null}
-
-        <div
-          className={cn(
-            "pointer-events-none fixed inset-x-0 z-40",
-            keyboardInset > 0
-              ? "bottom-0 pb-2"
-              : "bottom-0 pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))]",
-          )}
-          style={
-            keyboardInset > 0
-              ? { bottom: keyboardInset, paddingBottom: 12 }
-              : undefined
-          }
-        >
-          <div className="pointer-events-auto mx-auto w-full max-w-lg px-[5%]">
-            <div className="rounded-[1.35rem] bg-background/95 p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.12)] ring-1 ring-border/80 backdrop-blur-md">
-              {renderBuyActions()}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Desktop Sense layout */}

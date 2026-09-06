@@ -313,6 +313,7 @@ export async function fetchProducts(options?: {
   page?: number;
   limit?: number;
   newOnly?: boolean;
+  popularOnly?: boolean;
 }): Promise<ProductsListResult> {
   const limit = options?.limit ?? CATALOG_PAGE_SIZE;
   const page = options?.page ?? 1;
@@ -331,6 +332,7 @@ export async function fetchProducts(options?: {
         page,
         limit,
         newOnly: options?.newOnly ? "1" : undefined,
+        popularOnly: options?.popularOnly ? "1" : undefined,
       })}`,
       // Import/replace dan keyin bo'sh ISR cache qolib ketmasin
       { cache: "no-store", next: { revalidate: 0 } },

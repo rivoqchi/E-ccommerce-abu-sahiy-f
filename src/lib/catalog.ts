@@ -5,6 +5,9 @@ export const CATALOG_PAGE_SIZE = 30;
 /** Home «Yangi mahsulotlar»: switch yoqilgan + 30 kun ichidagi mahsulotlar */
 export const HOME_PRODUCTS_PAGE_SIZE = 8;
 
+/** Home «Ommabob mahsulotlar»: eng ko‘p sotilganlar (bir sahifa) */
+export const HOME_POPULAR_PAGE_SIZE = 20;
+
 export type CatalogSort = "featured" | "price-asc" | "price-desc" | "name";
 
 export interface CatalogQuery {

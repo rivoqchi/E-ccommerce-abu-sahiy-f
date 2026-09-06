@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ProductDetailsView } from "@/components/product/ProductDetailsView";
-import { ProductCard } from "@/components/catalog/ProductCard";
+import { RelatedProducts } from "@/components/product/RelatedProducts";
 import {
   fetchExchangeRate,
   fetchHamkorProductBySlug,
@@ -86,21 +86,7 @@ export default async function HamkorProductPage({
 
       <div className="mx-auto w-full max-w-6xl md:w-[80%] md:py-10">
         <ProductDetailsView product={product} />
-
-        {related.length > 0 ? (
-          <section className="mt-6 hidden px-0 md:mt-16 md:block">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-              O&apos;xshash mahsulotlar
-            </h2>
-            <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {related.map((item) => (
-                <li key={item.id}>
-                  <ProductCard product={item} />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
+        <RelatedProducts products={related} />
       </div>
     </>
   );

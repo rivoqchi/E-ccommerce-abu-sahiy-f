@@ -4,7 +4,11 @@ import { HomeStories } from "@/components/home/HomeStories";
 import { HomeCategoryPills } from "@/components/home/HomeCategoryPills";
 import { HomeSellers } from "@/components/home/HomeSellers";
 import { FeaturedProducts } from "@/components/home/FeaturedProducts";
-import { HOME_PRODUCTS_PAGE_SIZE } from "@/lib/catalog";
+import { PopularProducts } from "@/components/home/PopularProducts";
+import {
+  HOME_PRODUCTS_PAGE_SIZE,
+  HOME_POPULAR_PAGE_SIZE,
+} from "@/lib/catalog";
 import {
   fetchCategories,
   fetchProducts,
@@ -16,14 +20,25 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [productsResult, categories, sellers, stories, videos] =
-    await Promise.all([
-      fetchProducts({ page: 1, limit: HOME_PRODUCTS_PAGE_SIZE, newOnly: true }),
-      fetchCategories(),
-      fetchSellers(),
-      fetchStories(),
-      fetchStoryVideos(),
-    ]);
+  const [
+    productsResult,
+    popularResult,
+    categories,
+    sellers,
+    stories,
+    videos,
+  ] = await Promise.all([
+    fetchProducts({ page: 1, limit: HOME_PRODUCTS_PAGE_SIZE, newOnly: true }),
+    fetchProducts({
+      page: 1,
+      limit: HOME_POPULAR_PAGE_SIZE,
+      popularOnly: true,
+    }),
+    fetchCategories(),
+    fetchSellers(),
+    fetchStories(),
+    fetchStoryVideos(),
+  ]);
 
   return (
     <div className="mx-auto w-[90%] max-w-6xl py-5 md:w-[80%] md:py-10">
@@ -42,6 +57,11 @@ export default async function HomePage() {
           initialProducts={productsResult.items}
           total={productsResult.total}
           initialPage={productsResult.page}
+        />
+        <PopularProducts
+          initialProducts={popularResult.items}
+          total={popularResult.total}
+          initialPage={popularResult.page}
         />
         <HomeSellers sellers={sellers} />
       </div>
